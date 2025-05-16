@@ -7,6 +7,13 @@ class AppTheme{
   static final Color azulSecundario2 = const Color.fromARGB(255, 5, 77, 186);
   static final Color backgroundColor = const Color.fromARGB(255, 231, 229, 229);
 
+  static final TextStyle subtituloPrimario = TextStyle(
+    color: Colors.white
+  );
+  static final TextStyle subtituloSecundario = TextStyle(
+    color: Colors.black
+  );
+
   static final ThemeData customTheme = ThemeData.light().copyWith(
     dialogTheme: DialogTheme(
       surfaceTintColor: Colors.transparent

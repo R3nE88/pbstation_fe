@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Image.asset('assets/images/logo.png'),
               ),
 
-              Flexible(
+              Expanded(
                 child: ListView.builder(
                   itemCount: Modulos.modulos.length,
                   itemBuilder: (context, index) {
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                         },
                         child: CustomNavigationButton(
-                          icon: Modulos.modulosIconos[modulo] ?? Icons.folder,
+                          icon: Modulos.modulosIconos[modulo]?.elementAt(0) ?? Icons.folder,
                           label: modulo[0].toUpperCase() + modulo.substring(1),
                           selected: Modulos.moduloSelected == modulo ? true : false
                         )
@@ -132,59 +132,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Center(child: Text('Version Alpha 0.0001v')),
+                child: Center(child: Text('Version Alpha 0.0001v', style: AppTheme.subtituloPrimario)),
               ),
-
-/*
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    Modulos.moduloSelected = 'caja';
-                    Modulos.subModuloSelected = 0;
-                  });
-                },
-                child: CustomNavigationButton(
-                  icon: Icons.sell, label: 'Caja',
-                  selected:
-                   Modulos.moduloSelected == 'caja' ? true : false
-                )
-              ),
-            ),
-
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    Modulos.moduloSelected = 'catalogo';
-                    Modulos.subModuloSelected = 0;
-                  });
-                },
-                child: CustomNavigationButton(
-                  icon: Icons.add_chart, label: 'Catalogo',
-                  selected: Modulos.moduloSelected == 'catalogo' ? true : false
-                )
-              ),
-            ),
-
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    Modulos.moduloSelected = 'cotizaciones';
-                    Modulos.subModuloSelected = 0;
-                  });
-                },
-                child: CustomNavigationButton(
-                  icon: Icons.price_check, label: 'Cotizaciones',
-                  selected: Modulos.moduloSelected == 'cotizaciones' ? true : false
-                )
-              ),
-            ),*/
-
             ],
           ),
         ),
@@ -198,29 +147,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ? Modulos.modulos[Modulos.moduloSelected]!.length > 1 
           ? true : false : false,
           boxDecoration: gradianteR,
-          menuContent: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                height: 40, 
-                width: 50,
-                color: Colors.red,
-              ),
-              ElevatedButton(
-                onPressed: (){}, 
-                child: Text(
-                  'Soy un botón xd',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
+          menuContent: ListView.builder(
+            itemCount: Modulos.modulos[Modulos.moduloSelected]?.length??0,
+            itemBuilder: (context, index) {
+              List<String>? subModulos = Modulos.modulos[Modulos.moduloSelected];
+
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      Modulos.moduloSelected = Modulos.moduloSelected;
+                      Modulos.subModuloSelected = index;
+                    });
+                  },
+                  child: CustomNavigationButton(
+                    icon: Modulos.modulosIconos[Modulos.moduloSelected]?.elementAt(index+1) ?? Icons.folder,
+                    label: subModulos?[index] ?? 'na', 
+                    selected: Modulos.subModuloSelected == index ? true : false
+                  )
                 ),
-              )
-
-            ],
-          ),
+              );
+            }
+          )   
         )
-
       ],
     );
   }
@@ -230,15 +180,27 @@ class _HomeScreenState extends State<HomeScreen> {
     for (MapEntry<String, List<String>> modulo in Modulos.modulos.entries) {
       if (Modulos.moduloSelected==modulo.key){
         print('Modulo seleccionado! ${modulo.key}');
-        return Modulos.modulosScreens[modulo.key]?[Modulos.subModuloSelected] 
-        ?? Text('No se encontro xd');
+        try {
+          return Modulos.modulosScreens[modulo.key]![Modulos.subModuloSelected];
+        } catch (e) {
+          return Center(child: Text('No se encontro xd'));
+        }
       }
       
     }
 
 
-    return Container( //Este puede ser el Login 
-      color: Colors.blueGrey,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset('assets/images/logo.png', height: 200, color: Colors.black54),
+        SizedBox(height: 15),
+        Text('¡Bienvenido a PrinterBoyStation!\n¿Qué haremos hoy?', 
+          textScaler: TextScaler.linear(1.5), 
+          style: TextStyle(color: Colors.black45),
+          textAlign: TextAlign.center,
+        )
+      ],
     );
   }
 }

@@ -5,7 +5,7 @@ import 'package:pbstation_frontend/screens/productos_screen.dart';
 import 'package:pbstation_frontend/screens/venta_screen.dart';
 
 class Modulos{
-  static String moduloSelected = 'login';
+  static String moduloSelected = 'inicio';
   static int subModuloSelected = 0;
 
   static final Map<String, List<String>> modulos = {
@@ -24,10 +24,22 @@ class Modulos{
     ]
   };
 
-  static final Map<String, IconData> modulosIconos = {
-    'caja' : Icons.point_of_sale,
-    'catalogo' : Icons.menu_book,
-    'cotizaciones' : Icons.request_quote,
+  static final Map<String, List<IconData>> modulosIconos = {
+    'caja' : [
+      Icons.point_of_sale,
+      Icons.sell,
+      Icons.attach_money,
+    ],
+    'catalogo' : [
+      Icons.menu_book,
+      Icons.align_horizontal_left,
+      Icons.design_services,
+      Icons.supervised_user_circle_sharp,
+      Icons.people,
+    ],
+    'cotizaciones' : [
+      Icons.request_quote,
+    ]
   };
 
   static final Map<String, List<Widget>> modulosScreens = {
@@ -36,9 +48,6 @@ class Modulos{
       CajaScreen()
     ],
     'catalogo': [
-      ProductosScreen(),
-      ProductosScreen(),
-      ProductosScreen(),
       ProductosScreen(),
     ],
     'cotizaciones': [
