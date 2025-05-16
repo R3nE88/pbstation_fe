@@ -179,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     for (MapEntry<String, List<String>> modulo in Modulos.modulos.entries) {
       if (Modulos.moduloSelected==modulo.key){
+        print('Modulo seleccionado! ${modulo.key}');
         try {
           return Modulos.modulosScreens[modulo.key]![Modulos.subModuloSelected];
         } catch (e) {

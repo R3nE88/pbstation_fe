@@ -37,66 +37,87 @@ class HoverSideMenu extends StatefulWidget {
   State<HoverSideMenu> createState() => _HoverSideMenuState();
 }
 
-class _HoverSideMenuState extends State<HoverSideMenu> {
-  bool _hovering = false;
+class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
 
-  void _onEnter(PointerEnterEvent event){
-    if (widget.enabled==true){
-      setState(() => _hovering = true);
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onEnter(PointerEnterEvent event) {
+    if (widget.enabled) {
+      _controller.forward();
     }
-  } 
-  void _onExit(PointerExitEvent event) => setState(() => _hovering = false);
+  }
+
+  void _onExit(PointerExitEvent event) {
+    _controller.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Factor t de 0 a 1 según hover
-    final tween = Tween(begin: _hovering ? 1.0 : 0.0, end: _hovering ? 1.0 : 0.0);
+    final collapsedWidth = widget.collapsedWidth;
+    final expandedWidth = widget.expandedWidth;
+    final contentSwitchThreshold = widget.contentSwitchThreshold;
+
     return Positioned(
-      bottom:0,
+      bottom: 0,
       left: widget.side == MenuSide.left ? 0 : null,
       right: widget.side == MenuSide.right ? 0 : null,
       child: MouseRegion(
         onEnter: _onEnter,
         onExit: _onExit,
         child: Material(
-          color: Colors.transparent,
-          child: TweenAnimationBuilder<double>(
-            tween: tween,
-            duration: widget.duration,
-            builder: (context, t, child) {
-              final width = widget.collapsedWidth +
-                  (widget.expandedWidth - widget.collapsedWidth) * t;
-              final showContent = width >= widget.contentSwitchThreshold;
-              
-              return ClipRRect(
-                child: Stack(
-                  alignment: widget.side == MenuSide.right 
-                  ? Alignment.topRight
-                  : Alignment.topLeft,
-                  children: [
-                    Transform.translate(
-                      offset: Offset(0, widget.side == MenuSide.right ?1.2:0),
-                      child: InverseBorder(extraWidth: width, side: widget.side)
-                    ),
-                    Container(
+          color: Colors.red,
+          child: AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              final t = _animation.value;
+              final width = collapsedWidth + (expandedWidth - collapsedWidth) * t;
+              final showContent = width >= contentSwitchThreshold;
 
+              return RepaintBoundary(
+                child: Stack(
+                  alignment: widget.side == MenuSide.right
+                      ? Alignment.topRight
+                      : Alignment.topLeft,
+                  children: [
+                    if (widget.side == MenuSide.right || widget.side == MenuSide.left)
+                      Transform.translate(
+                        offset: Offset(0, widget.side == MenuSide.right ? 1.2 : 0),
+                        child: InverseBorder(extraWidth: width, side: widget.side),
+                      ),
+                    Container(
                       width: width,
                       height: widget.height,
                       decoration: widget.boxDecoration,
                       child: showContent
-                      ? Align(
-                        alignment: Alignment.topCenter,
-                        child: widget.menuContent,
-                      )
-                      : Center(
-                        child: RotatedBox(
-                          quarterTurns: widget.side == MenuSide.right ? 1 : 3,
-                          child: Icon(
-                            Icons.arrow_drop_down,
-                            color: widget.enabled==true?Colors.white70:Colors.transparent,
-                          ),
-                        ),
-                      ),
+                          ? Align(
+                              alignment: Alignment.topCenter,
+                              child: widget.menuContent,
+                            )
+                          : Center(
+                              child: RotatedBox(
+                                quarterTurns: widget.side == MenuSide.right ? 1 : 3,
+                                child: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: widget.enabled ? Colors.white70 : Colors.transparent,
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
