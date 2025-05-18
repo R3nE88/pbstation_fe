@@ -40,6 +40,7 @@ class HoverSideMenu extends StatefulWidget {
 class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _animation;
+  late final ValueNotifier<double> _widthNotifier;
 
   @override
   void initState() {
@@ -49,11 +50,18 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
       duration: widget.duration,
     );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+    _widthNotifier = ValueNotifier(widget.collapsedWidth);
+
+    _animation.addListener(() {
+      final t = _animation.value;
+      _widthNotifier.value = widget.collapsedWidth + (widget.expandedWidth - widget.collapsedWidth) * t;
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _widthNotifier.dispose();
     super.dispose();
   }
 
@@ -69,38 +77,38 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final collapsedWidth = widget.collapsedWidth;
-    final expandedWidth = widget.expandedWidth;
     final contentSwitchThreshold = widget.contentSwitchThreshold;
 
     return Positioned(
       bottom: 0,
       left: widget.side == MenuSide.left ? 0 : null,
       right: widget.side == MenuSide.right ? 0 : null,
-      child: MouseRegion(
-        onEnter: _onEnter,
-        onExit: _onExit,
-        child: Material(
-          color: Colors.red,
-          child: AnimatedBuilder(
-            animation: _animation,
-            builder: (context, child) {
-              final t = _animation.value;
-              final width = collapsedWidth + (expandedWidth - collapsedWidth) * t;
-              final showContent = width >= contentSwitchThreshold;
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(
+          alignment: widget.side == MenuSide.left ? Alignment.topLeft : Alignment.topRight,
+          children: [
+            ValueListenableBuilder<double>(
+              valueListenable: _widthNotifier,
+              builder: (context, width, child) {
+                return Transform.translate(
+                  offset: Offset(0, widget.side == MenuSide.right ? 1.2 : 0),
+                  child: InverseBorder(extraWidth: width, side: widget.side),
+                );
+              },
+            ),
+            MouseRegion(
+              onEnter: _onEnter,
+              onExit: _onExit,
+              child: AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  final t = _animation.value;
+                  final width = widget.collapsedWidth + (widget.expandedWidth - widget.collapsedWidth) * t;
+                  final showContent = width >= contentSwitchThreshold;
 
-              return RepaintBoundary(
-                child: Stack(
-                  alignment: widget.side == MenuSide.right
-                      ? Alignment.topRight
-                      : Alignment.topLeft,
-                  children: [
-                    if (widget.side == MenuSide.right || widget.side == MenuSide.left)
-                      Transform.translate(
-                        offset: Offset(0, widget.side == MenuSide.right ? 1.2 : 0),
-                        child: InverseBorder(extraWidth: width, side: widget.side),
-                      ),
-                    Container(
+                  return RepaintBoundary(
+                    child: Container(
                       width: width,
                       height: widget.height,
                       decoration: widget.boxDecoration,
@@ -119,16 +127,17 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
                               ),
                             ),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 
 class InverseBorder extends StatelessWidget {
   const InverseBorder({

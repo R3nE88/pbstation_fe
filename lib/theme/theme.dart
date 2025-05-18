@@ -7,12 +7,14 @@ class AppTheme{
   static final Color azulSecundario2 = const Color.fromARGB(255, 5, 77, 186);
   static final Color backgroundColor = const Color.fromARGB(255, 231, 229, 229);
 
-  static final TextStyle subtituloPrimario = TextStyle(
+  static final TextStyle subtituloPrimario = const TextStyle(
     color: Colors.white
   );
-  static final TextStyle subtituloSecundario = TextStyle(
+  static final TextStyle subtituloSecundario = const TextStyle(
     color: Colors.black
   );
+
+  static final TextStyle textFormField = const TextStyle(fontWeight: FontWeight.w400, color: Colors.white);
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
     dialogTheme: DialogTheme(
@@ -25,7 +27,7 @@ class AppTheme{
       ),
     ),
 
-    textTheme: ThemeData.light().textTheme.copyWith(
+    /*textTheme: ThemeData.light().textTheme.copyWith(
       bodyLarge: const TextStyle(color: Colors.black),
       bodyMedium: const TextStyle(color: Colors.black),
       bodySmall: const TextStyle(color: Colors.black),
@@ -38,7 +40,7 @@ class AppTheme{
       displayLarge: const TextStyle(color: Colors.black),
       displayMedium: const TextStyle(color: Colors.black),
       displaySmall: const TextStyle(color: Colors.black),
-    ),
+    ),*/
 
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: Colors.white
