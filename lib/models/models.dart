@@ -1,0 +1,1 @@
+export 'package:pbstation_frontend/models/usuario.dart';

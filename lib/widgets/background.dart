@@ -15,19 +15,19 @@ class Background extends StatelessWidget {
       )
     );
 
-    final BoxDecoration boxDecoration2 = const BoxDecoration(
+    final BoxDecoration boxDecoration2 = BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
         stops: [0.1,0.9],
         colors: [
-          Color.fromARGB(255, 227, 247, 255),
-          Color.fromARGB(255, 160, 201, 255),
+          AppTheme.backgroundWidgetColor,
+          AppTheme.backgroundWidgetColor2,
         ]
       )
     );
 
-  Background({Key? key}) : super(key: key);
+  Background({super.key});
 
   @override
   Widget build(BuildContext context) {

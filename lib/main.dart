@@ -7,7 +7,6 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
 
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
 
@@ -33,7 +32,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
          
-        title: 'SASTI',
+        title: 'PBStation',
         initialRoute: 'login',
         routes: appRoutes,
         theme: AppTheme.customTheme,

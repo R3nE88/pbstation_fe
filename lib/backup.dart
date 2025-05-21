@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -7,7 +8,6 @@ enum MenuSide { left, right }
 class HoverSideMenu extends StatefulWidget {
   /// Contenido que se muestra dentro del menú cuando está abierto.
   final Widget menuContent;
-  final Widget? menuContentColapsed;
   /// Ancho de la pestaña cuando está colapsada.
   final double collapsedWidth;
   /// Ancho total del menú cuando está abierto.
@@ -24,8 +24,7 @@ class HoverSideMenu extends StatefulWidget {
   const HoverSideMenu({
     super.key,
     required this.menuContent,
-    this.menuContentColapsed,
-    this.collapsedWidth = 66,
+    this.collapsedWidth = 20,
     this.expandedWidth = 200,
     required this.height,
     this.duration = const Duration(milliseconds: 150),
@@ -90,11 +89,13 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
         child: Stack(
           alignment: widget.side == MenuSide.left ? Alignment.topLeft : Alignment.topRight,
           children: [
-            if(widget.side == MenuSide.left)
             ValueListenableBuilder<double>(
               valueListenable: _widthNotifier,
               builder: (context, width, child) {
-                return InverseBorder(extraWidth: width);
+                return Transform.translate(
+                  offset: Offset(0, widget.side == MenuSide.right ? 1.2 : 0),
+                  child: InverseBorder(extraWidth: width, side: widget.side),
+                );
               },
             ),
             MouseRegion(
@@ -117,10 +118,15 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
                               alignment: Alignment.topCenter,
                               child: widget.menuContent,
                             )
-                          : Align(
-                              alignment: Alignment.topCenter,
-                              child: widget.menuContentColapsed ?? SizedBox(),
-                            )
+                          : Center(
+                              child: RotatedBox(
+                                quarterTurns: widget.side == MenuSide.right ? 1 : 3,
+                                child: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: widget.enabled ? Colors.white70 : Colors.transparent,
+                                ),
+                              ),
+                            ),
                     ),
                   );
                 },
@@ -136,18 +142,22 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
 
 class InverseBorder extends StatelessWidget {
   const InverseBorder({
-    super.key, required this.extraWidth,
+    super.key, required this.extraWidth, required this.side,
   });
 
   final double extraWidth;
-
+  final MenuSide side;
 
   @override
   Widget build(BuildContext context) {
     double size = 35;
+    if (side==MenuSide.right){
+      size = 10;
+    }
+
     return Row(
       children: [
-        SizedBox(width: extraWidth),
+        SizedBox(width: side==MenuSide.left?extraWidth:0),
         Stack(
           children: [
             Transform.translate(
@@ -156,11 +166,13 @@ class InverseBorder extends StatelessWidget {
                 height: size, 
                 width: size,
                 decoration: BoxDecoration(
-                  color: AppTheme.azulPrimario2,
+                  color: side==MenuSide.left 
+                  ? AppTheme.azulPrimario2
+                  : AppTheme.azulSecundario1,
                   border: Border(
-                    left: BorderSide.none,
-                    bottom: BorderSide.none,
-                    right: BorderSide(color: AppTheme.azulSecundario1)
+                    left: side==MenuSide.right ? BorderSide(color: AppTheme.backgroundColor) : BorderSide.none,
+                    bottom: side==MenuSide.right ? BorderSide(color: AppTheme.backgroundColor): BorderSide.none,
+                    right: side==MenuSide.left ? BorderSide(color: AppTheme.azulSecundario1): BorderSide.none,
                   )
                 ),
               ),
@@ -168,17 +180,24 @@ class InverseBorder extends StatelessWidget {
             Container(
               height: size, 
               width: size,
-              decoration:BoxDecoration(
+              decoration: side==MenuSide.left? BoxDecoration(
                 color: AppTheme.azulSecundario1,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(50)
+                )
+              ): BoxDecoration(
+                color: AppTheme.backgroundColor,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(50)
                 )
               ),
             ),
           ],
         ),
-        SizedBox(width: 0),
+        SizedBox(width: side==MenuSide.right?extraWidth:0),
       ],
     );
   }
 }
+
+*/ 

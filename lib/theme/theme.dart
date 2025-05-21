@@ -5,14 +5,26 @@ class AppTheme{
   static final Color azulSecundario1 = const Color.fromARGB(255, 54, 134, 233);
   static final Color azulPrimario2 = const Color.fromARGB(255, 93, 182, 255);
   static final Color azulSecundario2 = const Color.fromARGB(255, 5, 77, 186);
-  static final Color backgroundColor = const Color.fromARGB(255, 231, 229, 229);
 
-  static final TextStyle subtituloPrimario = const TextStyle(
-    color: Colors.white
+  static final Color backgroundColor = const Color.fromARGB(255, 231, 229, 229);
+  static final Color backgroundWidgetColor = Color.fromARGB(255, 227, 247, 255);
+  static final Color backgroundWidgetColor2 = Color.fromARGB(255, 160, 201, 255);
+  static final Color backgroundWidgetColor3 = Color.fromARGB(123, 32, 103, 255);
+  static final Color backgroundWidgetColor4 = Color.fromARGB(167, 73, 158, 255);
+
+
+  static final Color letraPrincipal = Colors.white;
+  static final Color letraSecundaria = Colors.black;
+  static final Color letra70 = Colors.white70;
+
+  static final TextStyle subtituloPrimario = TextStyle(
+    color: letraPrincipal
   );
-  static final TextStyle subtituloSecundario = const TextStyle(
-    color: Colors.black
+  static final TextStyle subtituloSecundario = TextStyle(
+    color: letraSecundaria
   );
+
+
 
   static final TextStyle textFormField = const TextStyle(fontWeight: FontWeight.w400, color: Colors.white);
 
@@ -26,21 +38,6 @@ class AppTheme{
         foregroundColor: AppTheme.azulSecundario1, // button text color
       ),
     ),
-
-    /*textTheme: ThemeData.light().textTheme.copyWith(
-      bodyLarge: const TextStyle(color: Colors.black),
-      bodyMedium: const TextStyle(color: Colors.black),
-      bodySmall: const TextStyle(color: Colors.black),
-      titleLarge: const TextStyle(color: Colors.black),
-      titleMedium: const TextStyle(color: Colors.black),
-      titleSmall: const TextStyle(color: Colors.black),
-      labelLarge: const TextStyle(color: Colors.black),
-      labelMedium: const TextStyle(color: Colors.black),
-      labelSmall: const TextStyle(color: Colors.black),
-      displayLarge: const TextStyle(color: Colors.black),
-      displayMedium: const TextStyle(color: Colors.black),
-      displaySmall: const TextStyle(color: Colors.black),
-    ),*/
 
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: Colors.white

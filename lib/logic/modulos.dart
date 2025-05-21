@@ -1,57 +1,96 @@
 import 'package:flutter/material.dart';
-import 'package:pbstation_frontend/screens/caja_screen.dart';
-import 'package:pbstation_frontend/screens/cotizaciones_screen.dart';
-import 'package:pbstation_frontend/screens/productos_screen.dart';
-import 'package:pbstation_frontend/screens/venta_screen.dart';
+import 'package:pbstation_frontend/screens/screens.dart';
+
 
 class Modulos{
   static String moduloSelected = 'inicio';
   static int subModuloSelected = 0;
 
   static final Map<String, List<String>> modulos = {
-    'caja': [
-      'venta',
-      'caja',
+    'Caja': [
+      'Venta',
+      'Caja',
+      'Historial\nde Ventas'
     ],
-    'catalogo': [
-      'productos',
-      'servicios',
-      'usuarios',
-      'clientes',
+    'Catalogo': [
+      'Productos y\nServicios',
+      'Usuarios',
+      'Clientes',
+      'Sucursales'
     ],
-    'cotizaciones': [
-      'cotizaciones',
+    'Cotizaciones': [
+      'Cotizaciones',
+    ],
+    'Inventario':[
+      'Inventario'
+    ],
+    'Impresoras':[
+      'Impresoras',
+    ],
+    'Pedidos': [
+      'Produccion',
+      'Historial',
+      'Cuentas por\nCobrar'
+    ],
+    'Reportes':[
+      'Reportes'
+    ],
+    'Preferencias' : [
+      'Preferencias'
     ]
   };
 
   static final Map<String, List<IconData>> modulosIconos = {
-    'caja' : [
+    'Caja' : [
       Icons.point_of_sale,
       Icons.sell,
       Icons.attach_money,
+      Icons.history
     ],
-    'catalogo' : [
+    'Catalogo' : [
       Icons.menu_book,
-      Icons.align_horizontal_left,
       Icons.design_services,
       Icons.supervised_user_circle_sharp,
       Icons.people,
+      Icons.house_siding
     ],
-    'cotizaciones' : [
+    'Cotizaciones' : [
       Icons.request_quote,
+    ],
+    'Inventario' : [
+      Icons.inventory
+    ],
+    'Impresoras': [
+      Icons.print
+    ],
+    'Pedidos' : [
+      Icons.check_box_outlined,
+      Icons.production_quantity_limits,
+      Icons.history,
+      Icons.monetization_on_outlined
+    ],
+    'Reportes' : [
+      Icons.list_alt
+    ],
+    'Preferencias' : [
+      Icons.settings
     ]
   };
 
   static final Map<String, List<Widget>> modulosScreens = {
-    'caja': [
+    'Caja': [
       VentaScreen(),
       CajaScreen()
     ],
-    'catalogo': [
+    'Catalogo': [
       ProductosScreen(),
     ],
-    'cotizaciones': [
+    'Cotizaciones': [
       CotizacionesScreen()
+    ],
+
+    'Preferencias' : [
+      SettingsScreen()
     ]
   };
 

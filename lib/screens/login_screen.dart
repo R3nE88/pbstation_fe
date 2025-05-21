@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:pbstation_frontend/services/usuarios_services.dart';
+import 'package:pbstation_frontend/screens/screens.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/background.dart';
-import 'package:pbstation_frontend/widgets/window_buttons.dart';
-import 'package:provider/provider.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart';
 
 
 class LoginScreen extends StatelessWidget {
@@ -214,14 +211,35 @@ class _LoginFieldsState extends State<LoginFields> {
         loading = true;
       });
 
-      final usuariosServices = Provider.of<UsuariosServices>(context, listen: false);
-      await usuariosServices.login(_codigo.text, _psw.text);
+      final login = Login();
+      bool success = await login.login(_codigo.text, _psw.text);
 
-      //await Future.delayed(const Duration(seconds: 2));
+      if (success && mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0); // Slide from right to left
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
 
-      setState(() {
-        loading = false;
-      });
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+
+              return SlideTransition(
+                position: offsetAnimation,
+                child: child,
+              );
+            },
+          ),
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 }

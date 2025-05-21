@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/theme/theme.dart';
 
 class CustomNavigationButton extends StatefulWidget {
   const CustomNavigationButton({
-    Key? key, required this.label, required this.icon, required this.selected
-  }) : super(key: key);
+    super.key, required this.label, required this.icon, required this.selected
+  });
 
   final String label;
   final IconData icon;
@@ -15,17 +16,15 @@ class CustomNavigationButton extends StatefulWidget {
 }
 
 class _CustomNavigationButtonState extends State<CustomNavigationButton> {
-  Color colorActive = Colors.white;
-  Color colorInactive = Colors.white70;
-  
-  Color color = Colors.white70;
-
+  Color colorActive = AppTheme.letraPrincipal;
+  Color colorInactive = AppTheme.letra70;
+  Color color = AppTheme.letra70;
 
   @override
   Widget build(BuildContext context) {
     
     return Padding(
-      padding: const EdgeInsets.only(left: 28, top: 15, right: 10),
+      padding: const EdgeInsets.only(left: 13, top: 15),
       child: MouseRegion(
         onEnter: widget.selected ? null : (event) {
           
@@ -54,10 +53,10 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(widget.icon, color: widget.selected ? Colors.blue : color, size: 20),
+                  child: Icon(widget.icon, color: widget.selected ? AppTheme.azulPrimario1 : color, size: 25),
                 )
               ),
-              const SizedBox(width: 25),
+              const SizedBox(width: 10),
               Text(
                 widget.label, 
                 style: TextStyle(
