@@ -1,6 +1,7 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
 import 'package:pbstation_frontend/services/usuarios_services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -14,8 +15,8 @@ void main() async {
 
   doWhenWindowReady(() {
     const initialSize = Size(400, 640);
-    appWindow.size = initialSize;
-    appWindow.minSize = initialSize;
+    //appWindow.size = initialSize;
+    //appWindow.minSize = initialSize;
     appWindow.show();
   });
 }
@@ -28,15 +29,21 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: ( _ ) => UsuariosServices()),
+        ChangeNotifierProvider(create: ( _ ) => ChangeTheme())
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-         
-        title: 'PBStation',
-        initialRoute: 'login',
-        routes: appRoutes,
-        theme: AppTheme.customTheme,
-        scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),
+      child: Builder(
+        builder: (context) {
+          final changeTheme = Provider.of<ChangeTheme>(context);
+          AppTheme.initialize(changeTheme);
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'PBStation',
+            initialRoute: 'home',//'login',
+            routes: appRoutes,
+            theme: AppTheme.customTheme, //AppTheme.customTheme,
+            scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),
+          );
+        }
       ),
     );
   }

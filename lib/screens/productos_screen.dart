@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/theme/theme.dart';
 
 class ProductosScreen extends StatelessWidget {
   const ProductosScreen({super.key});
@@ -6,7 +7,7 @@ class ProductosScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('PRODUCTOS!!!'),
+      child: Text('PRODUCTOS!!!', style: AppTheme.subtituloConstraste),
     );
   }
 }

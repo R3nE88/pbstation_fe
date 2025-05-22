@@ -19,7 +19,7 @@ class HoverSideMenu extends StatefulWidget {
   final MenuSide side;
   final bool enabled;
 
-  final BoxDecoration boxDecoration;
+  //final BoxDecoration boxDecoration;
 
   const HoverSideMenu({
     super.key,
@@ -31,7 +31,7 @@ class HoverSideMenu extends StatefulWidget {
     this.duration = const Duration(milliseconds: 150),
     this.contentSwitchThreshold = 200,
     this.side = MenuSide.right,
-    required this.boxDecoration,
+    //required this.boxDecoration,
     required this.enabled
   });
 
@@ -43,6 +43,8 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
   late final AnimationController _controller;
   late final Animation<double> _animation;
   late final ValueNotifier<double> _widthNotifier;
+  late BoxDecoration gradiante;
+
 
   @override
   void initState() {
@@ -81,6 +83,33 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
   Widget build(BuildContext context) {
     final contentSwitchThreshold = widget.contentSwitchThreshold;
 
+    if (widget.side == MenuSide.left){
+      gradiante = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0.1,0.9],
+          colors: [
+            AppTheme.primario2,
+            AppTheme.primario1,
+          ]
+        )
+      );
+    } else {
+      gradiante = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0.1,0.9],
+          colors: [
+            AppTheme.secundario1,
+            AppTheme.secundario2,
+          ]
+        )
+      );
+    }
+
+
     return Positioned(
       bottom: 0,
       left: widget.side == MenuSide.left ? 0 : null,
@@ -111,7 +140,7 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
                     child: Container(
                       width: width,
                       height: widget.height,
-                      decoration: widget.boxDecoration,
+                      decoration: gradiante,
                       child: showContent
                           ? Align(
                               alignment: Alignment.topCenter,
@@ -156,11 +185,11 @@ class InverseBorder extends StatelessWidget {
                 height: size, 
                 width: size,
                 decoration: BoxDecoration(
-                  color: AppTheme.azulPrimario2,
+                  color: AppTheme.primario2,
                   border: Border(
                     left: BorderSide.none,
                     bottom: BorderSide.none,
-                    right: BorderSide(color: AppTheme.azulSecundario1)
+                    right: BorderSide(color: AppTheme.secundario1)
                   )
                 ),
               ),
@@ -169,7 +198,7 @@ class InverseBorder extends StatelessWidget {
               height: size, 
               width: size,
               decoration:BoxDecoration(
-                color: AppTheme.azulSecundario1,
+                color: AppTheme.secundario1,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(50)
                 )

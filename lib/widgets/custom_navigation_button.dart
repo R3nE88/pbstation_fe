@@ -16,7 +16,7 @@ class CustomNavigationButton extends StatefulWidget {
 }
 
 class _CustomNavigationButtonState extends State<CustomNavigationButton> {
-  Color colorActive = AppTheme.letraPrincipal;
+  Color colorActive = AppTheme.letraClara;
   Color colorInactive = AppTheme.letra70;
   Color color = AppTheme.letra70;
 
@@ -53,7 +53,7 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(widget.icon, color: widget.selected ? AppTheme.azulPrimario1 : color, size: 25),
+                  child: Icon(widget.icon, color: widget.selected ? AppTheme.primario1 : color, size: 25),
                 )
               ),
               const SizedBox(width: 10),

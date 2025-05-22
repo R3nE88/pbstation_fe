@@ -69,7 +69,7 @@ class LoginScreen extends StatelessWidget {
 
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text('data', style: AppTheme.subtituloPrimario),
+                child: Text('data', style: AppTheme.subtituloConstraste),
               ),
 
             ],
@@ -90,7 +90,7 @@ class BarraW extends StatelessWidget {
     return Container(
       height: 35,
       decoration: BoxDecoration(
-        color: AppTheme.azulSecundario1,
+        color: AppTheme.secundario1,
       ),
       child: WindowTitleBarBox(
         child: Row(
@@ -193,7 +193,7 @@ class _LoginFieldsState extends State<LoginFields> {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_forward_rounded, color: AppTheme.azulPrimario1,)
+              child: Icon(Icons.arrow_forward_rounded, color: AppTheme.primario1,)
             ),
           ),
 

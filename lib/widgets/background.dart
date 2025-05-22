@@ -9,8 +9,8 @@ class Background extends StatelessWidget {
         end: Alignment.bottomCenter,
         stops: const [0.1,0.9],
         colors: [
-          AppTheme.azulPrimario2,
-          AppTheme.azulPrimario1,
+          AppTheme.primario2,
+          AppTheme.primario1,
         ]
       )
     );
@@ -21,7 +21,7 @@ class Background extends StatelessWidget {
         end: Alignment.bottomLeft,
         stops: [0.1,0.9],
         colors: [
-          AppTheme.backgroundWidgetColor,
+          AppTheme.backgroundWidgetColor1,
           AppTheme.backgroundWidgetColor2,
         ]
       )
@@ -37,16 +37,16 @@ class Background extends StatelessWidget {
           decoration: boxDecoration,
         ),
 
-        const Positioned(
+        Positioned(
           top: -100,
           left: -30,
-          child: _Box(48.0,Color.fromARGB(30, 99, 180, 255),Color.fromARGB(123, 32, 103, 255))
+          child: _Box(48.0, AppTheme.backgroundWidgetFormColor1,AppTheme.backgroundWidgetFormColor2)
         ),
 
-        const Positioned(
+        Positioned(
           bottom: -100,
           right: -80,
-          child: _Box(68.5,Color.fromARGB(50, 63, 162, 255),Color.fromARGB(167, 73, 158, 255))
+          child: _Box(68.5, AppTheme.backgroundWidgetFormColor3,AppTheme.backgroundWidgetFormColor4)
         ),
       ],
     );

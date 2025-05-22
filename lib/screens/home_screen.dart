@@ -4,48 +4,26 @@ import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 
-final GlobalKey<_HomeScreenState> homeScreenKey = GlobalKey<_HomeScreenState>();
+final GlobalKey<HomeScreenState> homeScreenKey = GlobalKey<HomeScreenState>();
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key ?? homeScreenKey);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final double barraHeight = 35;
 
-  final BoxDecoration gradianteL = BoxDecoration(
-    gradient: LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      stops: const [0.1,0.9],
-      colors: [
-        AppTheme.azulPrimario2,
-        AppTheme.azulPrimario1,
-      ]
-    )
-  );
-  
-  final BoxDecoration gradianteR = BoxDecoration(
-    gradient: LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      stops: const [0.1,0.9],
-      colors: [
-        AppTheme.azulSecundario1,
-        AppTheme.azulSecundario2,
-      ]
-    ),
-  );
+
 
   @override
   void initState() {
     super.initState;
 
-    const size = Size(1024, 720);
-    appWindow.minSize = size;
+    //const size = Size(1024, 720);
+    //appWindow.minSize = size;
     appWindow.maximize();
   }
 
@@ -66,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(///////////////barra de windows /////////////////////
                   height: barraHeight,
                   decoration: BoxDecoration(
-                    color: AppTheme.azulSecundario1,
+                    color: AppTheme.secundario1,
                     borderRadius: const BorderRadius.only(topLeft: Radius.circular(20)),
                   ),
                   child: WindowTitleBarBox(
@@ -101,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
         HoverSideMenu( //Izquierdo
           side: MenuSide.left,
           height: height + barraHeight,
-          boxDecoration: gradianteL,
+          //boxDecoration: gradianteL,
           enabled: true,
           menuContentColapsed: Column(
             mainAxisSize: MainAxisSize.min,
@@ -127,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: selected ? AppTheme.letraPrincipal : Colors.transparent,
+                              color: selected ? AppTheme.letraClara : Colors.transparent,
                               border: Border.all(color: AppTheme.letra70),
                               borderRadius: const BorderRadius.all(Radius.circular(8))
                             ),
@@ -136,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Icon(
                                 Modulos.modulosIconos[modulo]?.elementAt(0) ?? Icons.folder, 
                                 color: selected 
-                                  ? AppTheme.azulPrimario1
+                                  ? AppTheme.primario1
                                   : AppTheme.letra70, 
                                 size: 25
                               ),
@@ -157,13 +135,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Modulos.moduloSelected ==  Modulos.modulos.keys.elementAt(Modulos.modulos.length-1) ? AppTheme.letraPrincipal : Colors.transparent,
+                        color: Modulos.moduloSelected ==  Modulos.modulos.keys.elementAt(Modulos.modulos.length-1) ? AppTheme.letraClara : Colors.transparent,
                         border: Border.all(color: AppTheme.letra70),
                         borderRadius: const BorderRadius.all(Radius.circular(8))
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(6),
-                        child: Icon(Modulos.modulosIconos[Modulos.modulos.keys.elementAt(Modulos.modulos.keys.length-1)]?.elementAt(0) ?? Icons.folder, color: Modulos.moduloSelected ==  Modulos.modulos.keys.elementAt(Modulos.modulos.length-1) ? AppTheme.azulPrimario1 : AppTheme.letra70, size: 25),
+                        child: Icon(Modulos.modulosIconos[Modulos.modulos.keys.elementAt(Modulos.modulos.keys.length-1)]?.elementAt(0) ?? Icons.folder, color: Modulos.moduloSelected ==  Modulos.modulos.keys.elementAt(Modulos.modulos.length-1) ? AppTheme.primario1 : AppTheme.letra70, size: 25),
                       )
                     ),
                   ],
@@ -182,7 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(12), 
-                child: Image.asset('assets/images/logo.png', height: 70), //LOGO
+                child: Image.asset(
+                  'assets/images/logo.png', 
+                  height: 70, 
+                  color: AppTheme.colorContraste), //LOGO
               ),
               Expanded(
                 child: ListView.builder(
@@ -250,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Modulos.modulos[Modulos.moduloSelected] != null 
           ? Modulos.modulos[Modulos.moduloSelected]!.length > 1 
           ? true : false : false,
-          boxDecoration: gradianteR,
+          //boxDecoration: gradianteR,
           collapsedWidth: Modulos.modulos[Modulos.moduloSelected]!=null 
             ? Modulos.modulos[Modulos.moduloSelected]!.length > 1 
             ? 66 
@@ -271,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: selected ? AppTheme.letraPrincipal : Colors.transparent,
+                            color: selected ? AppTheme.letraClara : Colors.transparent,
                             border: Border.all(color: AppTheme.letra70),
                             borderRadius: const BorderRadius.all(Radius.circular(8))
                           ),
@@ -279,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.all(6),
                             child: Icon(Modulos.modulosIconos[Modulos.moduloSelected]?.elementAt(index+1) ?? Icons.folder, 
                             color: selected 
-                              ? AppTheme.azulPrimario1 
+                              ? AppTheme.primario1 
                               : AppTheme.letra70, 
                             size: 25),
                           )
@@ -338,11 +319,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Image.asset('assets/images/logo.png', height: 200, color: Colors.black54),
+        Image.asset('assets/images/logo.png', height: 200, color: AppTheme.colorContraste.withAlpha(150)),
         SizedBox(height: 15),
         Text('¡Bienvenido a PrinterBoyStation!\n¿Qué haremos hoy?', 
           textScaler: TextScaler.linear(1.5), 
-          style: TextStyle(color: Colors.black45),
+          style: TextStyle(color: AppTheme.colorContraste.withAlpha(150)),
           textAlign: TextAlign.center,
         )
       ],
