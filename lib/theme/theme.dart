@@ -8,18 +8,20 @@ class AppTheme{
     changeThemeInstance = instance;
   }
 
-  static final Color letraClara = Colors.white;
-  static final Color letraOscura = Colors.black;
-  static final Color letra70 = Colors.white70;
+  static const Color letraClara = Colors.white;
+  static const Color letraOscura = Colors.black;
+  static const Color letra70 = Colors.white70;
+  static final Color focusColor = letraClara.withAlpha(88);
+  static const Color filledColor = Color.fromARGB(33, 255, 255, 255);
 
   static Color get primario1 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 60, 60, 60)
+      ? const Color.fromARGB(255, 55, 55, 55)
       : const Color.fromARGB(255, 78, 175, 255);
   static Color get secundario1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 19, 19, 19)
       : const Color.fromARGB(255, 54, 134, 233);
   static Color get primario2 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 52, 52, 52)
+      ? const Color.fromARGB(255, 46, 46, 46)
       : const Color.fromARGB(255, 93, 182, 255);
   static Color get secundario2 => changeThemeInstance?.isDarkTheme == true
       ? Colors.black
@@ -41,6 +43,14 @@ class AppTheme{
       ? const Color.fromARGB(167, 60, 60, 60)
       : const Color.fromARGB(167, 73, 158, 255);
 
+  static Color get containerColor1 => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 40, 40, 40)
+      : const Color.fromARGB(255, 52, 152, 246);
+    
+  static Color get containerColor2 => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 52, 52, 52)
+      : const Color.fromARGB(255, 87, 160, 227);
+
   static Color get backgroundWidgetFormColor1 => changeThemeInstance?.isDarkTheme == true
       ? Color.fromARGB(0, 195, 195, 195)
       : Color.fromARGB(30, 99, 180, 255);
@@ -53,6 +63,38 @@ class AppTheme{
   static Color get backgroundWidgetFormColor4 => changeThemeInstance?.isDarkTheme == true
       ? Color.fromARGB(28, 146, 146, 146)
       : Color.fromARGB(167, 73, 158, 255);
+    
+  static Color get botonPrincipal => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 89, 89, 89)
+      : AppTheme.primario1;
+
+  static Color get botonPrincipalFocus => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 64, 65, 66)
+      : AppTheme.secundario1;
+    
+  static Color get botonSecundario => changeThemeInstance?.isDarkTheme == true
+      ? AppTheme.letraClara
+      : AppTheme.letraClara;
+
+  static Color get botonSecundarioFocus => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 172, 173, 174)
+      : const Color.fromARGB(255, 205, 205, 210);
+
+  static Color get tablaColorHeader => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 78, 78, 78)
+      : const Color.fromARGB(255, 30, 128, 221);
+
+  static Color get tablaColor1 => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 115, 115, 115)
+      : const Color.fromARGB(255, 82, 169, 251);
+    
+  static Color get tablaColor2 => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 103, 103, 103)
+      : const Color.fromARGB(255, 66, 160, 248);
+
+    static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 57, 57, 57)
+      : const Color.fromARGB(255, 111, 185, 255);
 
   static bool get isDarkTheme => changeThemeInstance?.isDarkTheme == true
       ? true
@@ -62,20 +104,51 @@ class AppTheme{
       ? letraClara
       : letraOscura;
   
-  static final TextStyle subtituloConstraste = TextStyle(
+  static TextStyle get subtituloConstraste => TextStyle(
     color: changeThemeInstance?.isDarkTheme == true ? letraClara : letraOscura
   );
 
-  static final TextStyle subtituloPrimario = TextStyle(
+  static TextStyle subtituloPrimario = TextStyle(
     color: letraClara
   );
-  static final TextStyle subtituloSecundario = TextStyle(
+  static TextStyle subtituloSecundario = TextStyle(
     color: letraOscura
   );
+   static TextStyle tituloPrimario = TextStyle(
+    color: letraClara,
+    fontWeight: FontWeight.w600
+  );
+   static TextStyle tituloClaro = TextStyle(
+    color: letraClara,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.2
+  );
   
-  static final TextStyle textFormField = const TextStyle(fontWeight: FontWeight.w400, color: Colors.white);
+  static const TextStyle textFormField = TextStyle(fontWeight: FontWeight.w400, color: Colors.white);
+
+  static const InputDecoration inputDecorationCustom = InputDecoration(
+    contentPadding: EdgeInsets.only(left: 10),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.white),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.white),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+  );
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
+    checkboxTheme: CheckboxThemeData(
+      side: BorderSide(color: AppTheme.letraClara),
+      checkColor: WidgetStateProperty.all(AppTheme.containerColor1),
+      fillColor: WidgetStateProperty.all(AppTheme.letraClara),
+    ),
+
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppTheme.primario2, // Cambia aquí tu color base
+    ),
+
     dialogTheme: DialogTheme(
       surfaceTintColor: Colors.transparent
     ),
@@ -104,7 +177,12 @@ class AppTheme{
       )
     ),
 
+    textTheme: TextTheme(
+      bodyMedium: TextStyle(color: AppTheme.letraClara), // texto principal del campo
+    ),
+
     inputDecorationTheme: InputDecorationTheme(
+      contentPadding: EdgeInsets.only(left: 10),
       floatingLabelStyle: TextStyle(color: Colors.white, fontSize: 15),
 
       enabledBorder: OutlineInputBorder(
@@ -127,8 +205,8 @@ class AppTheme{
         fontSize: 15,
       ),
 
-      focusedBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Color.fromARGB(255, 211, 224, 233)),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
         borderRadius: BorderRadius.all(Radius.circular(30)),
       ),
 
@@ -144,7 +222,115 @@ class AppTheme{
 
       filled: true,
 
-      fillColor: const Color.fromARGB(33, 255, 255, 255),
+      fillColor: filledColor,
+
+      alignLabelWithHint: true,
+    )
+  );
+
+  static final ThemeData customThemeDark = ThemeData.dark().copyWith(
+    checkboxTheme: CheckboxThemeData(
+      side: BorderSide(color: AppTheme.letraClara),
+      checkColor: WidgetStateProperty.all(AppTheme.containerColor1),
+      fillColor: WidgetStateProperty.all(AppTheme.letraClara),
+    ),
+
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: Colors.white // Cambia aquí tu color base
+    ),
+
+    dialogTheme: DialogTheme(
+      surfaceTintColor: Colors.transparent
+    ),
+     
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.secundario1, // button text color
+      ),
+    ),
+
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: Colors.white
+    ),
+
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        foregroundColor: primario1, 
+        backgroundColor: Colors.white, //Colors letras
+        shape: const StadiumBorder(),
+        elevation: 1,
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          height: 1.5
+        )
+      )
+    ),
+
+    textSelectionTheme: TextSelectionThemeData(
+      selectionColor: AppTheme.letra70,// Fondo de selección
+      cursorColor: Colors.white, // Cursor (también se puede poner individualmente en cada TextField)
+    ),
+
+    dropdownMenuTheme: DropdownMenuThemeData(
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppTheme.filledColor,
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(AppTheme.primario1), // Fondo del menú
+        elevation: WidgetStatePropertyAll(4), // Sombra
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        )), // Bordes redondeados
+      ),
+    ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      contentPadding: EdgeInsets.only(left: 10),
+      floatingLabelStyle: TextStyle(color: Colors.white, fontSize: 15),
+
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.white),
+        borderRadius: const BorderRadius.all(Radius.circular(30))
+      ),
+
+      disabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.white),
+        borderRadius: const BorderRadius.all(Radius.circular(30))
+      ),
+
+      hintStyle: const TextStyle(
+        color: Color.fromARGB(255, 209, 240, 255),
+        fontSize: 15,
+      ),
+
+      labelStyle: const TextStyle(
+        color: Color.fromARGB(255, 209, 240, 255),
+        fontSize: 15,
+      ),
+
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+      ),
+
+      errorBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
+        borderRadius: BorderRadius.all(Radius.circular(30))
+      ),
+
+      focusedErrorBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
+        borderRadius: BorderRadius.all(Radius.circular(30))
+      ),
+
+      filled: true,
+
+      fillColor: filledColor,
 
       alignLabelWithHint: true,
     )

@@ -1,3 +1,10 @@
+export 'package:pbstation_frontend/widgets/custom_dropdown.dart';
+export 'package:pbstation_frontend/widgets/productos_form.dart';
+export 'package:pbstation_frontend/widgets/loading.dart';
+export 'package:pbstation_frontend/widgets/custom_error_dialog.dart';
+export 'package:pbstation_frontend/widgets/separador_con_texto.dart';
+export 'package:pbstation_frontend/widgets/feedback_button.dart';
+export 'package:pbstation_frontend/widgets/diagonal_border.dart';
 export 'package:pbstation_frontend/widgets/background.dart';
 export 'package:pbstation_frontend/widgets/custom_navigation_button.dart';
 export 'package:pbstation_frontend/widgets/hover_side_menu.dart';

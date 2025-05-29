@@ -1,4 +1,5 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -22,15 +23,17 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState;
 
-    //const size = Size(1024, 720);
-    //appWindow.minSize = size;
+    const size = Size(1024, 720);
+    appWindow.minSize = size;
     appWindow.maximize();
   }
 
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height - barraHeight;
-    print('HomeBuild');
+    if (kDebugMode) {
+      print('HomeBuild');
+    }
     
     return Stack(
       alignment: AlignmentDirectional.bottomCenter,
@@ -309,7 +312,7 @@ class HomeScreenState extends State<HomeScreen> {
         try {
           return Modulos.modulosScreens[modulo.key]![Modulos.subModuloSelected];
         } catch (e) {
-          return Center(child: Text('No se encontro xd'));
+          return Center(child: Text('No se encontro xd', style: AppTheme.subtituloConstraste));
         }
       }
       
