@@ -51,7 +51,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                         child: Tooltip(
                           waitDuration: Durations.short4,
                           message: 'codigo o descripcion',
-                          child: TextFormField(
+                          child: TextFormField( //TODO: hacer funcional searhfield
                             decoration: InputDecoration(
                               prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                               hintText: 'Buscar Producto'

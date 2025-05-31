@@ -10,6 +10,13 @@ class ProductosServices extends ChangeNotifier{
   bool isLoading = false;
 
   Future<List<Producto>> loadProductos() async {
+    // 🔒 Si ya se está cargando, no hacemos nada:
+    if (isLoading) {
+      print('loadProductos: ya se está ejecutando, ignorando llamada duplicada.');
+      return productos;
+    }
+    
+    print('ejecutando loadProductos!');
     isLoading = true;
     //notifyListeners();
 
@@ -33,6 +40,8 @@ class ProductosServices extends ChangeNotifier{
       notifyListeners();
       return [];
     }
+
+    print('finalizando loadProductos!');
 
     isLoading = false;
     notifyListeners();
