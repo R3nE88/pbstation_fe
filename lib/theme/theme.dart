@@ -103,25 +103,46 @@ class AppTheme{
   static Color get colorContraste => changeThemeInstance?.isDarkTheme == true
       ? letraClara
       : letraOscura;
+
+  static final Color colorError = Color.fromARGB(255, 228, 15, 0);
   
   static TextStyle get subtituloConstraste => TextStyle(
     color: changeThemeInstance?.isDarkTheme == true ? letraClara : letraOscura
   );
 
-  static TextStyle subtituloPrimario = TextStyle(
+  static const TextStyle subtituloPrimario = TextStyle(
     color: letraClara
   );
-  static TextStyle subtituloSecundario = TextStyle(
+  static const TextStyle subtituloSecundario = TextStyle(
     color: letraOscura
   );
-   static TextStyle tituloPrimario = TextStyle(
+   static const TextStyle tituloPrimario = TextStyle(
     color: letraClara,
     fontWeight: FontWeight.w600
   );
-   static TextStyle tituloClaro = TextStyle(
+   static const TextStyle tituloClaro = TextStyle(
     color: letraClara,
     fontWeight: FontWeight.w600,
     letterSpacing: 1.2
+  );
+
+  static final TextStyle errorStyle = TextStyle(
+    color: colorError.withAlpha(180),
+    fontSize: 13,
+  );
+
+  static const TextStyle labelStyle = TextStyle(
+    color: Colors.white54
+  );
+
+  static final ButtonStyle botonGuardar = ButtonStyle(
+    backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.focused)) {
+        return AppTheme.letra70; // Color cuando está enfocado
+      }
+      return AppTheme.letraClara; // Color normal
+    }),
+    foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
   );
   
   static const TextStyle textFormField = TextStyle(fontWeight: FontWeight.w400, color: Colors.white);

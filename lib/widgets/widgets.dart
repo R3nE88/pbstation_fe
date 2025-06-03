@@ -1,5 +1,4 @@
 export 'package:pbstation_frontend/widgets/custom_dropdown.dart';
-export 'package:pbstation_frontend/widgets/productos_form.dart';
 export 'package:pbstation_frontend/widgets/loading.dart';
 export 'package:pbstation_frontend/widgets/custom_error_dialog.dart';
 export 'package:pbstation_frontend/widgets/separador_con_texto.dart';

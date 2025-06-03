@@ -84,6 +84,8 @@ class Modulos{
     ],
     'Catalogo': [
       ProductosScreen(),
+      SizedBox(),
+      ClientesScreen(),
     ],
     'Cotizaciones': [
       CotizacionesScreen()

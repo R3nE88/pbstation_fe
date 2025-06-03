@@ -17,17 +17,20 @@ class ProductoFormDialog extends StatefulWidget {
 }
 
 class _ProductoFormDialogState extends State<ProductoFormDialog> {
+  bool onlyRead = false;
+  final formKey = GlobalKey<FormState>();
   TextEditingController claveController = TextEditingController();
   TextEditingController descripcionController = TextEditingController();
   TextEditingController precioController = TextEditingController();
   TextEditingController valorImpresionController = TextEditingController();
   bool inventariable = false;
   bool imprimible = false;
-  String tipoSeleccionado = 'producto';
-  String categoriaSeleccionada = 'general';
-  final formKey = GlobalKey<FormState>();
+  String? tipoSeleccionado;
+  String? categoriaSeleccionada;
+  bool tipoEmpty = false;
+  bool categoriaEmpty = false;
   String titulo = 'Agregar nuevo Producto';
-  bool onlyRead = false;
+  
 
   @override
   void initState() {
@@ -85,6 +88,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         ],
                         decoration: InputDecoration(
                           labelText: 'Codigo',
+                          labelStyle: AppTheme.labelStyle
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -92,6 +96,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                   ), SizedBox(width: 10),
@@ -103,6 +108,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         controller: descripcionController,
                         decoration: InputDecoration(
                           labelText: 'Descripcion',
+                          labelStyle: AppTheme.labelStyle
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -110,6 +116,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                   ),
@@ -125,23 +132,31 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         isReadOnly: onlyRead,
                         value: tipoSeleccionado,
                         hintText: 'Tipo',
+                        empty: tipoEmpty,
                         items: const [
                           DropdownMenuItem(value: 'producto', child: Text('Producto')),
                           DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
                         ],
-                        onChanged: (val) => setState(() => tipoSeleccionado = val!),
+                        onChanged: (val) => setState(() {
+                          tipoEmpty = false;
+                          tipoSeleccionado = val!;
+                        }),
                       ), const SizedBox(width: 10),
 
                       CustomDropDown<String>(
                         isReadOnly: onlyRead,
                         value: categoriaSeleccionada,
                         hintText: 'Categoría',
+                        empty: categoriaEmpty,
                         items: const [
                           DropdownMenuItem(value: 'general', child: Text('General')),
                           DropdownMenuItem(value: 'impresion', child: Text('Impresión Digital')),
                           DropdownMenuItem(value: 'diseño', child: Text('Diseño')),
                         ],
-                        onChanged: (val) => setState(() => categoriaSeleccionada = val!),
+                        onChanged: (val) => setState(() {
+                          categoriaEmpty = false;
+                          categoriaSeleccionada = val!;
+                        })
                       ),
                     ],
                   ), const SizedBox(width: 10),
@@ -157,6 +172,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         ],
                         decoration: InputDecoration(
                           labelText: 'Precio',
+                          labelStyle: AppTheme.labelStyle
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -164,6 +180,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                           }
                           return null;
                         },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                   ),
@@ -255,7 +272,18 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       actions: [
         !onlyRead ? ElevatedButton(
           onPressed: () async {
-            if (formKey.currentState!.validate()) {
+            if (tipoSeleccionado==null){
+              tipoEmpty = true;
+            }
+            if (categoriaSeleccionada==null){
+              categoriaEmpty = true;
+            }
+
+            if (categoriaEmpty || tipoEmpty){
+              setState(() {});
+            }
+
+            if (formKey.currentState!.validate() && !tipoEmpty && !categoriaEmpty) {
               final productosServices = Provider.of<ProductosServices>(context, listen: false);
               
               Loading().displaySpinLoading(context);
@@ -263,8 +291,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
               Producto producto = Producto(
                 codigo: int.parse(claveController.text),
                 descripcion: descripcionController.text,
-                tipo: tipoSeleccionado,
-                categoria: categoriaSeleccionada,
+                tipo: tipoSeleccionado!,
+                categoria: categoriaSeleccionada!,
                 precio: double.parse(precioController.text),
                 inventariable: inventariable,
                 imprimible: imprimible,
@@ -280,11 +308,9 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
               }
 
               if (!context.mounted) return;
-
               Navigator.pop(context); // Cierra el loading
 
               if (!context.mounted) return;
-
               if (respuesta == 'exito') {
                 Navigator.pop(context); // Cierra el formulario o vuelve atrás
               } else {
@@ -298,15 +324,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
             }
           },
 
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-              if (states.contains(WidgetState.focused)) {
-                return AppTheme.letra70; // Color cuando está enfocado
-              }
-              return AppTheme.letraClara; // Color normal
-            }),
-            foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-          ),
+          style: AppTheme.botonGuardar,
           child: Text('Guardar Producto')
         ) : SizedBox(),
       ],

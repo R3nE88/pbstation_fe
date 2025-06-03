@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:pbstation_frontend/services/productos_services.dart';
+import 'package:pbstation_frontend/services/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService with ChangeNotifier {
   static final WebSocketService _instance = WebSocketService._internal();
 
-  factory WebSocketService(ProductosServices productosService) {
+  factory WebSocketService(ProductosServices productosService, ClientesServices clientesService) {
     _instance.productosService = productosService;
+    _instance.clientesService = clientesService;
     return _instance;
   }
 
@@ -20,6 +21,7 @@ class WebSocketService with ChangeNotifier {
   List<String> mensajesRecibidos = [];
 
   late ProductosServices productosService;
+  late ClientesServices clientesService;
 
   Timer? _reconnectTimer;
 
@@ -77,24 +79,45 @@ class WebSocketService with ChangeNotifier {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de recargar productos porque cambió el producto $id');
+        print('→ Petición de cargar el nuevo producto: $id');
         productosService.loadAProducto(id);
       }
     } else if (mensaje.startsWith('delete-product:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de recargar productos porque cambió el producto $id');
+        print('→ Petición de eliminar el producto: $id');
         productosService.deleteAProducto(id);
       }
     } else if (mensaje.startsWith('put-product:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de recargar productos porque cambió el producto $id');
+        print('→ Petición de recargar el productos: $id');
         productosService.updateAProducto(id);
       }
-    }
+    } else if (mensaje.startsWith('post-cliente:')) {
+      final partes = mensaje.split(':');
+      if (partes.length > 1) {
+        final id = partes[1];
+        print('→ Petición de cargar el cliente nuevo: $id');
+        clientesService.loadACliente(id);
+      }
+    } else if (mensaje.startsWith('delete-cliente:')) {
+      final partes = mensaje.split(':');
+      if (partes.length > 1) {
+        final id = partes[1];
+        print('→ Petición de eliminar el cliente: $id');
+        clientesService.deleteACliente(id);
+      }
+    } else if (mensaje.startsWith('put-cliente:')) {
+      final partes = mensaje.split(':');
+      if (partes.length > 1) {
+        final id = partes[1];
+        print('→ Petición de recargar el cliente: $id');
+        clientesService.updateACliente(id);
+      }
+    } 
   }
 
   void _scheduleReconnect() {

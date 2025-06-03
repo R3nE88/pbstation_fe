@@ -30,7 +30,7 @@ class Producto {
         // 3) Leer el id directamente si viene en el objeto
         id: json["id"]?.toString(),
         codigo: json["codigo"],
-        descripcion: json["descripcion"].toString(),
+        descripcion: json["descripcion"],
         tipo: json["tipo"].toString(),
         categoria: json["categoria"].toString(),
         precio: (json["precio"] as num).toDouble(),

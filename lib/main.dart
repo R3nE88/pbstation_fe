@@ -11,22 +11,19 @@ import 'package:provider/provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
 
-  // 1️⃣ Creamos UNA instancia de ProductosServices
   final productosService = ProductosServices();
+  final clientesServices = ClientesServices();
 
-  // 2️⃣ Creamos el WebSocketService inyectándole esa misma instancia
-  final websocketService = WebSocketService(productosService);
+
+  final websocketService = WebSocketService(productosService, clientesServices);
 
   runApp(
     MultiProvider(
       providers: [
-        // Registramos la instancia de ProductosServices
         ChangeNotifierProvider.value(value: productosService),
-
-        // Ahora creamos el WebSocketService pasándole la misma instancia
+        ChangeNotifierProvider.value(value: clientesServices),
         ChangeNotifierProvider.value(value: websocketService),
 
-        // Resto de providers
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
       ],

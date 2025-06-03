@@ -3,16 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/models/models.dart';
 
-class ProductosServices extends ChangeNotifier{
-  final String _baseUrl = 'http://127.0.0.1:8000/productos/';
-  List<Producto> productos = [];
-  List<Producto> filteredProductos = [];
+class ClientesServices extends ChangeNotifier{
+  final String _baseUrl = 'http://127.0.0.1:8000/clientes/';
+  List<Cliente> clientes = [];
+  List<Cliente> filteredClientes = [];
 
   bool isLoading = false;
 
-  Future<List<Producto>> loadProductos() async { 
+  Future<List<Cliente>> loadClientes() async { 
     if (isLoading) {
-      return productos;
+      return clientes;
     }
     
     isLoading = true;
@@ -23,15 +23,14 @@ class ProductosServices extends ChangeNotifier{
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      productos = listaJson.map<Producto>((jsonElem) {
-        final prod = Producto.fromMap(jsonElem as Map<String, dynamic>);
-        prod.id = (jsonElem as Map)["id"]?.toString();
-        return prod;
+      clientes = listaJson.map<Cliente>((jsonElem) {
+        final cli = Cliente.fromMap(jsonElem as Map<String, dynamic>);
+        cli.id = (jsonElem as Map)["id"]?.toString();
+        return cli;
       }).toList();
-      filteredProductos = productos;
+      filteredClientes = clientes;
 
     } catch (e) {
-      // Manejo de error
       isLoading = false;
       notifyListeners();
       return [];
@@ -39,10 +38,10 @@ class ProductosServices extends ChangeNotifier{
     
     isLoading = false;
     notifyListeners();
-    return productos;
+    return clientes;
   }
 
-  void loadAProducto(id) async {
+  void loadACliente(id) async {
     if (!isLoading) {
       isLoading = true;
       try {
@@ -50,22 +49,22 @@ class ProductosServices extends ChangeNotifier{
         final resp = await http.get(url);
 
         final body = json.decode(resp.body);
-        final prod = Producto.fromMap(body as Map<String, dynamic>);
-        prod.id = (body as Map)["id"]?.toString();
+        final cli = Cliente.fromMap(body as Map<String, dynamic>);
+        cli.id = (body as Map)["id"]?.toString();
         
-        productos.add(prod);
-        filteredProductos = productos;
+        clientes.add(cli);
+        filteredClientes = clientes;
         notifyListeners();
         isLoading = false;
       } catch (e) {
         if (kDebugMode) {
-          print('hubo un problema al cargar el producto!');
+          print('hubo un problema al cargar el cliente!');
         }
       }
     }
   }
 
-  Future<String> createProducto(Producto producto) async {
+  Future<String> createCliente(Cliente cliente) async {
     isLoading = true;
 
     try {
@@ -74,41 +73,41 @@ class ProductosServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: producto.toJson(),   
+        body: cliente.toJson(),   
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        producto.id = data['id']?.toString();
-        final nuevo = Producto.fromMap(data);
-        productos.add(nuevo);
-        filteredProductos = productos;
+        cliente.id = data['id']?.toString();
+        final nuevo = Cliente.fromMap(data);
+        clientes.add(nuevo);
+        filteredClientes = clientes;
         if (kDebugMode) {
-          print('producto creado!');
+          print('cliente creado!');
         }
         return 'exito';
       } else {
-        debugPrint('Error al crear producto: ${resp.statusCode} ${resp.body}');
+        debugPrint('Error al crear cliente: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
     } catch (e) {
-      debugPrint('Exception en createProducto: $e');
-      return 'Hubo un problema al crear el producto.\n$e';
+      debugPrint('Exception en createCliente: $e');
+      return 'Hubo un problema al crear el cliente.\n$e';
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> deleteProducto(String id) async{
+  Future<bool> deleteCliente(String id) async{
     bool exito = false;
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.delete(url);
       if (resp.statusCode == 204){
-        productos.removeWhere((producto) => producto.id==id);
-        filteredProductos = productos;
+        clientes.removeWhere((cliente) => cliente.id==id);
+        filteredClientes = clientes;
         exito = true;
       }
     } catch (e) {
@@ -118,13 +117,13 @@ class ProductosServices extends ChangeNotifier{
     return exito;
   }
 
-  void deleteAProducto(String id) {
-    productos.removeWhere((producto) => producto.id==id);
-    filteredProductos = productos;
+  void deleteACliente(String id) {
+    clientes.removeWhere((cliente) => cliente.id==id);
+    filteredClientes = clientes;
     notifyListeners();
   }
 
-  Future<String> updateProducto(Producto producto, String id) async {
+  Future<String> updateCliente(Cliente cliente, String id) async {
     isLoading = true;
 
     try {
@@ -132,14 +131,13 @@ class ProductosServices extends ChangeNotifier{
 
       final body = json.encode({
           "id": id,
-          "codigo": producto.codigo,
-          "descripcion": producto.descripcion,
-          "tipo": producto.tipo,
-          "categoria": producto.categoria,
-          "precio": producto.precio,
-          "inventariable": producto.inventariable,
-          "imprimible": producto.imprimible,
-          "valor_impresion": producto.valorImpresion,
+          "nombre": cliente.nombre,
+          "correo": cliente.correo,
+          "telefono": cliente.telefono,
+          "rfc": cliente.rfc,
+          "codigo_postal": cliente.codigoPostal,
+          "direccion": cliente.direccion,
+          "regimen_fiscal": cliente.regimenFiscal,
         });
 
       final resp = await http.put(
@@ -150,28 +148,28 @@ class ProductosServices extends ChangeNotifier{
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final updated = Producto.fromMap(data);
+        final updated = Cliente.fromMap(data);
         updated.id = data['id']?.toString();
 
-        productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
-        filteredProductos = productos;
+        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        filteredClientes = clientes;
         notifyListeners();
         return 'exito';
       } else {
-        debugPrint('Error al actualizar producto: ${resp.statusCode} ${resp.body}');
+        debugPrint('Error al actualizar cliente: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
     } catch (e) {
-      debugPrint('Exception en updateProducto: $e');
-      return 'Hubo un problema al crear el producto.\n$e';
+      debugPrint('Exception en updateCliente: $e');
+      return 'Hubo un problema al crear el cliente.\n$e';
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  void updateAProducto(String id)async{
+  void updateACliente(String id)async{
     if (!isLoading) {
       isLoading = true;
       try {
@@ -179,23 +177,23 @@ class ProductosServices extends ChangeNotifier{
         final resp = await http.get(url);
 
         final body = json.decode(resp.body);
-        final prod = Producto.fromMap(body as Map<String, dynamic>);
-        prod.id = (body as Map)["id"]?.toString();
+        final cli = Cliente.fromMap(body as Map<String, dynamic>);
+        cli.id = (body as Map)["id"]?.toString();
 
         
         
-        productos = productos.map((producto) {
-          if (producto.id == prod.id) {
-            return prod;
+        clientes = clientes.map((cliente) {
+          if (cliente.id == cli.id) {
+            return cli;
           }
-          return producto;
+          return cliente;
         }).toList();
-        filteredProductos = productos;
+        filteredClientes = clientes;
         notifyListeners();
         isLoading = false;
       } catch (e) {
         if (kDebugMode) {
-          print('hubo un problema al cargar el producto!');
+          print('hubo un problema al cargar el cliente!');
         }
       }
     }
