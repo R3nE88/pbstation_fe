@@ -7,10 +7,13 @@ import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class ProductoFormDialog extends StatefulWidget {
-  const ProductoFormDialog({super.key});
+  const ProductoFormDialog({super.key, this.prodEdit, this.onlyRead});
 
   @override
   State<ProductoFormDialog> createState() => _ProductoFormDialogState();
+
+  final Producto? prodEdit; 
+  final bool? onlyRead;
 }
 
 class _ProductoFormDialogState extends State<ProductoFormDialog> {
@@ -23,13 +26,41 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   String tipoSeleccionado = 'producto';
   String categoriaSeleccionada = 'general';
   final formKey = GlobalKey<FormState>();
+  String titulo = 'Agregar nuevo Producto';
+  bool onlyRead = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if(widget.prodEdit!=null){
+      if (widget.onlyRead!=null){
+        if(widget.onlyRead==true){
+          titulo = 'Datos del Producto';
+          onlyRead = true;
+        }
+      } else {
+        titulo = 'Editar Producto';
+      }
+      claveController.text = widget.prodEdit!.codigo.toString();
+      descripcionController.text = widget.prodEdit!.descripcion;
+      precioController.text = widget.prodEdit!.precio.toString();
+      inventariable = widget.prodEdit!.inventariable;
+      imprimible = widget.prodEdit!.imprimible;
+      if (imprimible){
+        valorImpresionController.text = widget.prodEdit!.valorImpresion.toString();
+      }
+      tipoSeleccionado = widget.prodEdit!.tipo;
+      categoriaSeleccionada = widget.prodEdit!.categoria;
+    }
+  }
 
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: const Text('Datos del Producto'),
+      title: Text(titulo),
       content: SizedBox(
         width: 600,
         child: Form(
@@ -42,36 +73,44 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                 children: [
                   SizedBox(
                     width: 120,
-                    child: TextFormField(
-                      autofocus: true,
-                      controller: claveController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Codigo',
+                    child: IgnorePointer(
+                      ignoring: onlyRead,
+                      child: TextFormField(
+                        readOnly: onlyRead,
+                        autofocus: !onlyRead,
+                        controller: claveController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'Codigo',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor ingrese un codigo';
+                          }
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingrese un codigo';
-                        }
-                        return null;
-                      },
                     ),
                   ), SizedBox(width: 10),
                   Expanded(
-                    child: TextFormField(
-                      controller: descripcionController,
-                      decoration: InputDecoration(
-                        labelText: 'Descripcion',
+                    child: IgnorePointer(
+                      ignoring: onlyRead,
+                      child: TextFormField(
+                        readOnly: onlyRead,
+                        controller: descripcionController,
+                        decoration: InputDecoration(
+                          labelText: 'Descripcion',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor ingrese una descripcion';
+                          }
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingrese una descripcion';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
@@ -83,6 +122,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     children: [
                       
                       CustomDropDown<String>(
+                        isReadOnly: onlyRead,
                         value: tipoSeleccionado,
                         hintText: 'Tipo',
                         items: const [
@@ -93,6 +133,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                       ), const SizedBox(width: 10),
 
                       CustomDropDown<String>(
+                        isReadOnly: onlyRead,
                         value: categoriaSeleccionada,
                         hintText: 'Categoría',
                         items: const [
@@ -105,94 +146,105 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     ],
                   ), const SizedBox(width: 10),
                   Expanded(
-                    child: TextFormField(
-                      controller: precioController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Precio',
+                    child: IgnorePointer(
+                      ignoring: onlyRead,
+                      child: TextFormField(
+                        readOnly: onlyRead,
+                        controller: precioController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
+                        ],
+                        decoration: InputDecoration(
+                          labelText: 'Precio',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor ingrese un precio';
+                          }
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingrese un precio';
-                        }
-                        return null;
-                      },
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 10),
               SeparadorConTexto(texto: 'Caracteristicas'), 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Checkbox(
-                        focusColor: AppTheme.focusColor,
-                        value: inventariable,
-                        onChanged: (value) {
-                          setState(() {
-                            inventariable = value ?? false;
-                          });
-                        }
-                      ),
-                      Text('Inventariable   '),
-                    ],
-                  ), 
-          
-                  Row(
-                    children: [
-                      Checkbox(
-                        focusColor: AppTheme.focusColor,
-                        value: imprimible,
-                        onChanged: (value) {
-                          setState(() {
-                            imprimible = value ?? false;
-                          });
-                        }
-                      ),
-                      Text('Contar como impresion  '),
-                      SizedBox(
-                        //height: 40,
-                        width: 110,
-                        child: TextFormField(
-                          controller: valorImpresionController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
-                          ],
-                          readOnly: imprimible==false?true:false, //si esta marcado el checkbox habilitar
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            errorStyle: TextStyle(height: 0),
-                            contentPadding: EdgeInsets.zero,
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(6),
-                              borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(6),
-                              borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (imprimible && (value == null || value.isEmpty)) {
-                              return 'valor de impresion';
+              IgnorePointer(
+                ignoring: onlyRead,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Checkbox(
+                          focusColor: AppTheme.focusColor,
+                          value: inventariable,
+                          onChanged: (value) {
+                            if (onlyRead==false){
+                              setState(() {
+                                inventariable = value ?? false;
+                              });
                             }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          }
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        Text('Inventariable   '),
+                      ],
+                    ), 
+                          
+                    Row(
+                      children: [
+                        Checkbox(
+                          focusColor: AppTheme.focusColor,
+                          value: imprimible,
+                          onChanged: (value) {
+                            if (onlyRead==false){
+                              setState(() {
+                                imprimible = value ?? false;
+                              });
+                            }
+                          }
+                        ),
+                        Text('Contar como impresion  '),
+                        SizedBox(
+                          //height: 40,
+                          width: 110,
+                          child: TextFormField(
+                            controller: valorImpresionController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
+                            ],
+                            readOnly: imprimible==false?true : onlyRead, //si esta marcado el checkbox habilitar
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              errorStyle: TextStyle(height: 0),
+                              contentPadding: EdgeInsets.zero,
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (imprimible && (value == null || value.isEmpty)) {
+                                return 'valor de impresion';
+                              }
+                              return null;
+                            },
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               
           
@@ -201,7 +253,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
         ),
       ),
       actions: [
-        ElevatedButton(
+        !onlyRead ? ElevatedButton(
           onPressed: () async {
             if (formKey.currentState!.validate()) {
               final productosServices = Provider.of<ProductosServices>(context, listen: false);
@@ -218,8 +270,14 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                 imprimible: imprimible,
                 valorImpresion: int.tryParse(valorImpresionController.text) ?? 0,
               );
-
-              String respuesta = await productosServices.createProducto(producto);
+              
+              late String respuesta;
+              if (widget.prodEdit==null){
+                respuesta = await productosServices.createProducto(producto);
+              } else {
+                String id = widget.prodEdit!.id!;
+                respuesta = await productosServices.updateProducto(producto, id);
+              }
 
               if (!context.mounted) return;
 
@@ -250,7 +308,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
             foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
           ),
           child: Text('Guardar Producto')
-        ),
+        ) : SizedBox(),
       ],
     );
   }

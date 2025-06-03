@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -13,17 +15,42 @@ class ProductosScreen extends StatefulWidget {
 }
 
 class _ProductosScreenState extends State<ProductosScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  
+  Timer? _debounce;
+  //bool isLoading = true;
+
   @override
-  void initState() { //Init se inicializa siempre que entro
+  void initState() {
+    super.initState();
     final productosServices = Provider.of<ProductosServices>(context, listen: false);
     productosServices.loadProductos();
-    super.initState();
+
+    _searchController.addListener(() {
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 600), () {
+        final query = _searchController.text.toLowerCase();
+        setState(() {
+          productosServices.filteredProductos = productosServices.productos.where((producto) {
+            return producto.descripcion.toLowerCase().contains(query) ||
+                   producto.codigo.toString().contains(query);
+          }).toList();
+        });
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final productosServices = Provider.of<ProductosServices>(context, listen: false);
-    
+
     return Padding(
       padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
       child: Container(
@@ -52,6 +79,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                           waitDuration: Durations.short4,
                           message: 'codigo o descripcion',
                           child: TextFormField( //TODO: hacer funcional searhfield
+                            controller: _searchController,
                             decoration: InputDecoration(
                               prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                               hintText: 'Buscar Producto'
@@ -98,29 +126,40 @@ class _ProductosScreenState extends State<ProductosScreen> {
                           Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
                           Expanded(child: Text('Categoria', textAlign: TextAlign.center)),
                           Expanded(child: Text('Precio', textAlign: TextAlign.center)),
-                          Expanded(child: Text('Inventariable', textAlign: TextAlign.center)),
-                          Expanded(child: Text('Cuenta como impresion', textAlign: TextAlign.center)),
+                          //Expanded(child: Text('Inventariable', textAlign: TextAlign.center)),
+                          SizedBox(
+                            width: 120,
+                            child: Text('Acciones', textAlign: TextAlign.center)
+                          ),
                         ],
                       ),
                     ),
                     Expanded( //Body
                       child: Container(
                         color: AppTheme.tablaColorFondo,
-                        child: Consumer<ProductosServices>( //De esta forma el provider solo actualza este widget
-                          builder: (context, length, child) {
+                        child: /*!isLoading ?*/ Consumer<ProductosServices>(
+                          builder: (context, servicios, child) {
                             return ListView.builder(
-                              itemCount: productosServices.productos.length,
+                              itemCount: productosServices.filteredProductos.length,
                               itemBuilder: (context, index) => FilaProducto(
-                                producto: productosServices.productos[index],
+                                producto: productosServices.filteredProductos[index],
                                 index: index,
+                                onDelete: () async {
+                                  Loading().displaySpinLoading(context);
+                                  final productosServices = Provider.of<ProductosServices>(context, listen: false);
+                                  await productosServices.deleteProducto(productosServices.filteredProductos[index].id!);
+                                  setState(() {
+                                    productosServices.filteredProductos = productosServices.productos;
+                                  });
+                                  Navigator.pop(context);
+                                },
                               ),
                             );
-                          },
-                        ),
+                          }
+                        )
                       ),
                     ),
                     Container( //Pie
-                      height: 45,
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.only(
@@ -132,26 +171,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                       child: Row(
                         children: [
                           const Spacer(),
-                          Consumer<ProductosServices>(
-                            builder: (context, length, child) {
-                              return Text('  Total: ${productosServices.productos.length}   ', style: TextStyle(fontWeight: FontWeight.bold));
-                            }
-                          ),
-                          /*const Text('Pagina 1/1  ', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                          IconButton(
-                            onPressed: (){}, 
-                            icon: Transform.translate(
-                              offset: const Offset(0, -5),
-                              child: const Icon(Icons.navigate_before, color: AppTheme.letraClara)
-                            )
-                          ),
-                          IconButton(
-                            onPressed: (){}, 
-                            icon: Transform.translate(
-                              offset: const Offset(0, -5),
-                              child: const Icon(Icons.navigate_next, color: AppTheme.letraClara)
-                            )
-                          )*/
+                          Text('  Total: ${productosServices.filteredProductos.length}   ', style: TextStyle(fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -169,11 +189,14 @@ class _ProductosScreenState extends State<ProductosScreen> {
 class FilaProducto extends StatelessWidget {
   const FilaProducto({
     super.key,
-    required this.producto, required this.index,
+    required this.producto,
+    required this.index,
+    required this.onDelete,
   });
 
   final Producto producto;
   final int index;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -186,11 +209,40 @@ class FilaProducto extends StatelessWidget {
         children: [
           Expanded(child: Text(producto.codigo.toString(), textAlign: TextAlign.center)),
           Expanded(flex:2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
-          Expanded(child: Text(producto.tipo, textAlign: TextAlign.center)),
-          Expanded(child: Text(producto.categoria, textAlign: TextAlign.center)),
+          Expanded(child: Text(capitalizarPrimeraLetra(producto.tipo), textAlign: TextAlign.center)),
+          Expanded(child: Text(capitalizarPrimeraLetra(producto.categoria), textAlign: TextAlign.center)),
           Expanded(child: Text('\$${producto.precio}', textAlign: TextAlign.center)),
-          Expanded(child: Text(producto.inventariable.toString(), textAlign: TextAlign.center)),
-          Expanded(child: Text(producto.imprimible.toString(), textAlign: TextAlign.center)),
+          SizedBox(width: 120,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FeedBackButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => ProductoFormDialog(prodEdit: producto, onlyRead: true),
+                  ),
+                  child: Icon(Icons.info, color: AppTheme.letraClara, shadows: [
+                    Shadow(color: Colors.blue, offset: Offset(1.5,1.5), blurRadius: 2)
+                  ],)
+                ), SizedBox(width: 22),
+                FeedBackButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => ProductoFormDialog(prodEdit: producto),
+                  ),
+                  child: Icon(Icons.edit, color: AppTheme.letraClara, shadows: [
+                    Shadow(color: Colors.orange, offset: Offset(1.5,1.5), blurRadius: 2)
+                  ],)
+                ), SizedBox(width: 22),
+                FeedBackButton(
+                  onPressed: onDelete,
+                  child: Icon(Icons.delete, color: AppTheme.letraClara, shadows: [
+                    Shadow(color: Colors.red, offset: Offset(1.5,1.5), blurRadius: 2)
+                  ],)
+                ),
+              ]
+            ),
+          ),
         ],
       ),
     );

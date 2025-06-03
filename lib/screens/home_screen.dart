@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
 final GlobalKey<HomeScreenState> homeScreenKey = GlobalKey<HomeScreenState>();
 
@@ -38,6 +42,9 @@ class HomeScreenState extends State<HomeScreen> {
     return Stack(
       alignment: AlignmentDirectional.bottomCenter,
       children: [
+
+        
+
         Scaffold(
           backgroundColor: AppTheme.backgroundColor,
           body: Center(
@@ -164,7 +171,7 @@ class HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.all(12), 
                 child: Image.asset(
-                  'assets/images/logo.png', 
+                  'assets/images/logo2.png', 
                   height: 70, 
                   color: AppTheme.colorContraste), //LOGO
               ),
@@ -300,7 +307,62 @@ class HomeScreenState extends State<HomeScreen> {
               );
             }
           )   
-        )
+        ),
+      
+        Consumer<WebSocketService>( //Bloqueo
+          builder: (context, webSocketService, child) {
+            if (!webSocketService.isConnected){
+              return Scaffold( 
+                backgroundColor: Colors.transparent,
+                body: Stack( 
+                  children: [
+                    Container(
+                      color: Colors.black45,
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height,
+                        width: MediaQuery.of(context).size.width,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Conexion perdida con el WebSocket'), SizedBox(height: 25),
+                            CircularProgressIndicator(color: Colors.white), SizedBox(height: 25),
+                            Text('Reconectando...'),
+                          ],
+                        )),
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: barraHeight,
+                          child: WindowTitleBarBox(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Stack(
+                                    alignment: Alignment.centerLeft,
+                                    children: [
+                                      MoveWindow(),
+                                    ],
+                                  )
+                                ),
+                                WindowButtons()
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return SizedBox();
+            }
+          }
+        ),
+        
+                
       ],
     );
   }
@@ -322,7 +384,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Image.asset('assets/images/logo.png', height: 200, color: AppTheme.colorContraste.withAlpha(150)),
+        Image.asset('assets/images/logo2.png', height: 200, color: AppTheme.colorContraste.withAlpha(150)),
         SizedBox(height: 15),
         Text('¡Bienvenido a PrinterBoyStation!\n¿Qué haremos hoy?', 
           textScaler: TextScaler.linear(1.5), 
