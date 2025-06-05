@@ -79,8 +79,9 @@ class ProductosServices extends ChangeNotifier{
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        producto.id = data['id']?.toString();
         final nuevo = Producto.fromMap(data);
+        nuevo.id = data['id']?.toString();
+
         productos.add(nuevo);
         filteredProductos = productos;
         if (kDebugMode) {

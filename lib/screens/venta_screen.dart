@@ -552,15 +552,7 @@ class _VentaScreenState extends State<VentaScreen> {
                                   children: [
                                     ElevatedButton(
                                       onPressed: (){},
-                                      style: ButtonStyle(
-                                        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                          if (states.contains(WidgetState.focused)) {
-                                            return AppTheme.botonPrincipalFocus;// Color cuando está enfocado
-                                          }
-                                          return AppTheme.botonPrincipal; // Color normal
-                                        }),
-                                        foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-                                      ), 
+                                      style: AppTheme.botonSecStyle,
                                       child: Text('          Realizar Pago          ', 
                                         style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                       ),
@@ -568,15 +560,6 @@ class _VentaScreenState extends State<VentaScreen> {
                                     SizedBox(height: 10),
                                     ElevatedButton(
                                       onPressed: (){},
-                                      style: ButtonStyle(
-                                        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                                          if (states.contains(WidgetState.focused)) {
-                                            return AppTheme.botonSecundarioFocus; // Color cuando está enfocado
-                                          }
-                                          return AppTheme.botonSecundario; // Color normal
-                                        }),
-                                        foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-                                      ), 
                                       child: Text('Guardar como cotizacion', 
                                         style: TextStyle(color: AppTheme.isDarkTheme==true?AppTheme.containerColor1:Colors.black54, fontWeight: FontWeight.w700)
                                       ),

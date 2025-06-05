@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/forms/productos_form.dart';
@@ -208,8 +209,8 @@ class FilaProducto extends StatelessWidget {
         children: [
           Expanded(child: Text(producto.codigo.toString(), textAlign: TextAlign.center)),
           Expanded(flex:2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
-          Expanded(child: Text(capitalizarPrimeraLetra(producto.tipo), textAlign: TextAlign.center)),
-          Expanded(child: Text(capitalizarPrimeraLetra(producto.categoria), textAlign: TextAlign.center)),
+          Expanded(child: Text(Constantes.tipo[producto.tipo]!, textAlign: TextAlign.center)),
+          Expanded(child: Text(Constantes.categoria[producto.categoria]!, textAlign: TextAlign.center)),
           Expanded(child: Text('\$${producto.precio}', textAlign: TextAlign.center)),
           SizedBox(width: 120,
             child: Row(

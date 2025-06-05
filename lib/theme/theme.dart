@@ -69,7 +69,7 @@ class AppTheme{
       : AppTheme.primario1;
 
   static Color get botonPrincipalFocus => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 64, 65, 66)
+      ? const Color.fromARGB(255, 61, 61, 61)
       : AppTheme.secundario1;
     
   static Color get botonSecundario => changeThemeInstance?.isDarkTheme == true
@@ -77,7 +77,7 @@ class AppTheme{
       : AppTheme.letraClara;
 
   static Color get botonSecundarioFocus => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 172, 173, 174)
+      ? const Color.fromARGB(255, 165, 165, 165)
       : const Color.fromARGB(255, 205, 205, 210);
 
   static Color get tablaColorHeader => changeThemeInstance?.isDarkTheme == true
@@ -135,6 +135,16 @@ class AppTheme{
     color: Colors.white54
   );
 
+  static final botonSecStyle = ButtonStyle(
+    backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.focused)) {
+        return AppTheme.botonPrincipalFocus;// Color cuando está enfocado
+      }
+      return AppTheme.botonPrincipal; // Color normal
+    }),
+    foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
+  );
+
   static final ButtonStyle botonGuardar = ButtonStyle(
     backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
       if (states.contains(WidgetState.focused)) {
@@ -185,17 +195,24 @@ class AppTheme{
     ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: primario1, 
-        backgroundColor: Colors.white, //Colors letras
-        shape: const StadiumBorder(),
-        elevation: 1,
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          height: 1.5
-        )
-      )
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AppTheme.botonSecundarioFocus; // Color cuando está enfocado
+          }
+          return AppTheme.botonSecundario; // Color normal
+        }),
+        foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
+        shape: WidgetStateProperty.all(StadiumBorder()),
+        elevation: WidgetStateProperty.all(1),
+        textStyle: WidgetStateProperty.all(
+          TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            height: 1.5
+          )
+        ),
+      ),
     ),
 
     textTheme: TextTheme(
@@ -275,17 +292,24 @@ class AppTheme{
     ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: primario1, 
-        backgroundColor: Colors.white, //Colors letras
-        shape: const StadiumBorder(),
-        elevation: 1,
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          height: 1.5
-        )
-      )
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return AppTheme.botonSecundarioFocus; // Color cuando está enfocado
+          }
+          return AppTheme.botonSecundario; // Color normal
+        }),
+        foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
+        shape: WidgetStateProperty.all(StadiumBorder()),
+        elevation: WidgetStateProperty.all(1),
+        textStyle: WidgetStateProperty.all(
+          TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            height: 1.5
+          )
+        ),
+      ),
     ),
 
     textSelectionTheme: TextSelectionThemeData(

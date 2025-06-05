@@ -78,8 +78,9 @@ class ClientesServices extends ChangeNotifier{
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        cliente.id = data['id']?.toString();
         final nuevo = Cliente.fromMap(data);
+        nuevo.id = data['id']?.toString();
+
         clientes.add(nuevo);
         filteredClientes = clientes;
         if (kDebugMode) {
@@ -134,10 +135,15 @@ class ClientesServices extends ChangeNotifier{
           "nombre": cliente.nombre,
           "correo": cliente.correo,
           "telefono": cliente.telefono,
+          "razon_social": cliente.razonSocial,
           "rfc": cliente.rfc,
           "codigo_postal": cliente.codigoPostal,
           "direccion": cliente.direccion,
           "regimen_fiscal": cliente.regimenFiscal,
+          "no_ext": cliente.noExt,
+          "no_int": cliente.noInt,
+          "colonia": cliente.colonia,
+          "localidad": cliente.localidad
         });
 
       final resp = await http.put(

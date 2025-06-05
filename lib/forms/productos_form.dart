@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -30,6 +31,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   bool tipoEmpty = false;
   bool categoriaEmpty = false;
   String titulo = 'Agregar nuevo Producto';
+  late final List<DropdownMenuItem<String>> dropdownItemsTipo;
+  late final List<DropdownMenuItem<String>> dropdownItemsCat;
   
 
   @override
@@ -56,6 +59,20 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       tipoSeleccionado = widget.prodEdit!.tipo;
       categoriaSeleccionada = widget.prodEdit!.categoria;
     }
+
+    dropdownItemsTipo = Constantes.tipo.entries.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.key,
+        child: Text(entry.value),
+      );
+    }).toList();
+
+    dropdownItemsCat = Constantes.categoria.entries.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.key,
+        child: Text(entry.value),
+      );
+    }).toList();
   }
 
 
@@ -133,10 +150,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         value: tipoSeleccionado,
                         hintText: 'Tipo',
                         empty: tipoEmpty,
-                        items: const [
-                          DropdownMenuItem(value: 'producto', child: Text('Producto')),
-                          DropdownMenuItem(value: 'servicio', child: Text('Servicio')),
-                        ],
+                        items: dropdownItemsTipo,
                         onChanged: (val) => setState(() {
                           tipoEmpty = false;
                           tipoSeleccionado = val!;
@@ -148,11 +162,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         value: categoriaSeleccionada,
                         hintText: 'Categoría',
                         empty: categoriaEmpty,
-                        items: const [
-                          DropdownMenuItem(value: 'general', child: Text('General')),
-                          DropdownMenuItem(value: 'impresion', child: Text('Impresión Digital')),
-                          DropdownMenuItem(value: 'diseño', child: Text('Diseño')),
-                        ],
+                        items: dropdownItemsCat,
                         onChanged: (val) => setState(() {
                           categoriaEmpty = false;
                           categoriaSeleccionada = val!;
