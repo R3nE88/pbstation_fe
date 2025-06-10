@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
 class ProductosServices extends ChangeNotifier{
@@ -19,7 +20,9 @@ class ProductosServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('${_baseUrl}all');
-      final resp = await http.get(url);
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
@@ -47,7 +50,9 @@ class ProductosServices extends ChangeNotifier{
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
-        final resp = await http.get(url);
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
 
         final body = json.decode(resp.body);
         final prod = Producto.fromMap(body as Map<String, dynamic>);
@@ -73,7 +78,7 @@ class ProductosServices extends ChangeNotifier{
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
         body: producto.toJson(),   
       );
 
@@ -106,7 +111,9 @@ class ProductosServices extends ChangeNotifier{
     bool exito = false;
     try {
       final url = Uri.parse('$_baseUrl$id');
-      final resp = await http.delete(url);
+      final resp = await http.delete(
+        url, headers: {"tkn": Env.tkn}
+        );
       if (resp.statusCode == 204){
         productos.removeWhere((producto) => producto.id==id);
         filteredProductos = productos;
@@ -145,7 +152,7 @@ class ProductosServices extends ChangeNotifier{
 
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
         body: body,
       );
 
@@ -177,7 +184,9 @@ class ProductosServices extends ChangeNotifier{
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
-        final resp = await http.get(url);
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
 
         final body = json.decode(resp.body);
         final prod = Producto.fromMap(body as Map<String, dynamic>);

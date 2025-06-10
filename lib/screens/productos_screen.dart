@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/forms/productos_form.dart';
 import 'package:pbstation_frontend/services/services.dart';

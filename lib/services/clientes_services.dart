@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
 class ClientesServices extends ChangeNotifier{
   final String _baseUrl = 'http://127.0.0.1:8000/clientes/';
-  List<Cliente> clientes = [];
-  List<Cliente> filteredClientes = [];
+  List<Clientes> clientes = [];
+  List<Clientes> filteredClientes = [];
 
   bool isLoading = false;
 
-  Future<List<Cliente>> loadClientes() async { 
+  Future<List<Clientes>> loadClientes() async { 
     if (isLoading) {
       return clientes;
     }
@@ -19,12 +20,14 @@ class ClientesServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('${_baseUrl}all');
-      final resp = await http.get(url);
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      clientes = listaJson.map<Cliente>((jsonElem) {
-        final cli = Cliente.fromMap(jsonElem as Map<String, dynamic>);
+      clientes = listaJson.map<Clientes>((jsonElem) {
+        final cli = Clientes.fromMap(jsonElem as Map<String, dynamic>);
         cli.id = (jsonElem as Map)["id"]?.toString();
         return cli;
       }).toList();
@@ -46,10 +49,12 @@ class ClientesServices extends ChangeNotifier{
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
-        final resp = await http.get(url);
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
 
         final body = json.decode(resp.body);
-        final cli = Cliente.fromMap(body as Map<String, dynamic>);
+        final cli = Clientes.fromMap(body as Map<String, dynamic>);
         cli.id = (body as Map)["id"]?.toString();
         
         clientes.add(cli);
@@ -64,7 +69,7 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  Future<String> createCliente(Cliente cliente) async {
+  Future<String> createCliente(Clientes cliente) async {
     isLoading = true;
 
     try {
@@ -72,13 +77,13 @@ class ClientesServices extends ChangeNotifier{
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
         body: cliente.toJson(),   
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final nuevo = Cliente.fromMap(data);
+        final nuevo = Clientes.fromMap(data);
         nuevo.id = data['id']?.toString();
 
         clientes.add(nuevo);
@@ -105,7 +110,9 @@ class ClientesServices extends ChangeNotifier{
     bool exito = false;
     try {
       final url = Uri.parse('$_baseUrl$id');
-      final resp = await http.delete(url);
+      final resp = await http.delete(
+        url, headers: {"tkn": Env.tkn}
+      );
       if (resp.statusCode == 204){
         clientes.removeWhere((cliente) => cliente.id==id);
         filteredClientes = clientes;
@@ -124,7 +131,7 @@ class ClientesServices extends ChangeNotifier{
     notifyListeners();
   }
 
-  Future<String> updateCliente(Cliente cliente, String id) async {
+  Future<String> updateCliente(Clientes cliente, String id) async {
     isLoading = true;
 
     try {
@@ -148,13 +155,13 @@ class ClientesServices extends ChangeNotifier{
 
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
         body: body,
       );
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final updated = Cliente.fromMap(data);
+        final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
 
         clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
@@ -180,10 +187,12 @@ class ClientesServices extends ChangeNotifier{
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
-        final resp = await http.get(url);
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
 
         final body = json.decode(resp.body);
-        final cli = Cliente.fromMap(body as Map<String, dynamic>);
+        final cli = Clientes.fromMap(body as Map<String, dynamic>);
         cli.id = (body as Map)["id"]?.toString();
 
         

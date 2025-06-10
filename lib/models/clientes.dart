@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-class Cliente {
-    Cliente({
+class Clientes {
+    Clientes({
         required this.nombre,
         this.correo,
         this.telefono,
@@ -31,11 +31,11 @@ class Cliente {
     String? localidad; //ciudad, estado, pais
 
 
-    factory Cliente.fromJson(String str) => Cliente.fromMap(json.decode(str));
+    factory Clientes.fromJson(String str) => Clientes.fromMap(json.decode(str));
 
     String toJson() => json.encode(toMap());
 
-    factory Cliente.fromMap(Map<String, dynamic> json) => Cliente(
+    factory Clientes.fromMap(Map<String, dynamic> json) => Clientes(
         nombre: json["nombre"],
         correo: json["correo"],
         telefono: json ["telefono"],

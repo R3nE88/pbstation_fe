@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:pbstation_frontend/models/usuario.dart';
+import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/models/usuarios.dart';
 
 class Login {
   final String _baseUrl = 'http://127.0.0.1:8000/login';
-  static Usuario? usuarioLogeado;
+  static Usuarios? usuarioLogeado;
 
   bool isLoading = false;
     
@@ -19,6 +20,7 @@ class Login {
         url,
         headers: {
           "Content-Type": "application/json",
+          "tkn": Env.tkn
         },
         body: jsonEncode({
           "correo": correo,
@@ -28,7 +30,7 @@ class Login {
 
       if (resp.statusCode == 200) {
         try {
-          usuarioLogeado = Usuario.fromJson(resp.body);
+          usuarioLogeado = Usuarios.fromJson(resp.body);
           success = true;
         } catch (e) {
           if (kDebugMode) {

@@ -13,7 +13,7 @@ class ClientesFormDialog extends StatefulWidget {
   @override
   State<ClientesFormDialog> createState() => _ClientesFormState();
 
-  final Cliente? cliEdit; 
+  final Clientes? cliEdit; 
   final bool? onlyRead;
 }
 
@@ -385,7 +385,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
 
               
 
-              Cliente cliente = Cliente(
+              Clientes cliente = Clientes(
                 nombre: nombreController.text,
                 correo: correoController.text.isEmpty ? null : correoController.text,
                 telefono: telefonoController.text.isEmpty ? null : telefonoController.text,

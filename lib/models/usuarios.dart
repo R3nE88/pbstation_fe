@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-class Usuario {
-    Usuario({
+class Usuarios {
+    Usuarios({
         required this.nombre,
         required this.correo,
         required this.rol,
@@ -14,11 +14,11 @@ class Usuario {
     String rol;
     bool activo;
 
-    factory Usuario.fromJson(String str) => Usuario.fromMap(json.decode(str));
+    factory Usuarios.fromJson(String str) => Usuarios.fromMap(json.decode(str));
 
     String toJson() => json.encode(toMap());
 
-    factory Usuario.fromMap(Map<String, dynamic> json) => Usuario(
+    factory Usuarios.fromMap(Map<String, dynamic> json) => Usuarios(
         nombre: json["nombre"],
         correo: json["correo"],
         rol: json["rol"],

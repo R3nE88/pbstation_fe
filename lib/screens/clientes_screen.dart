@@ -198,7 +198,7 @@ class FilaCliente extends StatelessWidget {
     required this.onDelete,
   });
 
-  final Cliente cliente;
+  final Clientes cliente;
   final int index;
   final VoidCallback onDelete;
 

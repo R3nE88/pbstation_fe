@@ -1,3 +1,3 @@
-export 'package:pbstation_frontend/models/cliente.dart';
-export 'package:pbstation_frontend/models/producto.dart';
-export 'package:pbstation_frontend/models/usuario.dart';
+export 'package:pbstation_frontend/models/clientes.dart';
+export 'package:pbstation_frontend/models/productos.dart';
+export 'package:pbstation_frontend/models/usuarios.dart';
