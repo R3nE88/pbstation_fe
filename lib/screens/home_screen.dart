@@ -322,7 +322,7 @@ class HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Conexion perdida con el WebSocket'), SizedBox(height: 25),
+                            Text('Conexion perdida con el Servidor'), SizedBox(height: 25),
                             CircularProgressIndicator(color: Colors.white), SizedBox(height: 25),
                             Text('Reconectando...'),
                           ],
