@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/screens/venta.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -22,12 +23,15 @@ class _VentaScreenState extends State<VentaScreen> {
   void initState() {
     super.initState();
     final clientesServices = Provider.of<ClientesServices>(context, listen: false);
+    final productosServices = Provider.of<ProductosServices>(context, listen: false);
     clientesServices.loadClientes();
+    productosServices.loadProductos();
   }
 
   @override
   Widget build(BuildContext context) {
     final clientesServices = Provider.of<ClientesServices>(context);
+    final productosServices = Provider.of<ProductosServices>(context);
 
     void agregarPestania() {
       if (pestanias >= maximoPestanias) {
@@ -35,6 +39,7 @@ class _VentaScreenState extends State<VentaScreen> {
       }
       setState(() {
         pestanias++;
+        indexSelected = pestanias-2;
       });
     }
 
@@ -51,7 +56,7 @@ class _VentaScreenState extends State<VentaScreen> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
+    
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -89,7 +94,15 @@ class _VentaScreenState extends State<VentaScreen> {
               ),
             ],
           ),
-          Venta(clientesServices: clientesServices, index: indexSelected)
+          KeyedSubtree(
+            key: ValueKey<int>(indexSelected),
+            child: Venta(
+              key: ValueKey('venta-$indexSelected'),
+              clientesServices: clientesServices,
+              index: indexSelected, 
+              productosServices: productosServices,
+            ),
+          ),
         ],
       ),
     );

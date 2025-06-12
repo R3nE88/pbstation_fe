@@ -13,7 +13,7 @@ class ProductoFormDialog extends StatefulWidget {
   @override
   State<ProductoFormDialog> createState() => _ProductoFormDialogState();
 
-  final Producto? prodEdit; 
+  final Productos? prodEdit; 
   final bool? onlyRead;
 }
 
@@ -298,7 +298,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
               
               Loading().displaySpinLoading(context);
 
-              Producto producto = Producto(
+              Productos producto = Productos(
                 codigo: int.parse(claveController.text),
                 descripcion: descripcionController.text,
                 tipo: tipoSeleccionado!,

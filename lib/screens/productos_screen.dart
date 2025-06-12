@@ -193,7 +193,7 @@ class FilaProducto extends StatelessWidget {
     required this.onDelete,
   });
 
-  final Producto producto;
+  final Productos producto;
   final int index;
   final VoidCallback onDelete;
 

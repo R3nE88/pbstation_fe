@@ -6,12 +6,12 @@ import 'package:pbstation_frontend/models/models.dart';
 
 class ProductosServices extends ChangeNotifier{
   final String _baseUrl = 'http://127.0.0.1:8000/productos/';
-  List<Producto> productos = [];
-  List<Producto> filteredProductos = [];
+  List<Productos> productos = [];
+  List<Productos> filteredProductos = [];
 
   bool isLoading = false;
 
-  Future<List<Producto>> loadProductos() async { 
+  Future<List<Productos>> loadProductos() async { 
     if (isLoading) {
       return productos;
     }
@@ -26,8 +26,8 @@ class ProductosServices extends ChangeNotifier{
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      productos = listaJson.map<Producto>((jsonElem) {
-        final prod = Producto.fromMap(jsonElem as Map<String, dynamic>);
+      productos = listaJson.map<Productos>((jsonElem) {
+        final prod = Productos.fromMap(jsonElem as Map<String, dynamic>);
         prod.id = (jsonElem as Map)["id"]?.toString();
         return prod;
       }).toList();
@@ -55,7 +55,7 @@ class ProductosServices extends ChangeNotifier{
         );
 
         final body = json.decode(resp.body);
-        final prod = Producto.fromMap(body as Map<String, dynamic>);
+        final prod = Productos.fromMap(body as Map<String, dynamic>);
         prod.id = (body as Map)["id"]?.toString();
         
         productos.add(prod);
@@ -70,7 +70,7 @@ class ProductosServices extends ChangeNotifier{
     }
   }
 
-  Future<String> createProducto(Producto producto) async {
+  Future<String> createProducto(Productos producto) async {
     isLoading = true;
 
     try {
@@ -84,7 +84,7 @@ class ProductosServices extends ChangeNotifier{
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final nuevo = Producto.fromMap(data);
+        final nuevo = Productos.fromMap(data);
         nuevo.id = data['id']?.toString();
 
         productos.add(nuevo);
@@ -132,7 +132,7 @@ class ProductosServices extends ChangeNotifier{
     notifyListeners();
   }
 
-  Future<String> updateProducto(Producto producto, String id) async {
+  Future<String> updateProducto(Productos producto, String id) async {
     isLoading = true;
 
     try {
@@ -158,7 +158,7 @@ class ProductosServices extends ChangeNotifier{
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final updated = Producto.fromMap(data);
+        final updated = Productos.fromMap(data);
         updated.id = data['id']?.toString();
 
         productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
@@ -189,7 +189,7 @@ class ProductosServices extends ChangeNotifier{
         );
 
         final body = json.decode(resp.body);
-        final prod = Producto.fromMap(body as Map<String, dynamic>);
+        final prod = Productos.fromMap(body as Map<String, dynamic>);
         prod.id = (body as Map)["id"]?.toString();
 
         

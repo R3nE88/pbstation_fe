@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
+import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/cliente_autocomplete.dart';
+import 'package:pbstation_frontend/widgets/busqueda_field.dart';
+import 'package:pbstation_frontend/widgets/cliente_field.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 
 class Venta extends StatefulWidget {
-  const Venta({super.key, required this.clientesServices, required this.index});
+  const Venta({super.key, required this.clientesServices, required this.index, required this.productosServices});
 
   final ClientesServices clientesServices;
+  final ProductosServices productosServices;
   final int index;
 
   @override
@@ -18,23 +22,60 @@ class Venta extends StatefulWidget {
 }
 
 class _VentaState extends State<Venta> {
-  @override
-  Widget build(BuildContext context) {
-    Clientes? clienteSelected = VentaTabState.clienteSelected[widget.index];
-    bool entregaInmediata = VentaTabState.entregaInmediata[widget.index];
-    List<Producto> productosSelected = VentaTabState.productosSelected[widget.index];
-    TextEditingController comentariosController = VentaTabState.comentariosController[widget.index];
+    late Clientes? clienteSelected;
+    late bool entregaInmediata;
+    late Productos? productoSelected;
+    late List<Productos> productosSelected;
+    late TextEditingController comentariosController;
 
     //Todos estos son para agregar al productoSelected
-    TextEditingController precioController = VentaTabState.precioController[widget.index];
-    TextEditingController cantidadController = VentaTabState.cantidadController[widget.index];
-    TextEditingController anchoController = VentaTabState.anchoController[widget.index];
-    TextEditingController altoController = VentaTabState.altoController[widget.index];
-    TextEditingController comentarioController = VentaTabState.comentarioController[widget.index];
-    TextEditingController descuentoController = VentaTabState.descuentoController[widget.index];
-    TextEditingController ivaController = VentaTabState.ivaController[widget.index];
-    TextEditingController totalController = VentaTabState.totalController[widget.index];
-    
+    late TextEditingController precioController;
+    late TextEditingController cantidadController;
+    late TextEditingController anchoController;
+    late TextEditingController altoController;
+    late TextEditingController comentarioController;
+    late TextEditingController descuentoController;
+    late TextEditingController ivaController;
+    late TextEditingController totalController;
+
+  @override
+  void initState() {
+    super.initState();
+    clienteSelected = VentaTabState.tabs[widget.index].clienteSelected;
+    entregaInmediata = VentaTabState.tabs[widget.index].entregaInmediata;
+    productoSelected = VentaTabState.tabs[widget.index].productoSelected;
+    productosSelected = VentaTabState.tabs[widget.index].productosSelected;
+    comentariosController = VentaTabState.tabs[widget.index].comentariosController;
+
+    //Todos estos son para agregar al productoSelected
+    precioController = VentaTabState.tabs[widget.index].precioController;
+    cantidadController = VentaTabState.tabs[widget.index].cantidadController;
+    anchoController = VentaTabState.tabs[widget.index].anchoController;
+    altoController = VentaTabState.tabs[widget.index].altoController;
+    comentarioController = VentaTabState.tabs[widget.index].comentarioController;
+    descuentoController = VentaTabState.tabs[widget.index].descuentoController;
+    ivaController = VentaTabState.tabs[widget.index].ivaController;
+    totalController = VentaTabState.tabs[widget.index].totalController;
+  }
+
+  @override
+  Widget build(BuildContext context) {  
+    void calcularSubtotal(){
+      final formatoMoneda = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
+      double precio = productoSelected?.precio ?? 0;
+      precioController.text = formatoMoneda.format(precio);//'${productoSelected?.precio.toString() ?? '0.00'}\$';
+      int cantidad = 0;
+      if (cantidadController.text.isNotEmpty){
+        cantidad = int.parse(cantidadController.text.replaceAll(',', ''));
+      } else {
+        cantidad = 0;
+      }
+      double totalSinIva = (productoSelected?.precio ?? 0) * cantidad;
+      double iva = totalSinIva * 0.16; //TODO: iva
+      double total = totalSinIva + iva; 
+      ivaController.text = formatoMoneda.format(iva);
+      totalController.text = formatoMoneda.format(total);
+    }
 
     return Flexible( //Contenido (Body)
       child: Container(
@@ -49,7 +90,7 @@ class _VentaState extends State<Venta> {
             children: [
               Row( 
                 children: [
-
+        
                   Expanded(
                     child: Column( //Formulario de clientes
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -61,14 +102,18 @@ class _VentaState extends State<Venta> {
                         Row(
                           children: [
                             Expanded(
-                              child: ClienteAutocompleteField(
-                                clientes: widget.clientesServices.clientes,
-                                clienteInicial: clienteSelected,
-                                onClienteSelected: (cliente) {
-                                  setState(() {
-                                    clienteSelected = cliente;
-                                  });
+                              child: BusquedaField<Clientes>(
+                                items: widget.clientesServices.clientes,
+                                selectedItem: clienteSelected,
+                                onItemSelected: (Clientes? selected) {
+                                  clienteSelected = selected;
+                                  VentaTabState.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
                                 },
+                                displayStringForOption: (cliente) => cliente.nombre, 
+                                normalBorder: false, 
+                                icono: Icons.perm_contact_cal_sharp, 
+                                defaultFirst: true, 
+                                hintText: 'Buscar Cliente', 
                               )
                             ),
                             Container(
@@ -91,9 +136,9 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Column( //Fecha de Entrega
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,6 +165,7 @@ class _VentaState extends State<Venta> {
                                   }
                                   setState(() {
                                     entregaInmediata = value!;
+                                    VentaTabState.tabs[widget.index].entregaInmediata = value;
                                   });
                                 } 
                               ),
@@ -130,9 +176,9 @@ class _VentaState extends State<Venta> {
                       )
                     ],
                   ),
-
+        
                   //SizedBox(width: 15),
-
+        
                   Column( 
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,6 +207,7 @@ class _VentaState extends State<Venta> {
                                       }
                                       setState(() {
                                         entregaInmediata = !value!;
+                                        VentaTabState.tabs[widget.index].entregaInmediata = !value;
                                       });
                                     } 
                                   ),
@@ -185,6 +232,7 @@ class _VentaState extends State<Venta> {
                                 Center(
                                   child: FeedBackButton(
                                     onPressed: () {
+                                      
                                     },
                                     child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
                                   )
@@ -199,12 +247,12 @@ class _VentaState extends State<Venta> {
                   )
                 ],
               ),
-
+        
               SizedBox(height: 10),
-
+        
               Row(
                 children: [
-
+        
                   Expanded(
                     child: Column( //Formulario de Producto
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -213,21 +261,30 @@ class _VentaState extends State<Venta> {
                       children: [
                         Text('   Producto *', style: AppTheme.subtituloPrimario),
                         SizedBox(height: 2),
-                        TextFormField( //TODO: Controller Producto
-                          //controller: productoController,
-                          decoration: InputDecoration(
-                            hintText: 'F2',
-                            hintStyle: TextStyle(color: AppTheme.letra70),
-                            isDense: true,
-                            prefixIcon: Icon(Icons.copy, size: 25, color: AppTheme.letra70),
-                          ),
+                        BusquedaField<Productos>(
+                          items: widget.productosServices.productos,
+                          selectedItem: productoSelected,
+                          onItemSelected: (Productos? selected) {
+                            setState(() {
+                              productoSelected = selected;
+                              VentaTabState.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
+                              calcularSubtotal();
+                            });
+                          },
+                          displayStringForOption: (producto) => producto.descripcion, 
+                          normalBorder: true, 
+                          icono: Icons.copy, 
+                          defaultFirst: false, 
+                          secondaryDisplayStringForOption: (producto) => producto.codigo.toString(), 
+                          hintText: 'F2', 
+                          teclaFocus: LogicalKeyboardKey.f2,
                         )
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Column( //Precio por unidad
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,9 +304,9 @@ class _VentaState extends State<Venta> {
                       )
                     ],
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Column( //Precio por unidad
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,16 +320,29 @@ class _VentaState extends State<Venta> {
                         child: TextFormField(
                           controller: cantidadController,
                           //initialValue: '1',
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 6,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // Solo números enteros positivos
+                            CurrencyInputFormatter(
+                              leadingSymbol: '',
+                              useSymbolPadding: false,
+                              thousandSeparator: ThousandSeparator.Comma,
+                              mantissaLength: 0, // sin decimales
+                            ),
                           ],
+                          onChanged: (value) {
+                            setState(() {
+                              calcularSubtotal();
+                            });
+                          },
                         ),
                       )
                     ],
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Column( //Precio por unidad
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,6 +354,8 @@ class _VentaState extends State<Venta> {
                         height: 40,
                         width: 100,
                         child: TextFormField(
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 2,
                           controller: anchoController,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // Solo números enteros positivos
@@ -292,9 +364,9 @@ class _VentaState extends State<Venta> {
                       )
                     ],
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Column( //Precio por unidad
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,6 +378,8 @@ class _VentaState extends State<Venta> {
                         height: 40,
                         width: 100,
                         child: TextFormField(
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 2,
                           controller: altoController,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // Solo números enteros positivos
@@ -314,16 +388,16 @@ class _VentaState extends State<Venta> {
                       )
                     ],
                   ),
-
+        
                 ],
               ),
-
+        
               SizedBox(height: 10),
-
+        
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-
+        
                   Expanded(
                     flex: 2,
                     child: Column( //Formulario de Producto
@@ -334,6 +408,8 @@ class _VentaState extends State<Venta> {
                         Text('   Comentario', style: AppTheme.subtituloPrimario),
                         SizedBox(height: 2),
                         TextFormField(
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 100,
                           controller: comentarioController,
                           decoration: InputDecoration(
                             isDense: true,
@@ -343,9 +419,9 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Expanded(
                     child: Column( //Formulario de Producto
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -355,7 +431,11 @@ class _VentaState extends State<Venta> {
                         Text('   % Descuento', style: AppTheme.subtituloPrimario),
                         SizedBox(height: 2),
                         TextFormField(
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 3,
                           controller: descuentoController,
+                          canRequestFocus: false,
+                          readOnly: true,
                           decoration: InputDecoration(
                             isDense: true,
                             prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
@@ -364,9 +444,9 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Expanded(
                     child: Column( //Formulario de Producto
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -378,6 +458,8 @@ class _VentaState extends State<Venta> {
                         SizedBox(
                           height: 40,
                           child: TextFormField( //TODO: iva
+                            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                            maxLength: 3,
                             controller: ivaController,
                             canRequestFocus: false,
                             readOnly: true,
@@ -387,9 +469,9 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   Expanded(
                     child: Column( //Formulario de Producto
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -410,9 +492,9 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                   ),
-
+        
                   SizedBox(width: 15),
-
+        
                   ElevatedButton(
                     onPressed: (){}, 
                     style: ButtonStyle(
@@ -429,12 +511,12 @@ class _VentaState extends State<Venta> {
                       child: Text('Agregar Producto', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700) ),
                     ),
                   )
-
+        
                 ],
               ),
-
+        
               SizedBox(height: 30),
-
+        
               Expanded(
                 child: Column(
                   children: [
@@ -446,7 +528,7 @@ class _VentaState extends State<Venta> {
                           topLeft: Radius.circular(12),
                           topRight: Radius.circular(12),
                         ),
-                        color: AppTheme.tablaColorHeader, //TODO: agregar a temas
+                        color: AppTheme.tablaColorHeader,
                       ),
                       child: Row(
                         children: const [
@@ -494,16 +576,18 @@ class _VentaState extends State<Venta> {
                   ],
                 ),
               ),
-
+        
               
               SizedBox(height: 20),
-
+        
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     flex: 5,
                     child: TextFormField(
+                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                      maxLength: 250,
                       controller: comentariosController,
                       maxLines: 5,
                       decoration: InputDecoration(

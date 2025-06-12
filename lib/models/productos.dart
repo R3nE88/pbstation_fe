@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-class Producto {
-  Producto({
+class Productos {
+  Productos({
     this.id,
     required this.codigo,
     required this.descripcion,
@@ -23,10 +23,10 @@ class Producto {
   bool imprimible;
   int valorImpresion;
 
-  factory Producto.fromJson(String str) => Producto.fromMap(json.decode(str));
+  factory Productos.fromJson(String str) => Productos.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
-  factory Producto.fromMap(Map<String, dynamic> json) => Producto(
+  factory Productos.fromMap(Map<String, dynamic> json) => Productos(
         // 3) Leer el id directamente si viene en el objeto
         id: json["id"]?.toString(),
         codigo: json["codigo"],

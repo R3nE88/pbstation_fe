@@ -313,7 +313,7 @@ class AppTheme{
     ),
 
     textSelectionTheme: TextSelectionThemeData(
-      selectionColor: AppTheme.letra70,// Fondo de selección
+      selectionColor: const Color.fromARGB(65, 255, 255, 255),// Fondo de selección
       cursorColor: Colors.white, // Cursor (también se puede poner individualmente en cada TextField)
     ),
 

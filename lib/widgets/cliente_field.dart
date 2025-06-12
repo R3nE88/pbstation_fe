@@ -1,37 +1,45 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 
-class ClienteAutocompleteField extends StatefulWidget {
+class ClienteField extends StatefulWidget {
   final List<Clientes> clientes;
-  final Clientes? clienteInicial;
   final Function(Clientes?) onClienteSelected;
+  final Clientes? clienteSelected;
 
-  const ClienteAutocompleteField({
+  const ClienteField({
     super.key,
     required this.clientes,
-    this.clienteInicial,
+    required this.clienteSelected,
     required this.onClienteSelected,
   });
 
   @override
-  State<ClienteAutocompleteField> createState() => _ClienteAutocompleteFieldState();
+  State<ClienteField> createState() => _ClienteFieldState();
 } 
 
-class _ClienteAutocompleteFieldState extends State<ClienteAutocompleteField> {
+class _ClienteFieldState extends State<ClienteField> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
   List<Clientes> _filteredOptions = [];
   int _highlightedIndex = 0;
   Clientes? _clienteSelected;
+  
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.clienteInicial?.nombre ?? '');
+    _clienteSelected = widget.clienteSelected;
+    _controller = TextEditingController(text: _clienteSelected?.nombre ?? '');
     _focusNode = FocusNode();
-    _clienteSelected = widget.clienteInicial;
+
+    // Asegurarse de que el texto se actualice después de la construcción inicial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _controller.text = _clienteSelected?.nombre ?? '';
+      });
+    });
 
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) {
@@ -164,7 +172,7 @@ class _ClienteAutocompleteFieldState extends State<ClienteAutocompleteField> {
               return KeyEventResult.ignored;
             },
             child: TextFormField(
-              autofocus: true,
+              autofocus: _clienteSelected == null ? true : false,
               controller: controller,
               focusNode: focusNode,
               decoration: InputDecoration(
@@ -246,3 +254,18 @@ class _ClienteAutocompleteFieldState extends State<ClienteAutocompleteField> {
     );
   }
 }
+*/
+
+
+
+/*
+
+return KeyboardListener(
+      focusNode: FocusNode(),
+      onKeyEvent: (KeyEvent event) {
+        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.f2) {
+          print('F2');
+        }
+      },
+
+*/
