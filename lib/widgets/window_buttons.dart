@@ -16,9 +16,18 @@ class WindowButtons extends StatelessWidget{
   Widget build(BuildContext context){
     return Row(
       children: [
-        MinimizeWindowButton(colors: buttonColors),
-        MaximizeWindowButton(colors: buttonColors),
-        CloseWindowButton(colors: buttonColors),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: MinimizeWindowButton(colors: buttonColors),
+        ),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: MaximizeWindowButton(colors: buttonColors)
+        ),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: CloseWindowButton(colors: buttonColors)
+        ),
       ],
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/currency_input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -24,6 +26,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   TextEditingController descripcionController = TextEditingController();
   TextEditingController precioController = TextEditingController();
   TextEditingController valorImpresionController = TextEditingController();
+  bool requiereMedida = false;
   bool inventariable = false;
   bool imprimible = false;
   String? tipoSeleccionado;
@@ -51,6 +54,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       claveController.text = widget.prodEdit!.codigo.toString();
       descripcionController.text = widget.prodEdit!.descripcion;
       precioController.text = widget.prodEdit!.precio.toString();
+      requiereMedida = widget.prodEdit!.requiereMedida;
       inventariable = widget.prodEdit!.inventariable;
       imprimible = widget.prodEdit!.imprimible;
       if (imprimible){
@@ -173,24 +177,35 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                   Expanded(
                     child: IgnorePointer(
                       ignoring: onlyRead,
-                      child: TextFormField(
-                        readOnly: onlyRead,
-                        controller: precioController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
-                        ],
-                        decoration: InputDecoration(
-                          labelText: 'Precio',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor ingrese un precio';
-                          }
-                          return null;
+                      child: Focus(
+                        canRequestFocus: false,
+                        onFocusChange: (hasFocus) {
+                          if (!hasFocus) {
+                            if (precioController.text.isEmpty) {
+                              precioController.text = '0';
+                            }
+                            precioController.text = '\$${precioController.text.replaceAll('\$', '')}';
+                          } /*else {
+                            precioController.text = '';
+                          }*/
                         },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        child: TextFormField(
+                          controller: precioController,
+                          inputFormatters: [
+                            CurrencyInputFormatter(),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Precio',
+                            labelStyle: AppTheme.labelStyle,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingrese un precio';
+                            }
+                            return null;
+                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                        ),
                       ),
                     ),
                   ),
@@ -198,6 +213,26 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
               ),
               SizedBox(height: 10),
               SeparadorConTexto(texto: 'Caracteristicas'), 
+              IgnorePointer(
+                ignoring: onlyRead,
+                child: Row(
+                  children: [
+                    Checkbox(
+                      focusColor: AppTheme.focusColor,
+                      value: requiereMedida,
+                      onChanged: (value) {
+                        if (onlyRead==false){
+                          setState(() {
+                            requiereMedida = value ?? false;
+                          });
+                        }
+                      }
+                    ),
+                    Text('Requiere Medidas para calcular precio'),
+                  ],
+                ),
+              ),
+
               IgnorePointer(
                 ignoring: onlyRead,
                 child: Row(
@@ -303,7 +338,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                 descripcion: descripcionController.text,
                 tipo: tipoSeleccionado!,
                 categoria: categoriaSeleccionada!,
-                precio: double.parse(precioController.text),
+                precio: double.parse(precioController.text.replaceAll('\$', '').replaceAll(',', '')),
+                requiereMedida: requiereMedida,
                 inventariable: inventariable,
                 imprimible: imprimible,
                 valorImpresion: int.tryParse(valorImpresionController.text) ?? 0,

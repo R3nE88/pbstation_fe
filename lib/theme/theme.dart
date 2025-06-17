@@ -169,6 +169,21 @@ class AppTheme{
     ),
   );
 
+
+  static final InputDecoration inputError = InputDecoration(
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red),
+        borderRadius: const BorderRadius.all(Radius.circular(30))
+      ),
+    );
+
+    static final InputDecoration inputNormal = InputDecoration(
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.white),
+        borderRadius: const BorderRadius.all(Radius.circular(30))
+      ),
+    );
+
   static final ThemeData customTheme = ThemeData.light().copyWith(
     checkboxTheme: CheckboxThemeData(
       side: BorderSide(color: AppTheme.letraClara),
@@ -349,7 +364,7 @@ class AppTheme{
       ),
 
       hintStyle: const TextStyle(
-        color: Color.fromARGB(255, 209, 240, 255),
+        color: Color.fromARGB(255, 224, 224, 224),
         fontSize: 15,
       ),
 

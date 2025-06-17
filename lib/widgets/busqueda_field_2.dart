@@ -1,23 +1,23 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pbstation_frontend/logic/venta_state.dart';
+import 'package:pbstation_frontend/models/productos.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 
-class BusquedaField<T extends Object> extends StatefulWidget {
-  final List<T> items;
-  final Function(T?) onItemSelected;
-  final T? selectedItem;
-  final String Function(T) displayStringForOption;
-  final String Function(T)? secondaryDisplayStringForOption; // Hacerlo opcional
+class BusquedaField2<T extends Object> extends StatefulWidget {
+  final List<Productos> items;
+  final Function(Productos?) onItemSelected;
+  final String Function(Productos) displayStringForOption;
+  final String Function(Productos)? secondaryDisplayStringForOption; // Hacerlo opcional
   final bool normalBorder;
   final IconData icono;
   final bool defaultFirst;
   final String hintText;
   final LogicalKeyboardKey? teclaFocus;
 
-  const BusquedaField({
+  const BusquedaField2({
     super.key,
     required this.items,
-    required this.selectedItem,
     required this.onItemSelected,
     required this.displayStringForOption,
     this.secondaryDisplayStringForOption, // Parámetro opcional
@@ -29,16 +29,15 @@ class BusquedaField<T extends Object> extends StatefulWidget {
   });
 
   @override
-  State<BusquedaField<T>> createState() => _BusquedaFieldState<T>();
+  State<BusquedaField2<T>> createState() => _BusquedaFieldState<T>();
 }
 
-class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
+class _BusquedaFieldState<T extends Object> extends State<BusquedaField2<T>> {
   late final bool Function(KeyEvent event) _keyHandler;
   late TextEditingController _controller;
   FocusNode? _focusNode; // Cambiar a nullable para usar solo el proporcionado por fieldViewBuilder
-  List<T> _filteredOptions = [];
+  List<Productos> _filteredOptions = [];
   int _highlightedIndex = 0;
-  T? _selectedItem;
 
   final BorderRadius borde = BorderRadius.only(
     topLeft: Radius.circular(30),
@@ -52,14 +51,13 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   @override
   void initState() {
     super.initState();
-    _selectedItem = widget.selectedItem;
     _controller = TextEditingController(
-      text: _selectedItem != null ? widget.displayStringForOption(_selectedItem!) : '',
+      text: VentaTabState.tabs[0].productoSelected != null ? widget.displayStringForOption(VentaTabState.tabs[0].productoSelected!) : '',
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
-        _controller.text = _selectedItem != null ? widget.displayStringForOption(_selectedItem!) : '';
+        _controller.text = VentaTabState.tabs[0].productoSelected != null ? widget.displayStringForOption(VentaTabState.tabs[0].productoSelected!) : '';
       });
     });
     
@@ -94,7 +92,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       orElse: () => widget.items.isNotEmpty ? widget.items.first : throw Exception('No items available'),
     );
 
-    _selectedItem = match;
+    VentaTabState.tabs[0].productoSelected = match;
     _controller.text = widget.displayStringForOption(match);
     widget.onItemSelected(match);
   }
@@ -109,29 +107,15 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    // Eliminar cualquier llamada a setState() dentro del build
-
-    if (widget.selectedItem == null && _selectedItem != null && !widget.defaultFirst) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _selectedItem = null;
-            _controller.clear();
-          });
-        }
-      });
-    }
-
-
-    return Autocomplete<T>(
+    return Autocomplete<Productos>(
       optionsBuilder: (TextEditingValue textEditingValue) {
         if (textEditingValue.text.isEmpty) {
-          return Iterable<T>.empty();
+          return Iterable<Productos>.empty();
         }
         _updateFilteredOptions(textEditingValue.text);
         return _filteredOptions;
       },
-      displayStringForOption: (T option) {
+      displayStringForOption: (Productos option) {
         final secondary = widget.secondaryDisplayStringForOption != null
             ? widget.secondaryDisplayStringForOption!(option).trim()
             : '';
@@ -140,9 +124,9 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
         }
         return "$secondary - ${widget.displayStringForOption(option)}";
       },
-      onSelected: (T selected) {
+      onSelected: (Productos selected) {
         _controller.text = widget.displayStringForOption(selected);
-        _selectedItem = selected;
+        VentaTabState.tabs[0].productoSelected = selected;
         widget.onItemSelected(selected);
         FocusScope.of(context).nextFocus();
       },
@@ -150,7 +134,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
         _controller = controller;
         _focusNode = focusNode; // Usar el FocusNode proporcionado
         return Focus(
-          canRequestFocus: false,
           onKeyEvent: (FocusNode node, KeyEvent event) {
             if (event is KeyDownEvent) {
               if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -174,20 +157,20 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                       setState(() {
                         final firstItem = widget.items.first;
                         _controller.text = widget.displayStringForOption(firstItem);
-                        _selectedItem = firstItem;
+                        VentaTabState.tabs[0].productoSelected = firstItem;
                         widget.onItemSelected(firstItem);
                       });
                     }
                   } else if (_filteredOptions.isNotEmpty) {
                     final selected = _filteredOptions[_highlightedIndex];
                     _controller.text = widget.displayStringForOption(selected);
-                    _selectedItem = selected;
+                    VentaTabState.tabs[0].productoSelected = selected;
                     widget.onItemSelected(selected);
                   } else {
                     setState(() {
                       _controller.clear();
                       _filteredOptions.clear();
-                      _selectedItem = null;
+                      VentaTabState.tabs[0].productoSelected = null;
                       widget.onItemSelected(null);
                     });
                   }
@@ -202,11 +185,11 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
           },
           onFocusChange: (hasFocus) {
             if (!hasFocus) {
-              if (_selectedItem == null) {
+              if (VentaTabState.tabs[0].productoSelected == null) {
                 setState(() {
                   _controller.clear();
                   _filteredOptions.clear();
-                  _selectedItem = null;
+                  VentaTabState.tabs[0].productoSelected = null;
                   widget.onItemSelected(null);
                 });
               }
@@ -215,7 +198,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
           child: TextFormField(
             buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
             maxLength: 50,
-            autofocus: _selectedItem == null ? true : false,
+            autofocus: VentaTabState.tabs[0].productoSelected == null ? true : false,
             controller: controller,
             focusNode: focusNode,
             decoration: InputDecoration(
@@ -234,12 +217,12 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
             onChanged: (value) {
               _updateFilteredOptions(value);
               if (value.isEmpty) {
-                _selectedItem = null;
+                VentaTabState.tabs[0].productoSelected = null;
                 widget.onItemSelected(null);
               } else {
                 final exists = widget.items.any((item) => widget.displayStringForOption(item) == value);
                 if (!exists) {
-                  _selectedItem = null;
+                  VentaTabState.tabs[0].productoSelected = null;
                   widget.onItemSelected(null);
                 }
               }
@@ -265,7 +248,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                   shrinkWrap: true,
                   itemCount: options.length,
                   itemBuilder: (context, index) {
-                    final T option = options.elementAt(index);
+                    final Productos option = options.elementAt(index);
                     final isHighlighted = index == _highlightedIndex;
                     final secondary = widget.secondaryDisplayStringForOption != null
                         ? widget.secondaryDisplayStringForOption!(option).trim()
@@ -285,7 +268,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                         onTap: () {
                           _controller.text = widget.displayStringForOption(option);
                           onSelected(option);
-                          _selectedItem = option;
+                          VentaTabState.tabs[0].productoSelected = option;
                           widget.onItemSelected(option);
                         },
                       ),
@@ -299,4 +282,4 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       },
     );
   }
-}
+}*/

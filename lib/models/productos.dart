@@ -11,6 +11,7 @@ class Productos {
     required this.inventariable,
     required this.imprimible,
     required this.valorImpresion,
+    required this.requiereMedida,
   });
 
   String? id;
@@ -22,6 +23,7 @@ class Productos {
   bool inventariable;
   bool imprimible;
   int valorImpresion;
+  bool requiereMedida;
 
   factory Productos.fromJson(String str) => Productos.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -37,6 +39,7 @@ class Productos {
         inventariable: json["inventariable"] as bool,
         imprimible: json["imprimible"] as bool,
         valorImpresion: json["valor_impresion"] as int,
+        requiereMedida: json["requiere_medida"] as bool,
       );
 
   Map<String, dynamic> toMap() => {
@@ -49,5 +52,6 @@ class Productos {
         "inventariable": inventariable,
         "imprimible": imprimible,
         "valor_impresion": valorImpresion,
+        "requiere_medida": requiereMedida,
       };
 }

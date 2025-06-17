@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/models/clientes.dart';
+import 'package:pbstation_frontend/models/detalles_venta.dart';
 import 'package:pbstation_frontend/models/productos.dart';
 
 class VentaTabState {
@@ -19,31 +20,45 @@ class VentaTabState {
 class VentaTab {
   Clientes? clienteSelected;
   bool entregaInmediata;
+  DateTime? fechaEntrega;
   Productos? productoSelected;
-  List<Productos> productosSelected;
+  List<Productos> productos;
+  List<DetallesVenta> detallesVenta;
   TextEditingController precioController;
   TextEditingController cantidadController;
   TextEditingController anchoController;
   TextEditingController altoController;
   TextEditingController comentarioController;
   TextEditingController descuentoController;
+  double descuentoAplicado;
   TextEditingController ivaController;
-  TextEditingController totalController;
+  TextEditingController productoTotalController;
   TextEditingController comentariosController;
+  TextEditingController subtotalController;
+  TextEditingController totalDescuentoController;
+  TextEditingController totalIvaController;
+  TextEditingController totalController;
 
   VentaTab()
       : clienteSelected = null,
         entregaInmediata = true,
-        productosSelected = [],
-        precioController = TextEditingController(text: '0.00\$'),
+        fechaEntrega = null,
+        productos = [],
+        detallesVenta = [],
+        precioController = TextEditingController(text: '\$0.00'),
         cantidadController = TextEditingController(text: '1'),
-        anchoController = TextEditingController(),
-        altoController = TextEditingController(),
+        anchoController = TextEditingController(text: '1'),
+        altoController = TextEditingController(text: '1'),
         comentarioController = TextEditingController(),
-        descuentoController = TextEditingController(text: '0.00\$'),
-        ivaController = TextEditingController(text: '0.00\$'),
-        totalController = TextEditingController(text: '0.00\$'),
-        comentariosController = TextEditingController();
+        descuentoController = TextEditingController(text: '0%'),
+        descuentoAplicado = 0,
+        ivaController = TextEditingController(text: '\$0.00'),
+        productoTotalController = TextEditingController(text: '\$0.00'),
+        comentariosController = TextEditingController(),
+        subtotalController = TextEditingController(text: '\$0.00'),
+        totalDescuentoController = TextEditingController(text: '\$0.00'),
+        totalIvaController = TextEditingController(text: '\$0.00'),
+        totalController = TextEditingController(text: '\$0.00');
 
   void dispose() {
     precioController.dispose();
@@ -53,7 +68,11 @@ class VentaTab {
     comentarioController.dispose();
     descuentoController.dispose();
     ivaController.dispose();
-    totalController.dispose();
+    productoTotalController.dispose();
     comentariosController.dispose();
+    subtotalController.dispose();
+    totalDescuentoController.dispose();
+    totalIvaController.dispose();
+    totalController.dispose();
   }
 }

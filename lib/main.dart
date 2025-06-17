@@ -7,6 +7,7 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
@@ -66,6 +67,14 @@ class _MyAppState extends State<MyApp> {
           title: 'PBStation',
           initialRoute: 'home',//'login',
           routes: appRoutes,
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate, // Agrega este delegate
+          ],
+          supportedLocales: const [
+            Locale('es', 'ES'),
+          ],
           theme: changeTheme.isDarkTheme ? AppTheme.customThemeDark : AppTheme.customTheme, //AppTheme.customTheme,
           scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),
         );

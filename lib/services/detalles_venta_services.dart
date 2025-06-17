@@ -4,13 +4,13 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
-class ProductosServices extends ChangeNotifier{
-  final String _baseUrl = 'http://127.0.0.1:8000/productos/';
+class DetallesVentaServices extends ChangeNotifier{
+  final String _baseUrl = 'http://127.0.0.1:8000/detalles_venta/';
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
 
   bool isLoading = false;
-
+/*
   Future<List<Productos>> loadProductos() async { 
     if (isLoading) {
       return productos;
@@ -148,7 +148,6 @@ class ProductosServices extends ChangeNotifier{
           "inventariable": producto.inventariable,
           "imprimible": producto.imprimible,
           "valor_impresion": producto.valorImpresion,
-          "requiere_medida": producto.requiereMedida,
         });
 
       final resp = await http.put(
@@ -210,5 +209,5 @@ class ProductosServices extends ChangeNotifier{
         }
       }
     }
-  }
+  }*/
 }
