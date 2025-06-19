@@ -53,7 +53,7 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(widget.icon, color: widget.selected ? AppTheme.primario1 : color, size: 25),
+                  child: Icon(widget.icon, color: widget.selected ? AppTheme.primario1 : color, size: 23),
                 )
               ),
               const SizedBox(width: 10),

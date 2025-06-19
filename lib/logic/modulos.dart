@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
 
-
 class Modulos{
   static String moduloSelected = 'inicio';
   static int subModuloSelected = 0;
 
-  static final Map<String, List<String>> modulos = {
+  static const Map<String, List<String>> modulos = {
     'Caja': [
       'Venta',
       'Caja',
@@ -40,7 +39,7 @@ class Modulos{
     ]
   };
 
-  static final Map<String, List<IconData>> modulosIconos = {
+  static const Map<String, List<IconData>> modulosIconos = {
     'Caja' : [
       Icons.point_of_sale,
       Icons.sell,
@@ -77,23 +76,39 @@ class Modulos{
     ]
   };
 
-  static final Map<String, List<Widget>> modulosScreens = {
+  static const Map<String, List<Widget>> modulosScreens = {
     'Caja': [
       VentaScreen(),
-      CajaScreen()
+      CajaScreen(),
+      SizedBox(), //Falta
     ],
     'Catalogo': [
       ProductosScreen(),
-      SizedBox(),
+      SizedBox(), //Falta
       ClientesScreen(),
+      SizedBox(), //Falta
     ],
     'Cotizaciones': [
       CotizacionesScreen()
     ],
-
+    'Inventario' : [
+      SizedBox(), //Falta
+    ],
+    'Impresoras' : [
+      SizedBox(), //Falta
+    ],
+    'Pedidos' : [
+      SizedBox(), //Falta
+      SizedBox(), //Falta
+      SizedBox(), //Falta
+    ],
+    'Reportes' : [
+      SizedBox(), //Falta
+    ],
     'Preferencias' : [
       SettingsScreen()
     ]
-  };
 
+
+  };
 }

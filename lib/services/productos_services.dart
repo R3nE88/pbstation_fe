@@ -11,6 +11,20 @@ class ProductosServices extends ChangeNotifier{
 
   bool isLoading = false;
 
+  void filtrarProductos(String query) {
+    query = query.toLowerCase().trim();
+    if (query.isEmpty) {
+      filteredProductos = productos;
+    } else {
+      filteredProductos = productos.where((producto) {
+        return producto.descripcion.toLowerCase().contains(query) ||
+              producto.codigo.toString().contains(query);
+      }).toList();
+    }
+    notifyListeners();
+  }
+
+
   Future<List<Productos>> loadProductos() async { 
     if (isLoading) {
       return productos;

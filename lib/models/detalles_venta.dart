@@ -29,29 +29,28 @@ class DetallesVenta {
   String toJson() => json.encode(toMap());
 
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
-        // 3) Leer el id directamente si viene en el objeto
-        id: json["id"]?.toString(),
-        productoId: json["producto_id"].toString(),
-        cantidad: json["cantidad"] as int,
-        ancho: (json["ancho"] as num).toDouble(),
-        alto: (json["alto"] as num).toDouble(),
-        comentarios: json["comentarios"].toString(),
-        descuento: json["descuento"] as int,
-        descuentoAplicado: (json["descuento_aplicado"] as num).toDouble(),
-        iva: (json["iva"] as num).toDouble(),
-        subtotal: (json["subtotal"] as num).toDouble(),
-      );
+    id: json["id"]?.toString(),
+    productoId: json["producto_id"].toString(),
+    cantidad: json["cantidad"] as int,
+    ancho: (json["ancho"] as num).toDouble(),
+    alto: (json["alto"] as num).toDouble(),
+    comentarios: json["comentarios"].toString(),
+    descuento: json["descuento"] as int,
+    descuentoAplicado: (json["descuento_aplicado"] as num).toDouble(),
+    iva: (json["iva"] as num).toDouble(),
+    subtotal: (json["subtotal"] as num).toDouble(),
+  );
 
   Map<String, dynamic> toMap() => {
-        "id": id,
-        "producto_id": productoId,
-        "cantidad": cantidad,
-        "ancho": ancho,
-        "alto": alto,
-        "comentarios": comentarios,
-        "descuento": descuento,
-        "descuento_aplicado": descuentoAplicado,
-        "iva": iva,
-        "subtotal": subtotal,
-      };
+    "id": id,
+    "producto_id": productoId,
+    "cantidad": cantidad,
+    "ancho": ancho,
+    "alto": alto,
+    "comentarios": comentarios,
+    "descuento": descuento,
+    "descuento_aplicado": descuentoAplicado,
+    "iva": iva,
+    "subtotal": subtotal,
+  };
 }

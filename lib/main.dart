@@ -2,12 +2,12 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
+import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
@@ -27,15 +27,16 @@ void main() async {
 
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
+        ChangeNotifierProvider(create: (_) => ModulosProvider()),
       ],
       child: const MyApp()
     )
   );
 
   doWhenWindowReady(() {
-    //const initialSize = Size(400, 640);
-    //appWindow.size = initialSize;
-    //appWindow.minSize = initialSize;
+    const initialSize = Size(400, 640);
+    appWindow.size = initialSize;
+    appWindow.minSize = initialSize;
     appWindow.show();
   });
 }
@@ -65,16 +66,8 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'PBStation',
-          initialRoute: 'home',//'login',
+          initialRoute: 'login',
           routes: appRoutes,
-          localizationsDelegates: [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate, // Agrega este delegate
-          ],
-          supportedLocales: const [
-            Locale('es', 'ES'),
-          ],
           theme: changeTheme.isDarkTheme ? AppTheme.customThemeDark : AppTheme.customTheme, //AppTheme.customTheme,
           scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),
         );

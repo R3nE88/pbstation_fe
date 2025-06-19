@@ -39,20 +39,21 @@ class LoginScreen extends StatelessWidget {
                           style: AppTheme.subtituloSecundario.copyWith(
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
-                            color: Colors.black45
+                            color: AppTheme.colorContraste.withAlpha(190)
                           ),
                           textAlign: TextAlign.center,
                           textScaler: TextScaler.linear(0.85),
                         ),
                       ),
                       Text(
-                        'PBStation', 
+                        'PrinterBoy\nPunto de Venta', 
                         style: AppTheme.subtituloSecundario.copyWith(
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 3
+                          letterSpacing: 3,
+                          color: AppTheme.colorContraste
                         ),
                         textAlign: TextAlign.center,
-                        textScaler: TextScaler.linear(3),
+                        textScaler: TextScaler.linear(2.3),
                       ),
                     ],
                   ),

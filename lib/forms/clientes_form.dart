@@ -20,21 +20,21 @@ class ClientesFormDialog extends StatefulWidget {
 class _ClientesFormState extends State<ClientesFormDialog> {
   bool onlyRead = false;
   final formKey = GlobalKey<FormState>();
-  TextEditingController nombreController = TextEditingController();
-  TextEditingController correoController = TextEditingController();
-  TextEditingController telefonoController = TextEditingController();
-  TextEditingController razonController = TextEditingController();
-  TextEditingController rfcController = TextEditingController();
-
-  TextEditingController cpController = TextEditingController();
-  TextEditingController direccionController = TextEditingController();
-  
-  TextEditingController noExtController = TextEditingController();
-  TextEditingController noIntController = TextEditingController();
-  TextEditingController coloniaController = TextEditingController();
-  TextEditingController ciudadController = TextEditingController();
-  TextEditingController estadoController = TextEditingController();
-  TextEditingController paisController = TextEditingController();
+  final Map<String, TextEditingController> controllers = {
+    'nombre': TextEditingController(),
+    'correo': TextEditingController(),
+    'telefono': TextEditingController(),
+    'razon': TextEditingController(),
+    'rfc': TextEditingController(),
+    'cp': TextEditingController(),
+    'direccion': TextEditingController(),
+    'noExt': TextEditingController(),
+    'noInt': TextEditingController(),
+    'colonia': TextEditingController(),
+    'ciudad': TextEditingController(),
+    'estado': TextEditingController(),
+    'pais': TextEditingController(),
+  };
 
   String? regimenFiscal;
   String titulo = 'Agregar nuevo Cliente';
@@ -45,33 +45,28 @@ class _ClientesFormState extends State<ClientesFormDialog> {
   void initState() {
     super.initState();
 
-    if(widget.cliEdit!=null){
-      if (widget.onlyRead!=null){
-        if(widget.onlyRead==true){
-          titulo = 'Datos del Cliente';
-          onlyRead = true;
-        }
-      } else {
-        titulo = 'Editar Cliente';
+    if (widget.cliEdit != null) {
+      onlyRead = widget.onlyRead ?? false;
+      titulo = onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
+
+      final cliente = widget.cliEdit!;
+      controllers['nombre']!.text = cliente.nombre;
+      controllers['correo']!.text = cliente.correo ?? '';
+      controllers['telefono']!.text = '${cliente.telefono ?? ''}';
+      controllers['razon']!.text = cliente.razonSocial ?? '';
+      controllers['rfc']!.text = cliente.rfc ?? '';
+      controllers['cp']!.text = '${cliente.codigoPostal ?? ''}';
+      controllers['direccion']!.text = cliente.direccion ?? '';
+      controllers['noExt']!.text = '${cliente.noExt ?? ''}';
+      controllers['noInt']!.text = '${cliente.noInt ?? ''}';
+      controllers['colonia']!.text = cliente.colonia ?? '';
+      if (cliente.localidad != null) {
+        final partes = cliente.localidad!.split(',');
+        controllers['ciudad']!.text = partes[0].trim();
+        controllers['estado']!.text = partes[1].trim();
+        controllers['pais']!.text = partes[2].trim();
       }
-      nombreController.text = widget.cliEdit!.nombre;
-      correoController.text = widget.cliEdit!.correo ?? '';
-      telefonoController.text = widget.cliEdit!.telefono ?? '';
-      razonController.text = widget.cliEdit!.razonSocial ?? '';
-      rfcController.text = widget.cliEdit!.rfc ?? '';
-      cpController.text = widget.cliEdit!.codigoPostal ?? '';
-      direccionController.text = widget.cliEdit!.direccion ?? '';
-      noExtController.text = widget.cliEdit!.noExt ?? '';
-      noIntController.text = widget.cliEdit!.noInt ?? '';
-      coloniaController.text = widget.cliEdit!.colonia ?? '';
-      if (widget.cliEdit!.localidad!=null){
-        String localidad = widget.cliEdit!.localidad!;
-        List<String> partes = localidad.split(',');
-        ciudadController.text = partes[0].trim();
-        estadoController.text = partes[1].trim();
-        paisController.text = partes[2].trim();
-      }
-      regimenFiscal = widget.cliEdit!.regimenFiscal;
+      regimenFiscal = cliente.regimenFiscal;
     }
 
     dropdownItems = Constantes.regimenFiscal.entries.map((entry) {
@@ -84,6 +79,99 @@ class _ClientesFormState extends State<ClientesFormDialog> {
   
   @override
   Widget build(BuildContext context) {
+
+    Future<void> guardarCliente() async {
+      if (!formKey.currentState!.validate()) return;
+
+      final clientesServices = Provider.of<ClientesServices>(context, listen: false);
+      Loading().displaySpinLoading(context);
+
+      String? localidad;
+      if (controllers['ciudad']!.text.isNotEmpty ||
+          controllers['estado']!.text.isNotEmpty ||
+          controllers['pais']!.text.isNotEmpty) {
+        if ([controllers['ciudad']!.text, controllers['estado']!.text, controllers['pais']!.text]
+            .any((text) => text.isEmpty)) {
+          await showDialog(
+            context: context,
+            builder: (context) => CustomErrorDialog(
+              respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.\nNo se permiten datos parciales.",
+            ),
+          );
+          if (!context.mounted) return;
+          Navigator.pop(context);
+          return;
+        }
+        localidad = "${controllers['ciudad']!.text}, ${controllers['estado']!.text}, ${controllers['pais']!.text}";
+      }
+
+      final cliente = Clientes(
+        nombre: controllers['nombre']!.text,
+        correo: controllers['correo']!.text.isEmpty ? null : controllers['correo']!.text,
+        telefono: controllers['telefono']!.text.isEmpty ? null : int.tryParse(controllers['telefono']!.text),        
+        razonSocial: controllers['razon']!.text.isEmpty ? null : controllers['razon']!.text,
+        rfc: controllers['rfc']!.text.isEmpty ? null : controllers['rfc']!.text,
+        codigoPostal: controllers['cp']!.text.isEmpty ? null : int.tryParse(controllers['cp']!.text),
+        direccion: controllers['direccion']!.text.isEmpty ? null : controllers['direccion']!.text,
+        noExt: controllers['noExt']!.text.isEmpty ? null : int.tryParse(controllers['noExt']!.text),
+        noInt: controllers['noInt']!.text.isEmpty ? null : int.tryParse(controllers['noInt']!.text),
+        colonia: controllers['colonia']!.text.isEmpty ? null : controllers['colonia']!.text,
+        localidad: localidad,
+        regimenFiscal: regimenFiscal,
+      );
+
+      final respuesta = widget.cliEdit == null
+          ? await clientesServices.createCliente(cliente)
+          : await clientesServices.updateCliente(cliente, widget.cliEdit!.id!);
+
+      if (!context.mounted) return;
+      Navigator.pop(context);
+
+      if (respuesta == 'exito') {
+        Navigator.pop(context);
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => CustomErrorDialog(respuesta: respuesta),
+        );
+      }
+    }
+
+    String? validateRequiredField(String? value, String fieldName) {
+      if (value == null || value.isEmpty) {
+        return 'Por favor ingrese $fieldName';
+      }
+      return null;
+    }
+
+    Widget buildTextFormField({
+      required TextEditingController controller,
+      required String labelText,
+      bool autoFocus = false,
+      bool readOnly = false,
+      int? maxLength,
+      List<TextInputFormatter>? inputFormatters,
+      String? Function(String?)? validator,
+    }) {
+      return IgnorePointer(
+        ignoring: readOnly,
+        child: TextFormField(
+          autofocus: autoFocus,
+          controller: controller,
+          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+          readOnly: readOnly,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          decoration: InputDecoration(
+            labelText: labelText,
+            labelStyle: AppTheme.labelStyle,
+          ),
+          validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+        ),
+      );
+    }
+
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       title: Text(titulo),
@@ -94,100 +182,56 @@ class _ClientesFormState extends State<ClientesFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SeparadorConTexto(texto: 'General'),
-              
+              const SeparadorConTexto(texto: 'General'),
               Row(
                 children: [
                   Expanded(
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        autofocus: !onlyRead,
-                        readOnly:  onlyRead,
-                        controller: nombreController,
-                        decoration: InputDecoration(
-                          labelText: 'Nombre',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor ingrese un Nombre';
-                          }
-                          return null;
-                        },
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                      ),
-                    ),
-                  ), SizedBox(width: 10),
+                    child: buildTextFormField(
+                      controller: controllers['nombre']!, 
+                      labelText: 'Nombre',
+                      autoFocus: !onlyRead && widget.cliEdit == null,
+                      readOnly:  onlyRead,
+                      validator: (value) => validateRequiredField(value, 'el nombre'),
+                    )
+                  ), const SizedBox(width: 10),
                   Expanded(
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        readOnly: onlyRead,
-                        controller: telefonoController,
-                        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                        maxLength: 10,
-                        decoration: InputDecoration(
-                          labelText: 'Telefono 10 digitos',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly, // Acepta solo dígitos
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ), SizedBox(height: 15),
-
-              Flexible(
-                child: IgnorePointer(
-                  ignoring: onlyRead,
-                  child: TextFormField(
-                    controller: correoController,
-                    readOnly: onlyRead,
-                    decoration: InputDecoration(
-                      labelText: 'Correo Electronico',
-                      labelStyle: AppTheme.labelStyle
-                    ),
-                  ),
-                ),
-              ), SizedBox(height: 15),
-
-              SeparadorConTexto(texto: 'Datos para Facturacion'),
-
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: razonController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'Razon Social',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
-                    ),
-                  ), SizedBox(width: 10),
-                  Expanded(
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: rfcController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'RFC',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['telefono']!,
+                      labelText: 'Telefono 10 digitos',
+                      readOnly: onlyRead,
+                      maxLength: 10,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                 ],
               ), const SizedBox(height: 15),
-
+              Flexible(
+                child: buildTextFormField(
+                  controller: controllers['correo']!,
+                  labelText: 'Correo Electronico',
+                  readOnly: onlyRead,
+                ),
+              ), const SizedBox(height: 15),
+              const SeparadorConTexto(texto: 'Datos para Facturacion'),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: buildTextFormField(
+                      controller: controllers['razon']!,
+                      labelText: 'Razon Social',
+                      readOnly: onlyRead,
+                    ),
+                  ), const SizedBox(width: 10),
+                  Expanded(
+                    child: buildTextFormField(
+                      controller: controllers['rfc']!,
+                      labelText: 'RFC',
+                      readOnly: onlyRead,
+                    ),
+                  ),
+                ],
+              ), const SizedBox(height: 15),
 
               Row(
                 children: [
@@ -202,54 +246,36 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     ),
                   ), SizedBox(width: onlyRead ? 0 : 10),
 
-                  !onlyRead ? IconButton(onPressed:  () => setState(() => regimenFiscal = null), icon: Icon(Icons.clear)) : SizedBox()
+                  !onlyRead ? IconButton(onPressed:  () => setState(() => regimenFiscal = null), icon: Icon(Icons.clear)) : const SizedBox()
                 ], 
               ), const SizedBox(height: 15),
-
-              SeparadorConTexto(texto: 'Direccion'),
-
+              const SeparadorConTexto(texto: 'Direccion'),
               Row(
                 children: [
                   Expanded(
                     flex: 3,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: direccionController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'Calle',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['direccion']!,
+                      labelText: 'Calle',
+                      readOnly: onlyRead,   
                     ),
-                  ), SizedBox(width: 10),
+                  ), const SizedBox(width: 10),
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: noExtController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'No. Exterior',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['noExt']!,
+                      labelText: 'No. Exterior',
+                      readOnly: onlyRead,
+                      maxLength: 6,
                     ),
-                  ), SizedBox(width: 10),
+                  ), const SizedBox(width: 10),
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: noIntController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'No. Interior',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['noInt']!,
+                      labelText: 'No. Interior',
+                      readOnly: onlyRead,
+                      maxLength: 6,
                     ),
                   ),
                 ],
@@ -259,80 +285,53 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                 children: [
                   Expanded(
                     flex: 2,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: coloniaController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'Colonia',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['colonia']!,
+                      labelText: 'Colonia',
+                      readOnly: onlyRead,
+                      maxLength: 30,
                     ),
-                  ), SizedBox(width: 10),
+                  ), const SizedBox(width: 10),
 
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: cpController,
-                        readOnly: onlyRead,
-                        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                        maxLength: 5,
-                        decoration: InputDecoration(
-                          labelText: 'Codigo Postal',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['cp']!,
+                      labelText: 'Codigo Postal',
+                      readOnly: onlyRead,
+                      maxLength: 5,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   ),
                 ],
               ), const SizedBox(height: 15),
-
               Row(
                 children: [
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: ciudadController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'Ciudad',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['ciudad']!,
+                      labelText: 'Ciudad',
+                      readOnly: onlyRead,
+                      maxLength: 30,
                     ),
-                  ), SizedBox(width: 10),
+                  ), const SizedBox(width: 10),
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: estadoController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'Estado',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['estado']!,
+                      labelText: 'Estado',
+                      readOnly: onlyRead,
+                      maxLength: 30,
                     ),
-                  ), SizedBox(width: 10),
+                  ), const SizedBox(width: 10),
                   Expanded(
                     flex: 1,
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: TextFormField(
-                        controller: paisController,
-                        readOnly: onlyRead,
-                        decoration: InputDecoration(
-                          labelText: 'País',
-                          labelStyle: AppTheme.labelStyle
-                        ),
-                      ),
+                    child: buildTextFormField(
+                      controller: controllers['pais']!,
+                      labelText: 'País',
+                      readOnly: onlyRead,
+                      maxLength: 30,
                     ),
                   ),
                 ],
@@ -344,89 +343,11 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       actions: [
         !onlyRead ? ElevatedButton(
           onPressed: () async{
-            if (formKey.currentState!.validate()) {
-              final clientesServices = Provider.of<ClientesServices>(context, listen: false);
-
-              Loading().displaySpinLoading(context);
-              
-              Future<void> faltanDatos(String mensaje) async {
-                await showDialog(
-                  context: context,
-                  builder: (context) {
-                    return CustomErrorDialog(respuesta: mensaje);
-                  },
-                );
-                // Aquí se ejecuta después de cerrar el diálogo
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              }
-
-              String? localidad;
-              int count = 0;
-              if (ciudadController.text.isNotEmpty || estadoController.text.isNotEmpty || paisController.text.isNotEmpty){
-                if (ciudadController.text.isEmpty){
-                  count++;
-                }
-                if (estadoController.text.isEmpty){
-                  count++;
-                }
-                if (paisController.text.isEmpty) {
-                  count++;                  
-                }
-              }
-
-              if (count > 0 && count < 3){
-                faltanDatos("Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos. No se permiten datos parciales.");
-                return;
-
-              } else {
-                localidad = "${ciudadController.text}, ${estadoController.text}, ${paisController.text}";
-              }
-
-              
-
-              Clientes cliente = Clientes(
-                nombre: nombreController.text,
-                correo: correoController.text.isEmpty ? null : correoController.text,
-                telefono: telefonoController.text.isEmpty ? null : telefonoController.text,
-                razonSocial: razonController.text.isEmpty ? null : razonController.text,
-                rfc: rfcController.text.isEmpty ? null : rfcController.text,
-                codigoPostal: cpController.text.isEmpty ? null : cpController.text,
-                direccion: direccionController.text.isEmpty ? null : direccionController.text,
-                noExt: noExtController.text.isEmpty ? null : noExtController.text,
-                noInt: noIntController.text.isEmpty ? null : noIntController.text,
-                colonia: coloniaController.text.isEmpty ? null : coloniaController.text,
-                localidad:  localidad,
-                regimenFiscal: regimenFiscal
-              );
-
-              late String respuesta;
-              if (widget.cliEdit==null){
-                respuesta = await clientesServices.createCliente(cliente);
-              } else {
-                String id = widget.cliEdit!.id!;
-                respuesta = await clientesServices.updateCliente(cliente, id);
-              }
-
-              if (!context.mounted) return;
-              Navigator.pop(context); // Cierra el loading
-
-              if (!context.mounted) return;
-              if (respuesta == 'exito') {
-                Navigator.pop(context); // Cierra el formulario o vuelve atrás
-              } else {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return CustomErrorDialog(respuesta: respuesta);
-                  },
-                );
-              }
-            }
+            await guardarCliente();
           }, 
           style: AppTheme.botonGuardar,
-          child: Text('Guardar Cliente')
-        ) : SizedBox()
+          child: const Text('Guardar Cliente')
+        ) : const SizedBox()
       ],
     );
   }

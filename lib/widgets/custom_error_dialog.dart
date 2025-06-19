@@ -13,11 +13,11 @@ class CustomErrorDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: Text('Hubo un problema al crear', textScaler: TextScaler.linear(0.85)),
+      title: Center(child: Text('Hubo un problema al crear', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(respuesta),
+          Text(respuesta, textAlign: TextAlign.center),
         ],
       ),
       actions: [

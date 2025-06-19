@@ -15,13 +15,13 @@ class AppTheme{
   static const Color filledColor = Color.fromARGB(33, 255, 255, 255);
 
   static Color get primario1 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 55, 55, 55)
+      ? const Color.fromARGB(255, 60, 60, 60)
       : const Color.fromARGB(255, 78, 175, 255);
   static Color get secundario1 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 19, 19, 19)
+      ? const Color.fromARGB(255, 16, 16, 16)
       : const Color.fromARGB(255, 54, 134, 233);
   static Color get primario2 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 46, 46, 46)
+      ? const Color.fromARGB(255, 43, 43, 43)
       : const Color.fromARGB(255, 93, 182, 255);
   static Color get secundario2 => changeThemeInstance?.isDarkTheme == true
       ? Colors.black
@@ -45,7 +45,7 @@ class AppTheme{
 
   static Color get containerColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 40, 40, 40)
-      : const Color.fromARGB(255, 52, 152, 246);
+      : const Color.fromARGB(255, 84, 167, 244);
     
   static Color get containerColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 52, 52, 52)
@@ -86,15 +86,15 @@ class AppTheme{
 
   static Color get tablaColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 115, 115, 115)
-      : const Color.fromARGB(255, 82, 169, 251);
+      : const Color.fromARGB(255, 62, 160, 251);
     
   static Color get tablaColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 103, 103, 103)
-      : const Color.fromARGB(255, 66, 160, 248);
+      : const Color.fromARGB(255, 49, 145, 235);
 
     static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 57, 57, 57)
-      : const Color.fromARGB(255, 111, 185, 255);
+      : const Color.fromARGB(255, 120, 190, 255);
 
   static bool get isDarkTheme => changeThemeInstance?.isDarkTheme == true
       ? true

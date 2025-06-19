@@ -128,7 +128,7 @@ class HoraSeleccionable extends StatelessWidget {
         }),
         backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
           if (states.contains(WidgetState.focused)) {
-            return AppTheme.botonPrincipal; // Color cuando está enfocado
+            return AppTheme.tablaColor2; // Color cuando está enfocado
           }
           return AppTheme.containerColor1; // Color normal
         }),

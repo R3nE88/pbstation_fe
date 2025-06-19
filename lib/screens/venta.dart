@@ -182,7 +182,7 @@ class _VentaState extends State<Venta> {
                     bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
                   ),
                   colorScheme: ColorScheme.light(
-                    primary: AppTheme.botonPrincipal, // Color principal (por ejemplo, para el encabezado)
+                    primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
                     onSurface: Colors.white, // Color del texto en general
                   ),
                 ),

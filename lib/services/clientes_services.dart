@@ -11,6 +11,19 @@ class ClientesServices extends ChangeNotifier{
 
   bool isLoading = false;
 
+  void filtrarClientes(String query) {
+    query = query.toLowerCase().trim();
+    if (query.isEmpty) {
+      filteredClientes = clientes;
+    } else {
+      filteredClientes = clientes.where((cliente) {
+        return cliente.nombre.toLowerCase().contains(query) ||
+              (cliente.rfc ?? '').toLowerCase().contains(query);
+      }).toList();
+    }
+    notifyListeners();
+  }
+
   Future<List<Clientes>> loadClientes() async { 
     if (isLoading) {
       return clientes;
