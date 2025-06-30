@@ -39,7 +39,7 @@ class SideMenuLeft extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text('v0.0001', style: AppTheme.subtituloPrimario),
+            child: const Text('v0.0001', style: AppTheme.subtituloPrimario), //TODO: version
           ),
         ],
       ),

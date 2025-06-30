@@ -156,7 +156,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                     cliente: servicios.filteredClientes[index],
                     index: index,
                     onDelete: () async {
-                      Loading().displaySpinLoading(context);
+                      Loading.displaySpinLoading(context);
                       await servicios.deleteCliente(servicios.filteredClientes[index].id!);
                       if (!context.mounted) return;
                       Navigator.pop(context);

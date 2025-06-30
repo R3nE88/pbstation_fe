@@ -84,7 +84,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       if (!formKey.currentState!.validate()) return;
 
       final clientesServices = Provider.of<ClientesServices>(context, listen: false);
-      Loading().displaySpinLoading(context);
+      Loading.displaySpinLoading(context);
 
       String? localidad;
       if (controllers['ciudad']!.text.isNotEmpty ||

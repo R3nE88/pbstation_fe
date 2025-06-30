@@ -219,7 +219,6 @@ class _VentaState extends State<Venta> {
         return; // Si no se seleccionó fecha o hora, no hacer nada
       }
 
-      //print('Fecha seleccionada: $selectedDate y Hora seleccionada: $selectedTime');
       DateTime fechaSeleccionada = DateTime(
         selectedDate.year,
         selectedDate.month,
@@ -264,8 +263,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   Cliente *', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   Cliente *', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           Row(
                             children: [
                               Expanded(
@@ -304,15 +303,15 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Column( //Fecha de Entrega
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(' Fecha de Entrega:', style: AppTheme.subtituloPrimario),
-                        SizedBox(height: 2),
+                        const Text(' Fecha de Entrega:', style: AppTheme.subtituloPrimario),
+                        const SizedBox(height: 2),
                         Container(
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(43, 255, 255, 255),
@@ -340,7 +339,7 @@ class _VentaState extends State<Venta> {
                                     });
                                   } 
                                 ),
-                                Text('Se entrega en este momento  ')
+                                const Text('Se entrega en este momento  ')
                               ],
                             ),
                           ),
@@ -348,15 +347,13 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                     
-                    //SizedBox(width: 15),
-                    
                     Column( 
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(''),
-                        SizedBox(height: 2),
+                        const Text(''),
+                        const SizedBox(height: 2),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -379,13 +376,15 @@ class _VentaState extends State<Venta> {
                                     ),
                                     SizedBox(
                                       width: 140,
-                                      child: fechaEntrega==null? Text(
+                                      child: fechaEntrega==null ? Text(
                                         'Entregar en otro día  '
                                       ) :
-                                      Center(child: Text(
+                                      Center(
+                                        child: Text(
                                         '${fechaEntrega!.day}/${fechaEntrega!.month}/${fechaEntrega!.year}',
                                         style: AppTheme.tituloClaro,
-                                      ))
+                                        )
+                                      )
                                     ),
                                   ],
                                 ),
@@ -417,7 +416,7 @@ class _VentaState extends State<Venta> {
                                       child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
                                     )
                                   ),
-                                  SizedBox(width: 10)
+                                  const SizedBox(width: 10)
                                 ],
                               ),
                             ),
@@ -428,7 +427,7 @@ class _VentaState extends State<Venta> {
                   ],
                 ),
                     
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                     
                 Row(
                   children: [
@@ -439,8 +438,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   Producto *', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   Producto *', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           BusquedaField<Productos>(
                             items: widget.productosServices.productos,
                             selectedItem: productoSelected,
@@ -463,15 +462,15 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Column( //Precio por unidad
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(' Precio/Unidad', style: AppTheme.subtituloPrimario),
-                        SizedBox(height: 2),
+                        const Text(' Precio/Unidad', style: AppTheme.subtituloPrimario),
+                        const SizedBox(height: 2),
                         SizedBox(
                           height: 40,
                           width: 100,
@@ -485,15 +484,15 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Column( //Precio por unidad
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('   Cantidad', style: AppTheme.subtituloPrimario),
-                        SizedBox(height: 2),
+                        const Text('   Cantidad', style: AppTheme.subtituloPrimario),
+                        const SizedBox(height: 2),
                         SizedBox(
                           height: 40,
                           width: 100,
@@ -521,7 +520,7 @@ class _VentaState extends State<Venta> {
                       ],
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     productoSelected?.requiereMedida==true ? Row(
                       children: [
@@ -530,8 +529,8 @@ class _VentaState extends State<Venta> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('   Ancho', style: AppTheme.subtituloPrimario),
-                            SizedBox(height: 2),
+                            const Text('   Ancho', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
                             SizedBox(
                               height: 40,
                               width: 100,
@@ -567,15 +566,15 @@ class _VentaState extends State<Venta> {
                           ],
                         ),
               
-                        SizedBox(width: 15),
+                        const SizedBox(width: 15),
               
                         Column( //Precio por unidad
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('   Alto', style: AppTheme.subtituloPrimario),
-                            SizedBox(height: 2),
+                            const Text('   Alto', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
                             SizedBox(
                               height: 40,
                               width: 100,
@@ -611,13 +610,13 @@ class _VentaState extends State<Venta> {
                           ],
                         ),
                       ],
-                    ) : SizedBox(),
+                    ) : const SizedBox(),
                     
                     
                   ],
                 ),
                     
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                     
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -630,8 +629,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   Comentario', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   Comentario', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           TextFormField(
                             buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                             maxLength: 100,
@@ -645,7 +644,7 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Expanded(
                       child: Column( //Formulario de Producto
@@ -653,8 +652,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   % Descuento', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   % Descuento', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           Focus(
                             canRequestFocus: false,
                             onFocusChange: (hasFocus) {
@@ -673,8 +672,6 @@ class _VentaState extends State<Venta> {
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 4,
                               controller: descuentoController,
-                              //canRequestFocus: false,
-                              //readOnly: true,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
@@ -698,7 +695,7 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Expanded(
                       child: Column( //Formulario de Producto
@@ -706,8 +703,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   IVA (8%)', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   IVA (8%)', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           SizedBox(
                             height: 40,
                             child: TextFormField( //TODO: iva
@@ -723,7 +720,7 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     Expanded(
                       child: Column( //Formulario de Producto
@@ -731,8 +728,8 @@ class _VentaState extends State<Venta> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('   Total', style: AppTheme.subtituloPrimario),
-                          SizedBox(height: 2),
+                          const Text('   Total', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
                           SizedBox(
                             height: 40,
                             child: TextFormField(
@@ -746,7 +743,7 @@ class _VentaState extends State<Venta> {
                       ),
                     ),
                     
-                    SizedBox(width: 15),
+                    const SizedBox(width: 15),
                     
                     ElevatedButton(
                       onPressed: (){
@@ -837,7 +834,7 @@ class _VentaState extends State<Venta> {
                   ],
                 ),
                     
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                     
                 Expanded(
                   child: Column(
@@ -884,7 +881,7 @@ class _VentaState extends State<Venta> {
                   ),
                 ),
                 
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                     
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -900,7 +897,6 @@ class _VentaState extends State<Venta> {
                           hintText: 'Comentarios de la venta',
                           hintStyle: TextStyle(color: AppTheme.letra70),
                           isDense: true,
-                          //prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
                           contentPadding: const EdgeInsets.only(left: 10, top: 20),
                           enabledBorder: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
@@ -928,7 +924,7 @@ class _VentaState extends State<Venta> {
                                     style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                   ),
                                 ),
-                                SizedBox(height: 10),
+                                const SizedBox(height: 10),
                                 ElevatedButton(
                                   onPressed: (){},
                                   child: Text('Guardar como cotizacion', 
@@ -945,7 +941,7 @@ class _VentaState extends State<Venta> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Text('Subtotal:  ', style: AppTheme.subtituloPrimario),
+                                  const Text('Subtotal:  ', style: AppTheme.subtituloPrimario),
                                   SizedBox(
                                     height: 32,
                                     width: 150,
@@ -957,11 +953,12 @@ class _VentaState extends State<Venta> {
                                     )
                                   )
                                 ],
-                              ), SizedBox(height: 8),
+                              ), 
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Text('- Descuento:  ', style: AppTheme.subtituloPrimario),
+                                  const Text('- Descuento:  ', style: AppTheme.subtituloPrimario),
                                   SizedBox(
                                     height: 32,
                                     width: 150,
@@ -973,11 +970,12 @@ class _VentaState extends State<Venta> {
                                     )
                                   )
                                 ],
-                              ), SizedBox(height: 8),
+                              ), 
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Text('+ IVA:  ', style: AppTheme.subtituloPrimario),
+                                  const Text('+ IVA:  ', style: AppTheme.subtituloPrimario),
                                   SizedBox(
                                     height: 32,
                                     width: 150,
@@ -989,11 +987,12 @@ class _VentaState extends State<Venta> {
                                     )
                                   )
                                 ],
-                              ), SizedBox(height: 8),
+                              ), 
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Text('Total:  ', style: AppTheme.tituloPrimario),
+                                  const Text('Total:  ', style: AppTheme.tituloPrimario),
                                   SizedBox(
                                     height: 36,
                                     width: 150,
@@ -1007,7 +1006,8 @@ class _VentaState extends State<Venta> {
                                     )
                                   )
                                 ],
-                              ), SizedBox(height: 8),
+                              ), 
+                              const SizedBox(height: 8),
                             ],
                           ),
                         ],

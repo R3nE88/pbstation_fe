@@ -5,21 +5,15 @@ import 'package:pbstation_frontend/theme/theme.dart';
 enum MenuSide { left, right }
 
 class HoverSideMenu extends StatefulWidget {
-  /// Contenido que se muestra dentro del menú cuando está abierto.
   final Widget menuContent;
   final Widget? menuContentColapsed;
-  /// Ancho de la pestaña cuando está colapsada.
   final double collapsedWidth;
-  /// Ancho total del menú cuando está abierto.
   final double expandedWidth;
   final double height;
   final Duration duration;
-  /// A partir de qué ancho en píxeles empezamos a mostrar el contenido.
   final double contentSwitchThreshold;
   final MenuSide side;
   final bool enabled;
-
-  //final BoxDecoration boxDecoration;
 
   const HoverSideMenu({
     super.key,
@@ -31,7 +25,6 @@ class HoverSideMenu extends StatefulWidget {
     this.duration = const Duration(milliseconds: 150),
     this.contentSwitchThreshold = 200,
     this.side = MenuSide.right,
-    //required this.boxDecoration,
     required this.enabled
   });
 
@@ -109,7 +102,6 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
       );
     }
 
-
     return Positioned(
       bottom: 0,
       left: widget.side == MenuSide.left ? 0 : null,
@@ -170,7 +162,6 @@ class InverseBorder extends StatelessWidget {
 
   final double extraWidth;
 
-
   @override
   Widget build(BuildContext context) {
     double size = 35;
@@ -206,7 +197,7 @@ class InverseBorder extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(width: 0),
+        const SizedBox(width: 0),
       ],
     );
   }

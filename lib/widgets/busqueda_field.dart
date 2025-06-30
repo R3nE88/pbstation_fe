@@ -67,7 +67,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       _keyHandler = (KeyEvent event) {
         if (event is KeyDownEvent) {
           if (event.logicalKey == widget.teclaFocus) {
-            print("${widget.teclaFocus} precionado");
             if (mounted && (_focusNode?.hasFocus ?? false) == false) {
               _focusNode?.requestFocus(); // Usar el FocusNode proporcionado
             }
@@ -110,7 +109,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   @override
   Widget build(BuildContext context) {
     // Eliminar cualquier llamada a setState() dentro del build
-
     if (widget.selectedItem == null && _selectedItem != null && !widget.defaultFirst) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -121,7 +119,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
         }
       });
     }
-
 
     return Autocomplete<T>(
       optionsBuilder: (TextEditingValue textEditingValue) {

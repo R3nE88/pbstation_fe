@@ -14,8 +14,6 @@ void main() async {
 
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
-
-
   final websocketService = WebSocketService(productosService, clientesServices);
 
   runApp(
@@ -24,7 +22,6 @@ void main() async {
         ChangeNotifierProvider.value(value: productosService),
         ChangeNotifierProvider.value(value: clientesServices),
         ChangeNotifierProvider.value(value: websocketService),
-
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
         ChangeNotifierProvider(create: (_) => ModulosProvider()),
@@ -66,9 +63,9 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'PBStation',
-          initialRoute: 'login',
+          initialRoute: 'home',//'login',
           routes: appRoutes,
-          theme: changeTheme.isDarkTheme ? AppTheme.customThemeDark : AppTheme.customTheme, //AppTheme.customTheme,
+          theme: changeTheme.isDarkTheme ? AppTheme.customThemeDark : AppTheme.customTheme,
           scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),
         );
       }

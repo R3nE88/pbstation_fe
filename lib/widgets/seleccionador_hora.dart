@@ -36,7 +36,6 @@ class SeleccionadorDeHora extends StatelessWidget {
 
     focusNode21.requestFocus(); // Solicita el foco al primer nodo
 
-
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       content: Row(
@@ -45,7 +44,7 @@ class SeleccionadorDeHora extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Mañana', textScaler: TextScaler.linear(1.2) ,style: AppTheme.tituloPrimario),
+              const Text('Mañana', textScaler: TextScaler.linear(1.2) ,style: AppTheme.tituloPrimario),
               HoraSeleccionable(hora: TimeOfDay(hour: 8, minute: 00), focusNode: focusNode1),
               HoraSeleccionable(hora: TimeOfDay(hour: 8, minute: 30), focusNode: focusNode2),
               HoraSeleccionable(hora: TimeOfDay(hour: 9, minute: 00), focusNode: focusNode3),
@@ -59,7 +58,7 @@ class SeleccionadorDeHora extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Medio Dia', textScaler: TextScaler.linear(1.2), style: AppTheme.tituloPrimario),
+              const Text('Medio Dia', textScaler: TextScaler.linear(1.2), style: AppTheme.tituloPrimario),
               HoraSeleccionable(hora: TimeOfDay(hour: 12, minute: 00), focusNode: focusNode9),
               HoraSeleccionable(hora: TimeOfDay(hour: 12, minute: 30), focusNode: focusNode10),
               HoraSeleccionable(hora: TimeOfDay(hour: 13, minute: 00), focusNode: focusNode11),
@@ -73,7 +72,7 @@ class SeleccionadorDeHora extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Tarde', textScaler: TextScaler.linear(1.2), style: AppTheme.tituloPrimario),
+              const Text('Tarde', textScaler: TextScaler.linear(1.2), style: AppTheme.tituloPrimario),
               HoraSeleccionable(hora: TimeOfDay(hour: 16, minute: 00), focusNode: focusNode17),
               HoraSeleccionable(hora: TimeOfDay(hour: 16, minute: 30), focusNode: focusNode18),
               HoraSeleccionable(hora: TimeOfDay(hour: 17, minute: 00), focusNode: focusNode19),
@@ -104,18 +103,6 @@ class HoraSeleccionable extends StatelessWidget {
   Widget build(BuildContext context) {
     String formattedTime = '${hora.hourOfPeriod}:${hora.minute.toString().padLeft(2, '0')} ${hora.period == DayPeriod.am ? 'AM' : 'PM'}';
 
-    /*return Focus(
-      focusNode: focusNode,
-      child: InkWell(
-        onTap: () {
-          print('Texto activado como botón');
-        },
-        child: Text(
-          formattedTime,
-          style: TextStyle(fontSize: 16),
-        ),
-      ),
-    );*/
     return ElevatedButton(
       focusNode: focusNode,
       onPressed: () {

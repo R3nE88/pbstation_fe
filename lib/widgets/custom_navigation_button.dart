@@ -10,7 +10,6 @@ class CustomNavigationButton extends StatefulWidget {
   final IconData icon;
   final bool selected;
 
-
   @override
   State<CustomNavigationButton> createState() => _CustomNavigationButtonState();
 }
@@ -22,24 +21,18 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Padding(
       padding: const EdgeInsets.only(left: 13, top: 15),
       child: MouseRegion(
         onEnter: widget.selected ? null : (event) {
-          
           setState(() {
             color = colorActive;
           });
-          
         },
         onExit: (event) {
-          
           setState(() {
-            
             color = colorInactive;
           });
-          
         },
         child: Container(
           color: Colors.transparent,

@@ -13,7 +13,7 @@ class CustomErrorDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: Center(child: Text('Hubo un problema al crear', textScaler: TextScaler.linear(0.85))),
+      title: const Center(child: Text('Hubo un problema al crear', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -23,7 +23,7 @@ class CustomErrorDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+          child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
         )
       ],
     );

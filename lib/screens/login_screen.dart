@@ -5,7 +5,6 @@ import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 
-
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -17,7 +16,6 @@ class LoginScreen extends StatelessWidget {
           resizeToAvoidBottomInset: false,
           body: Background(),
         ),
-
         Scaffold(
           backgroundColor: Colors.transparent,
           body: Column(
@@ -220,7 +218,7 @@ class _LoginFieldsState extends State<LoginFields> {
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0); // Slide from right to left
+              const begin = Offset(1.0, 0.0);
               const end = Offset.zero;
               const curve = Curves.easeInOut;
 

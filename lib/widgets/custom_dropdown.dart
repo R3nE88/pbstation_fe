@@ -49,7 +49,7 @@ class CustomDropDown<T> extends StatelessWidget {
             ),
           ),
         ),
-        empty ? Text('    Obligatorio' , style: AppTheme.errorStyle) : SizedBox()
+        empty ? Text('    Obligatorio' , style: AppTheme.errorStyle) : const SizedBox()
       ],
     );
   }

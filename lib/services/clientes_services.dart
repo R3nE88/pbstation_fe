@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
 class ClientesServices extends ChangeNotifier{
-  final String _baseUrl = 'http://127.0.0.1:8000/clientes/';
+  final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
 
@@ -25,9 +26,7 @@ class ClientesServices extends ChangeNotifier{
   }
 
   Future<List<Clientes>> loadClientes() async { 
-    if (isLoading) {
-      return clientes;
-    }
+    if (isLoading) { return clientes; }
     
     isLoading = true;
 
@@ -208,8 +207,6 @@ class ClientesServices extends ChangeNotifier{
         final cli = Clientes.fromMap(body as Map<String, dynamic>);
         cli.id = (body as Map)["id"]?.toString();
 
-        
-        
         clientes = clientes.map((cliente) {
           if (cliente.id == cli.id) {
             return cli;

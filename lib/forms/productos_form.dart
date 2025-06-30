@@ -87,7 +87,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       if (formKey.currentState!.validate() && !tipoEmpty && !categoriaEmpty) {
 
         final productosServices = Provider.of<ProductosServices>(context, listen: false);
-        Loading().displaySpinLoading(context);      
+        Loading.displaySpinLoading(context);      
 
         Productos producto = Productos(
           codigo: int.parse(controllers['clave']!.text),

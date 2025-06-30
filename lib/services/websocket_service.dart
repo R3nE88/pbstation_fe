@@ -30,29 +30,39 @@ class WebSocketService with ChangeNotifier {
       _channel = WebSocketChannel.connect(Uri.parse(_socketUrl));
       isConnected = true;
       Future.microtask(() => notifyListeners());
-      print('WebSocket conectado');
+      if (kDebugMode) {
+        print('WebSocket conectado');
+      }
 
       _channel!.stream.listen(
         (message) {
-          print('Mensaje recibido: $message');
+          if (kDebugMode) {
+            print('Mensaje recibido: $message');
+          }
           mensajesRecibidos.add(message);
           _procesarMensaje(message);
         },
         onDone: () {
-          print('Conexión cerrada');
+          if (kDebugMode) {
+            print('Conexión cerrada');
+          }
           isConnected = false;
           notifyListeners();
           _scheduleReconnect();
         },
         onError: (error) {
-          print('Error en WebSocket: $error');
+          if (kDebugMode) {
+            print('Error en WebSocket: $error');
+          }
           isConnected = false;
           notifyListeners();
           _scheduleReconnect();
         },
       );
     } catch (e) {
-      print('Error al conectar WebSocket: $e');
+      if (kDebugMode) {
+        print('Error al conectar WebSocket: $e');
+      }
       isConnected = false;
       notifyListeners();
       _scheduleReconnect();
@@ -70,7 +80,9 @@ class WebSocketService with ChangeNotifier {
     if (isConnected) {
       _channel?.sink.add(mensaje);
     } else {
-      print('No se puede enviar el mensaje, WebSocket no está conectado');
+      if (kDebugMode) {
+        print('No se puede enviar el mensaje, WebSocket no está conectado');
+      }
     }
   }
 
@@ -79,42 +91,54 @@ class WebSocketService with ChangeNotifier {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de cargar el nuevo producto: $id');
+        if (kDebugMode) {
+          print('→ Petición de cargar el nuevo producto: $id');
+        }
         productosService.loadAProducto(id);
       }
     } else if (mensaje.startsWith('delete-product:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de eliminar el producto: $id');
+        if (kDebugMode) {
+          print('→ Petición de eliminar el producto: $id');
+        }
         productosService.deleteAProducto(id);
       }
     } else if (mensaje.startsWith('put-product:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de recargar el productos: $id');
+        if (kDebugMode) {
+          print('→ Petición de recargar el productos: $id');
+        }
         productosService.updateAProducto(id);
       }
     } else if (mensaje.startsWith('post-cliente:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de cargar el cliente nuevo: $id');
+        if (kDebugMode) {
+          print('→ Petición de cargar el cliente nuevo: $id');
+        }
         clientesService.loadACliente(id);
       }
     } else if (mensaje.startsWith('delete-cliente:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de eliminar el cliente: $id');
+        if (kDebugMode) {
+          print('→ Petición de eliminar el cliente: $id');
+        }
         clientesService.deleteACliente(id);
       }
     } else if (mensaje.startsWith('put-cliente:')) {
       final partes = mensaje.split(':');
       if (partes.length > 1) {
         final id = partes[1];
-        print('→ Petición de recargar el cliente: $id');
+        if (kDebugMode) {
+          print('→ Petición de recargar el cliente: $id');
+        }
         clientesService.updateACliente(id);
       }
     } 
@@ -123,7 +147,9 @@ class WebSocketService with ChangeNotifier {
   void _scheduleReconnect() {
     if (_reconnectTimer == null || !_reconnectTimer!.isActive) {
       _reconnectTimer = Timer(Duration(seconds: 5), () {
-        print('Intentando reconectar WebSocket...');
+        if (kDebugMode) {
+          print('Intentando reconectar WebSocket...');
+        }
         conectar();
       });
     }

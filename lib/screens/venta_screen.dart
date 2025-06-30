@@ -16,7 +16,6 @@ class _VentaScreenState extends State<VentaScreen> {
   int indexSelected = 0;
   int pestanias = 2;
   int maximoPestanias = 4;
-  
 
   @override
   void initState() {
@@ -59,6 +58,7 @@ class _VentaScreenState extends State<VentaScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+
               SizedBox( //Pestañas
                 height: 36,
                 width: 500,
@@ -66,15 +66,14 @@ class _VentaScreenState extends State<VentaScreen> {
                   scrollDirection: Axis.horizontal,
                   itemCount: pestanias,
                   itemBuilder: (context, index) {
-              
                     if (index == pestanias - 1) {
                       return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
                     }
                     return Pestania(last: false, selected: index == indexSelected, selectedPestania: selectedPestania, index: index);
-              
                   },
                 ),
               ),
+
               Transform.translate(
                 offset: const Offset(0, -8),
                 child: ElevatedButton(
@@ -91,6 +90,7 @@ class _VentaScreenState extends State<VentaScreen> {
                   ),
                 ),
               ),
+
             ],
           ),
           KeyedSubtree(
@@ -140,7 +140,6 @@ class Pestania extends StatelessWidget {
             padding: const EdgeInsets.only(top:8, bottom: 8, left: 10, right: 16),
             child: FeedBackButton(
               onPressed: () {
-                //Agregar una pestaña en VentaScreen
                 agregarPestania!();
               },
               child: Icon(Icons.add, color: AppTheme.letraClara, size: 21)

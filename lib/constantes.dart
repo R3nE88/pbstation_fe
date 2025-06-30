@@ -1,4 +1,6 @@
 class Constantes{
+  static const String baseUrl = '//127.0.0.1:8000/';
+
   static const Map<String, String> regimenFiscal = {
     "601": "General de Ley Personas Morales",
     "603": "Personas Morales con Fines no Lucrativos",

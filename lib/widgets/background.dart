@@ -61,7 +61,6 @@ class _Box extends StatelessWidget {
 
   const _Box(this.angle, this.color1, this.color2);
 
-
   @override
   Widget build(BuildContext context) {
     return Transform.rotate(

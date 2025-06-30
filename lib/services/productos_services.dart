@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
 class ProductosServices extends ChangeNotifier{
-  final String _baseUrl = 'http://127.0.0.1:8000/productos/';
+  final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
 
@@ -24,11 +25,8 @@ class ProductosServices extends ChangeNotifier{
     notifyListeners();
   }
 
-
   Future<List<Productos>> loadProductos() async { 
-    if (isLoading) {
-      return productos;
-    }
+    if (isLoading) { return productos; }
     
     isLoading = true;
 
@@ -48,7 +46,6 @@ class ProductosServices extends ChangeNotifier{
       filteredProductos = productos;
 
     } catch (e) {
-      // Manejo de error
       isLoading = false;
       notifyListeners();
       return [];
@@ -206,8 +203,6 @@ class ProductosServices extends ChangeNotifier{
         final body = json.decode(resp.body);
         final prod = Productos.fromMap(body as Map<String, dynamic>);
         prod.id = (body as Map)["id"]?.toString();
-
-        
         
         productos = productos.map((producto) {
           if (producto.id == prod.id) {

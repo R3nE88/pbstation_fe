@@ -1,12 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 class CurrencyInputFormatter extends TextInputFormatter {
-  final NumberFormat _formatter = NumberFormat.currency(
-    locale: 'en_US',
-    symbol: '\$',
-    decimalDigits: 2,
-  );
 
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -41,7 +35,7 @@ class CurrencyInputFormatter extends TextInputFormatter {
     String newFormatted = formattedInteger + (decimalPart.isNotEmpty ? '.$decimalPart' : (digitsOnly.endsWith('.') ? '.' : ''));
 
     // Agregar símbolo $
-    newFormatted = '\$' + newFormatted;
+    newFormatted = '\$$newFormatted';
 
     // Calcular nueva posición del cursor
     int cursorPosition = newValue.selection.baseOffset;

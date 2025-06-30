@@ -2,7 +2,7 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
-import 'package:pbstation_frontend/services/login.dart';
+//import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
           body: Column(
             children: [
               // Custom Window Bar
-              WindowBar(),
+              const WindowBar(),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
@@ -65,7 +65,7 @@ class HomeScreen extends StatelessWidget {
         ),
 
         // Left and Right Menus
-        SideMenuLeft(),
+        const SideMenuLeft(),
         SideMenuRight(height: height + 1),
 
         // Connection Overlay
@@ -95,7 +95,9 @@ class WindowBar extends StatelessWidget {
               child: Stack(
                 children: [
                   //Center(child: Text('                                  Login: {Usuario} ${Login.usuarioLogeado?.nombre ?? 'nA'}   <texto de prueba>', style: TextStyle(color: const Color.fromARGB(129, 255, 255, 255)))),
-                  MoveWindow(),
+                  MoveWindow(
+                    onDoubleTap: () {},
+                  ),
                 ],
               )
             ),
