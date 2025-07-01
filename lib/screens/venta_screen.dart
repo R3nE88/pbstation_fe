@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/screens/venta.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -13,9 +14,8 @@ class VentaScreen extends StatefulWidget {
 }
 
 class _VentaScreenState extends State<VentaScreen> {
-  int indexSelected = 0;
-  int pestanias = 2;
-  int maximoPestanias = 4;
+  int indexResta = 0;
+  final int maximoPestanias = 4;
 
   @override
   void initState() {
@@ -32,19 +32,26 @@ class _VentaScreenState extends State<VentaScreen> {
     final productosServices = Provider.of<ProductosServices>(context);
 
     void agregarPestania() {
-      if (pestanias >= maximoPestanias) {
-        return;
-      }
+      if (VentasStates.pestanias >= maximoPestanias) { return; }
       setState(() {
-        pestanias++;
-        indexSelected = pestanias-2;
+        VentasStates.pestanias++;
+        VentasStates.indexSelected = VentasStates.pestanias-2;
       });
     }
 
     void selectedPestania(int index) {
+      if (VentasStates.indexSelected==index){ return; }
       setState(() {
-        indexSelected = index;
+        VentasStates.indexSelected = index;
       });
+    }
+
+    void rebuild() async{
+      indexResta = 10;
+      setState(() {});
+      await Future.delayed(const Duration(milliseconds: 235));
+      setState(() {});
+      indexResta = 0;
     }
 
     return Padding(
@@ -64,12 +71,12 @@ class _VentaScreenState extends State<VentaScreen> {
                 width: 500,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: pestanias,
+                  itemCount: VentasStates.pestanias,
                   itemBuilder: (context, index) {
-                    if (index == pestanias - 1) {
+                    if (index == VentasStates.pestanias - 1) {
                       return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
                     }
-                    return Pestania(last: false, selected: index == indexSelected, selectedPestania: selectedPestania, index: index);
+                    return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuild, index: index);
                   },
                 ),
               ),
@@ -94,11 +101,11 @@ class _VentaScreenState extends State<VentaScreen> {
             ],
           ),
           KeyedSubtree(
-            key: ValueKey<int>(indexSelected),
+            key: ValueKey<int>(VentasStates.indexSelected),
             child: Venta(
-              key: ValueKey('venta-$indexSelected'),
+              key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
               clientesServices: clientesServices,
-              index: indexSelected, 
+              index: VentasStates.indexSelected, 
               productosServices: productosServices,
             ),
           ),
@@ -110,14 +117,62 @@ class _VentaScreenState extends State<VentaScreen> {
 
 class Pestania extends StatelessWidget {
   const Pestania({
-    super.key, required this.last, required this.selected, this.agregarPestania, this.selectedPestania, required this.index,
+    super.key, required this.last, required this.selected, this.agregarPestania, this.selectedPestania, this.rebuild, required this.index,
   });
 
   final bool last; 
   final bool selected;
   final Function? agregarPestania;
   final Function? selectedPestania;
+  final Function? rebuild;
   final int index;
+
+  void _mostrarMenu(BuildContext context, Offset offset) async {
+    final seleccion = await showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy,
+        offset.dx,
+        offset.dy,
+      ),
+      color: AppTheme.dropDownColor,
+      elevation: 2,
+      items: [
+        PopupMenuItem(
+          value: 'limpiar',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cleaning_services, color: AppTheme.letraClara, size: 17),
+              Text('  Limpiar', style: TextStyle(color: AppTheme.letraClara)),
+            ],
+          ),
+        ),
+        /*PopupMenuItem(
+          value: 'cerrar',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.clear, color: AppTheme.colorError, size: 17),
+              Text('  Quitar', style: TextStyle(color: AppTheme.colorError)),
+            ],
+          ),
+        ),*/
+      ],
+    );
+
+    if (seleccion != null) {
+      if (seleccion == 'limpiar') {
+        // Lógica para limpiar
+        VentasStates.clearTab(index);
+        rebuild!();
+      } else if (seleccion == 'cerrar') {
+        // Lógica para eliminar
+
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,11 +184,17 @@ class Pestania extends StatelessWidget {
           color: selected == true ? AppTheme.containerColor1 : AppTheme.containerColor2,
           child: last != true ? Padding(
             padding: const EdgeInsets.only(top:8, bottom: 8, left: 8, right: 20),
-            child: FeedBackButton(
-              onPressed: () {
+            child: GestureDetector(
+              onSecondaryTapDown: (details) {
                 selectedPestania!(index);
-              },
-              child: Text('Venta Nueva', style: AppTheme.tituloPrimario)
+                _mostrarMenu(context, details.globalPosition);
+              }, 
+              child: FeedBackButton(
+                onPressed: () {
+                  selectedPestania!(index);
+                },
+                child: Text('Venta ${index+1}', style: AppTheme.tituloPrimario) //TODO: nombre de pestaña
+              ),
             ),
           ) 
           : Padding(

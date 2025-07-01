@@ -31,9 +31,9 @@ void main() async {
   );
 
   doWhenWindowReady(() {
-    const initialSize = Size(400, 640);
+    /*const initialSize = Size(400, 640);
     appWindow.size = initialSize;
-    appWindow.minSize = initialSize;
+    appWindow.minSize = initialSize;*/
     appWindow.show();
   });
 }

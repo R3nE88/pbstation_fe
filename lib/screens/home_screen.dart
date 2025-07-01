@@ -1,22 +1,25 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/home_state.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
-//import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
-    const size = Size(1024, 720);
-    appWindow.minSize = size;
-    appWindow.maximize();
+    if (!HomeState.init){
+      HomeState.init = true;
+      const size = Size(1024, 720);
+      appWindow.minSize = size;
+      appWindow.maximize();
+    }
 
-    final double barraHeight = 35;
+    const double barraHeight = 35;
     final modProv = context.watch<ModulosProvider>();
     final height = MediaQuery.of(context).size.height - barraHeight;
     final screens = Modulos.modulosScreens[modProv.moduloSeleccionado] ?? <Widget>[];
@@ -28,7 +31,7 @@ class HomeScreen extends StatelessWidget {
           body: Column(
             children: [
               // Custom Window Bar
-              const WindowBar(),
+              WindowBar(),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
@@ -65,7 +68,7 @@ class HomeScreen extends StatelessWidget {
         ),
 
         // Left and Right Menus
-        const SideMenuLeft(),
+        SideMenuLeft(),
         SideMenuRight(height: height + 1),
 
         // Connection Overlay

@@ -157,6 +157,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         ignoring: readOnly,
         child: TextFormField(
           autofocus: autoFocus,
+          canRequestFocus: !onlyRead,
           controller: controller,
           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
           readOnly: readOnly,
@@ -172,183 +173,188 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       );
     }
 
-    return AlertDialog(
-      backgroundColor: AppTheme.containerColor1,
-      title: Text(titulo),
-      content: SizedBox(
-        width: 600,
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SeparadorConTexto(texto: 'General'),
-              Row(
-                children: [
-                  Expanded(
-                    child: buildTextFormField(
-                      controller: controllers['nombre']!, 
-                      labelText: 'Nombre',
-                      autoFocus: !onlyRead && widget.cliEdit == null,
-                      readOnly:  onlyRead,
-                      validator: (value) => validateRequiredField(value, 'el nombre'),
-                    )
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    child: buildTextFormField(
-                      controller: controllers['telefono']!,
-                      labelText: 'Telefono 10 digitos',
-                      readOnly: onlyRead,
-                      maxLength: 10,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    return FocusScope(
+      canRequestFocus: !onlyRead,
+      child: AlertDialog(
+        backgroundColor: AppTheme.containerColor1,
+        title: Text(titulo),
+        content: SizedBox(
+          width: 600,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SeparadorConTexto(texto: 'General'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildTextFormField(
+                        controller: controllers['nombre']!, 
+                        labelText: 'Nombre',
+                        autoFocus: !onlyRead && widget.cliEdit == null,
+                        readOnly:  onlyRead,
+                        validator: (value) => validateRequiredField(value, 'el nombre'),
+                      )
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      child: buildTextFormField(
+                        controller: controllers['telefono']!,
+                        labelText: 'Telefono 10 digitos',
+                        readOnly: onlyRead,
+                        maxLength: 10,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        validator: (value) => validateRequiredField(value, 'el telefono'),
+                      ),
                     ),
+                  ],
+                ), const SizedBox(height: 15),
+                Flexible(
+                  child: buildTextFormField(
+                    controller: controllers['correo']!,
+                    labelText: 'Correo Electronico',
+                    readOnly: onlyRead,
+                    validator: (value) => validateRequiredField(value, 'el correo electronico'),
                   ),
-                ],
-              ), const SizedBox(height: 15),
-              Flexible(
-                child: buildTextFormField(
-                  controller: controllers['correo']!,
-                  labelText: 'Correo Electronico',
-                  readOnly: onlyRead,
-                ),
-              ), const SizedBox(height: 15),
-              const SeparadorConTexto(texto: 'Datos para Facturacion'),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: buildTextFormField(
-                      controller: controllers['razon']!,
-                      labelText: 'Razon Social',
-                      readOnly: onlyRead,
+                ), const SizedBox(height: 15),
+                const SeparadorConTexto(texto: 'Datos para Facturacion'),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: buildTextFormField(
+                        controller: controllers['razon']!,
+                        labelText: 'Razon Social',
+                        readOnly: onlyRead,
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      child: buildTextFormField(
+                        controller: controllers['rfc']!,
+                        labelText: 'RFC',
+                        readOnly: onlyRead,
+                      ),
                     ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    child: buildTextFormField(
-                      controller: controllers['rfc']!,
-                      labelText: 'RFC',
-                      readOnly: onlyRead,
+                  ],
+                ), const SizedBox(height: 15),
+      
+                Row(
+                  children: [
+                    Flexible(
+                      child: CustomDropDown<String>(
+                        isReadOnly: onlyRead,
+                        value: regimenFiscal,
+                        hintText: 'Regimen Fiscal',
+                        expanded: true,
+                        items: dropdownItems,
+                        onChanged: (val) => setState(() => regimenFiscal = val!),
+                      ),
+                    ), SizedBox(width: onlyRead ? 0 : 10),
+      
+                    !onlyRead ? IconButton(onPressed:  () => setState(() => regimenFiscal = null), icon: Icon(Icons.clear)) : const SizedBox()
+                  ], 
+                ), const SizedBox(height: 15),
+                const SeparadorConTexto(texto: 'Direccion'),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: buildTextFormField(
+                        controller: controllers['direccion']!,
+                        labelText: 'Calle',
+                        readOnly: onlyRead,   
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['noExt']!,
+                        labelText: 'No. Exterior',
+                        readOnly: onlyRead,
+                        maxLength: 6,
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['noInt']!,
+                        labelText: 'No. Interior',
+                        readOnly: onlyRead,
+                        maxLength: 6,
+                      ),
                     ),
-                  ),
-                ],
-              ), const SizedBox(height: 15),
-
-              Row(
-                children: [
-                  Flexible(
-                    child: CustomDropDown<String>(
-                      isReadOnly: onlyRead,
-                      value: regimenFiscal,
-                      hintText: 'Regimen Fiscal',
-                      expanded: true,
-                      items: dropdownItems,
-                      onChanged: (val) => setState(() => regimenFiscal = val!),
+                  ],
+                ), const SizedBox(height: 15),
+      
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: buildTextFormField(
+                        controller: controllers['colonia']!,
+                        labelText: 'Colonia',
+                        readOnly: onlyRead,
+                        maxLength: 30,
+                      ),
+                    ), const SizedBox(width: 10),
+      
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['cp']!,
+                        labelText: 'Codigo Postal',
+                        readOnly: onlyRead,
+                        maxLength: 5,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      ),
                     ),
-                  ), SizedBox(width: onlyRead ? 0 : 10),
-
-                  !onlyRead ? IconButton(onPressed:  () => setState(() => regimenFiscal = null), icon: Icon(Icons.clear)) : const SizedBox()
-                ], 
-              ), const SizedBox(height: 15),
-              const SeparadorConTexto(texto: 'Direccion'),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: buildTextFormField(
-                      controller: controllers['direccion']!,
-                      labelText: 'Calle',
-                      readOnly: onlyRead,   
+                  ],
+                ), const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['ciudad']!,
+                        labelText: 'Ciudad',
+                        readOnly: onlyRead,
+                        maxLength: 30,
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['estado']!,
+                        labelText: 'Estado',
+                        readOnly: onlyRead,
+                        maxLength: 30,
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: buildTextFormField(
+                        controller: controllers['pais']!,
+                        labelText: 'País',
+                        readOnly: onlyRead,
+                        maxLength: 30,
+                      ),
                     ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['noExt']!,
-                      labelText: 'No. Exterior',
-                      readOnly: onlyRead,
-                      maxLength: 6,
-                    ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['noInt']!,
-                      labelText: 'No. Interior',
-                      readOnly: onlyRead,
-                      maxLength: 6,
-                    ),
-                  ),
-                ],
-              ), const SizedBox(height: 15),
-
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: buildTextFormField(
-                      controller: controllers['colonia']!,
-                      labelText: 'Colonia',
-                      readOnly: onlyRead,
-                      maxLength: 30,
-                    ),
-                  ), const SizedBox(width: 10),
-
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['cp']!,
-                      labelText: 'Codigo Postal',
-                      readOnly: onlyRead,
-                      maxLength: 5,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
-                  ),
-                ],
-              ), const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['ciudad']!,
-                      labelText: 'Ciudad',
-                      readOnly: onlyRead,
-                      maxLength: 30,
-                    ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['estado']!,
-                      labelText: 'Estado',
-                      readOnly: onlyRead,
-                      maxLength: 30,
-                    ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    flex: 1,
-                    child: buildTextFormField(
-                      controller: controllers['pais']!,
-                      labelText: 'País',
-                      readOnly: onlyRead,
-                      maxLength: 30,
-                    ),
-                  ),
-                ],
-              ), const SizedBox(height: 15),
-            ],
-          ),
-        )
+                  ],
+                ), const SizedBox(height: 15),
+              ],
+            ),
+          )
+        ),
+        actions: [
+          !onlyRead ? ElevatedButton(
+            onPressed: () async{
+              await guardarCliente();
+            }, 
+            style: AppTheme.botonGuardar,
+            child: const Text('Guardar Cliente')
+          ) : const SizedBox()
+        ],
       ),
-      actions: [
-        !onlyRead ? ElevatedButton(
-          onPressed: () async{
-            await guardarCliente();
-          }, 
-          style: AppTheme.botonGuardar,
-          child: const Text('Guardar Cliente')
-        ) : const SizedBox()
-      ],
     );
   }
 }

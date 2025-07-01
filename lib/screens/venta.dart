@@ -22,225 +22,227 @@ class Venta extends StatefulWidget {
 }
 
 class _VentaState extends State<Venta> {
-    GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    final ScrollController _scrollController = ScrollController();
-    FocusNode checkboxFocus1 = FocusNode();
-    FocusNode checkboxFocus2 = FocusNode();
+  //Variables
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final ScrollController _scrollController = ScrollController();
+  FocusNode checkboxFocus1 = FocusNode();
+  FocusNode checkboxFocus2 = FocusNode();
 
-    late Clientes? clienteSelected;
-    late bool entregaInmediata;
-    late DateTime? fechaEntrega;
-    late Productos? productoSelected;
-    late List<Productos> productos;
-    late List<DetallesVenta> detallesVenta;
-    late TextEditingController comentariosController;
+  late Clientes? clienteSelected;
+  late bool entregaInmediata;
+  late DateTime? fechaEntrega;
+  late List<Productos> productos;
+  late List<DetallesVenta> detallesVenta;
+  late TextEditingController comentariosController;
 
-    //Todos estos son para agregar al DetallesVentaelected
-    late TextEditingController precioController;
-    late TextEditingController cantidadController;
-    late TextEditingController anchoController;
-    late TextEditingController altoController;
-    late TextEditingController comentarioController;
-    late TextEditingController descuentoController;
-    late double descuentoAplicado;
-    late TextEditingController ivaController;
-    late TextEditingController productoTotalController;
+  //Todos estos son para agregar al DetallesVentaelected
+  late Productos? productoSelected;
+  late TextEditingController precioController;
+  late TextEditingController cantidadController;
+  late TextEditingController anchoController;
+  late TextEditingController altoController;
+  late TextEditingController comentarioController;
+  late TextEditingController descuentoController;
+  late double descuentoAplicado;
+  late TextEditingController ivaController;
+  late TextEditingController productoTotalController;
 
-    late TextEditingController subtotalController;
-    late TextEditingController totalDescuentoController;
-    late TextEditingController totalIvaController;
-    late TextEditingController totalController;
+  late TextEditingController subtotalController;
+  late TextEditingController totalDescuentoController;
+  late TextEditingController totalIvaController;
+  late TextEditingController totalController;
 
-    bool anchoError = false;
-    bool altoError = false;
+  bool anchoError = false;
+  bool altoError = false;
 
+  //Metodos
+  void calcularSubtotal(){
+    if (productoSelected== null) {
+      return;
+    }
 
+    final formatoMoneda = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
+    double precio = productoSelected?.precio ?? 0;
+    precioController.text = formatoMoneda.format(precio);//'${productoSelected?.precio.toString() ?? '0.00'}\$';
+    int cantidad = 0;
+    if (cantidadController.text.isNotEmpty){
+      cantidad = int.parse(cantidadController.text.replaceAll(',', ''));
+    } else {
+      cantidad = 0;
+    }
+
+    int descuento = int.tryParse(descuentoController.text.replaceAll('%', '')) ?? 0;
+
+    if (productoSelected?.requiereMedida == true && anchoController.text.isNotEmpty && altoController.text.isNotEmpty) {
+      double totalSinIva = (productoSelected?.precio ?? 0) * cantidad;
+      double ancho = double.tryParse(anchoController.text) ?? 0;
+      double alto = double.tryParse(altoController.text) ?? 0;
+      double totalMedida = ((ancho * alto) * totalSinIva);
+
+      descuentoAplicado = totalSinIva * (descuento / 100);
+      double total = totalMedida-descuentoAplicado;
+
+      double iva = total * 0.08;
+      total = total + iva;
+
+      ivaController.text = formatoMoneda.format(iva);
+      productoTotalController.text = formatoMoneda.format(total);
+      VentasStates.tabs[widget.index].descuentoAplicado = descuentoAplicado;        
+    } else {
+      double totalSinIva = (productoSelected?.precio ?? 0) * cantidad;
+
+      descuentoAplicado = totalSinIva * (descuento / 100);
+      double total = totalSinIva-descuentoAplicado;
+
+      double iva = total * 0.08;
+      total = total + iva; 
+
+      ivaController.text = formatoMoneda.format(iva);
+      productoTotalController.text = formatoMoneda.format(total);
+      VentasStates.tabs[widget.index].descuentoAplicado = descuentoAplicado;
+    }
+  }
+
+  void limpiarCamposProducto() {
+    productoSelected = null;
+    VentasStates.tabs[widget.index].productoSelected = productoSelected;
+    precioController.text = '\$0.00';
+    cantidadController.text = '1';
+    anchoController.text = '1';
+    altoController.text = '1';
+    comentarioController.clear();
+    descuentoController.text = '0%';
+    ivaController.text = '\$0.00';
+    productoTotalController.text = '\$0.00';
+  }
+
+  void calcularTotal(){
+    final formatoMoneda = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
+    double subtotal = 0;
+    double totalDescuento = 0;
+    double totalIva = 0;
+    double total = 0;
+
+    for (var detalle in detallesVenta) {
+      subtotal += detalle.subtotal-detalle.iva+detalle.descuentoAplicado;
+      totalDescuento += detalle.descuentoAplicado; // Asumiendo que descuento es un porcentaje
+      totalIva += detalle.iva; // Asumiendo que iva ya está calculado
+      total += detalle.subtotal; // Total final
+    }
+
+    subtotalController.text = formatoMoneda.format(subtotal);
+    totalDescuentoController.text = formatoMoneda.format(totalDescuento);
+    totalIvaController.text = formatoMoneda.format(totalIva);
+    totalController.text = formatoMoneda.format(total);
+  }
+
+  Future<void> elegirFecha()async{
+    final DateTime? selectedDate = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppTheme.containerColor1,
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            width: MediaQuery.of(context).size.height * 0.5,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                textTheme: TextTheme(
+                  bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
+                ),
+                colorScheme: ColorScheme.light(
+                  primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
+                  onSurface: Colors.white, // Color del texto en general
+                ),
+              ),
+              child: CalendarDatePicker(
+                initialDate: DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 31)),
+                onDateChanged: (selectedDate) {
+                  Navigator.pop(context, selectedDate);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    final TimeOfDay? selectedTime = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return SeleccionadorDeHora();
+      },
+    );
+
+    if (selectedDate == null || selectedTime == null) {
+      setState(() {
+        entregaInmediata = true;
+        fechaEntrega = null;
+        VentasStates.tabs[widget.index].fechaEntrega = null;
+        checkboxFocus1.requestFocus();
+      });
+      return; // Si no se seleccionó fecha o hora, no hacer nada
+    }
+
+    DateTime fechaSeleccionada = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );                                        
+
+    setState(() {
+      checkboxFocus2.requestFocus();
+      entregaInmediata = false;
+      VentasStates.tabs[widget.index].entregaInmediata = false;    
+      fechaEntrega = fechaSeleccionada;
+      VentasStates.tabs[widget.index].fechaEntrega = fechaSeleccionada;                                    
+    });
+
+    if (!mounted) return;
+    FocusScope.of(context).nextFocus();
+  }
+
+  void retrocederFocus(int veces) {
+    for (int i = 0; i < veces; i++) {
+      FocusScope.of(context).previousFocus();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    clienteSelected = VentaTabState.tabs[widget.index].clienteSelected;
-    entregaInmediata = VentaTabState.tabs[widget.index].entregaInmediata;
-    fechaEntrega = VentaTabState.tabs[widget.index].fechaEntrega;
-    productoSelected = VentaTabState.tabs[widget.index].productoSelected;
-    productos = VentaTabState.tabs[widget.index].productos;
-    detallesVenta = VentaTabState.tabs[widget.index].detallesVenta;
-    comentariosController = VentaTabState.tabs[widget.index].comentariosController;
+    clienteSelected = VentasStates.tabs[widget.index].clienteSelected;
+    entregaInmediata = VentasStates.tabs[widget.index].entregaInmediata;
+    fechaEntrega = VentasStates.tabs[widget.index].fechaEntrega;
+    productos = VentasStates.tabs[widget.index].productos;
+    detallesVenta = VentasStates.tabs[widget.index].detallesVenta;
+    comentariosController = VentasStates.tabs[widget.index].comentariosController;
 
     //Todos estos son para agregar al productoSelected
-    precioController = VentaTabState.tabs[widget.index].precioController;
-    cantidadController = VentaTabState.tabs[widget.index].cantidadController;
-    anchoController = VentaTabState.tabs[widget.index].anchoController;
-    altoController = VentaTabState.tabs[widget.index].altoController;
-    comentarioController = VentaTabState.tabs[widget.index].comentarioController;
-    descuentoController = VentaTabState.tabs[widget.index].descuentoController;
-    descuentoAplicado = VentaTabState.tabs[widget.index].descuentoAplicado;
-    ivaController = VentaTabState.tabs[widget.index].ivaController;
-    productoTotalController = VentaTabState.tabs[widget.index].productoTotalController;
+    productoSelected = VentasStates.tabs[widget.index].productoSelected;
+    precioController = VentasStates.tabs[widget.index].precioController;
+    cantidadController = VentasStates.tabs[widget.index].cantidadController;
+    anchoController = VentasStates.tabs[widget.index].anchoController;
+    altoController = VentasStates.tabs[widget.index].altoController;
+    comentarioController = VentasStates.tabs[widget.index].comentarioController;
+    descuentoController = VentasStates.tabs[widget.index].descuentoController;
+    descuentoAplicado = VentasStates.tabs[widget.index].descuentoAplicado;
+    ivaController = VentasStates.tabs[widget.index].ivaController;
+    productoTotalController = VentasStates.tabs[widget.index].productoTotalController;
 
-    subtotalController = VentaTabState.tabs[widget.index].subtotalController;
-    totalDescuentoController = VentaTabState.tabs[widget.index].totalDescuentoController;
-    totalIvaController = VentaTabState.tabs[widget.index].totalIvaController;
-    totalController = VentaTabState.tabs[widget.index].totalController;
+    subtotalController = VentasStates.tabs[widget.index].subtotalController;
+    totalDescuentoController = VentasStates.tabs[widget.index].totalDescuentoController;
+    totalIvaController = VentasStates.tabs[widget.index].totalIvaController;
+    totalController = VentasStates.tabs[widget.index].totalController;
   }
 
   @override
-  Widget build(BuildContext context) {  
-    
-    void calcularSubtotal(){
-      if (productoSelected== null) {
-        return;
-      }
-
-      final formatoMoneda = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
-      double precio = productoSelected?.precio ?? 0;
-      precioController.text = formatoMoneda.format(precio);//'${productoSelected?.precio.toString() ?? '0.00'}\$';
-      int cantidad = 0;
-      if (cantidadController.text.isNotEmpty){
-        cantidad = int.parse(cantidadController.text.replaceAll(',', ''));
-      } else {
-        cantidad = 0;
-      }
-
-      int descuento = int.tryParse(descuentoController.text.replaceAll('%', '')) ?? 0;
-
-      if (productoSelected?.requiereMedida == true && anchoController.text.isNotEmpty && altoController.text.isNotEmpty) {
-        double totalSinIva = (productoSelected?.precio ?? 0) * cantidad;
-        double ancho = double.tryParse(anchoController.text) ?? 0;
-        double alto = double.tryParse(altoController.text) ?? 0;
-        double totalMedida = ((ancho * alto) * totalSinIva);
-
-        descuentoAplicado = totalSinIva * (descuento / 100);
-        double total = totalMedida-descuentoAplicado;
-
-        double iva = total * 0.08;
-        total = total + iva;
-
-        ivaController.text = formatoMoneda.format(iva);
-        productoTotalController.text = formatoMoneda.format(total);
-        VentaTabState.tabs[widget.index].descuentoAplicado = descuentoAplicado;        
-      } else {
-        double totalSinIva = (productoSelected?.precio ?? 0) * cantidad;
-
-        descuentoAplicado = totalSinIva * (descuento / 100);
-        double total = totalSinIva-descuentoAplicado;
-
-        double iva = total * 0.08;
-        total = total + iva; 
-
-        ivaController.text = formatoMoneda.format(iva);
-        productoTotalController.text = formatoMoneda.format(total);
-        VentaTabState.tabs[widget.index].descuentoAplicado = descuentoAplicado;
-      }
-    }
-
-    void limpiarCamposProducto() {
-      productoSelected = null;
-      VentaTabState.tabs[widget.index].productoSelected = productoSelected;
-      precioController.text = '\$0.00';
-      cantidadController.text = '1';
-      anchoController.text = '1';
-      altoController.text = '1';
-      comentarioController.clear();
-      descuentoController.text = '0%';
-      ivaController.text = '\$0.00';
-      productoTotalController.text = '\$0.00';
-    }
-
-    void calcularTotal(){
-      final formatoMoneda = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
-      double subtotal = 0;
-      double totalDescuento = 0;
-      double totalIva = 0;
-      double total = 0;
-
-      for (var detalle in detallesVenta) {
-        subtotal += detalle.subtotal-detalle.iva+detalle.descuentoAplicado;
-        totalDescuento += detalle.descuentoAplicado; // Asumiendo que descuento es un porcentaje
-        totalIva += detalle.iva; // Asumiendo que iva ya está calculado
-        total += detalle.subtotal; // Total final
-      }
-
-      subtotalController.text = formatoMoneda.format(subtotal);
-      totalDescuentoController.text = formatoMoneda.format(totalDescuento);
-      totalIvaController.text = formatoMoneda.format(totalIva);
-      totalController.text = formatoMoneda.format(total);
-    }
-
-    Future<void> elegirFecha()async{
-      final DateTime? selectedDate = await showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: AppTheme.containerColor1,
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
-              width: MediaQuery.of(context).size.height * 0.5,
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  textTheme: TextTheme(
-                    bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
-                  ),
-                  colorScheme: ColorScheme.light(
-                    primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
-                    onSurface: Colors.white, // Color del texto en general
-                  ),
-                ),
-                child: CalendarDatePicker(
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 31)),
-                  onDateChanged: (selectedDate) {
-                    Navigator.pop(context, selectedDate);
-                  },
-                ),
-              ),
-            ),
-          );
-        },
-      );
-
-      if (!context.mounted) return;
-      
-      final TimeOfDay? selectedTime = await showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return SeleccionadorDeHora();
-        },
-      );
-
-      if (selectedDate == null || selectedTime == null) {
-        setState(() {
-          entregaInmediata = true;
-          fechaEntrega = null;
-          VentaTabState.tabs[widget.index].fechaEntrega = null;
-          checkboxFocus1.requestFocus();
-        });
-        return; // Si no se seleccionó fecha o hora, no hacer nada
-      }
-
-      DateTime fechaSeleccionada = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );                                        
-
-      setState(() {
-        checkboxFocus2.requestFocus();
-        entregaInmediata = false;
-        VentaTabState.tabs[widget.index].entregaInmediata = false;    
-        fechaEntrega = fechaSeleccionada;
-        VentaTabState.tabs[widget.index].fechaEntrega = fechaSeleccionada;                                    
-      });
-
-      if (!context.mounted) return;
-      FocusScope.of(context).nextFocus();
-
-    }
-    
-
+  Widget build(BuildContext context) {     
     return Flexible( //Contenido (Body)
       child: Container(
         decoration: BoxDecoration(
@@ -273,12 +275,12 @@ class _VentaState extends State<Venta> {
                                   selectedItem: clienteSelected,
                                   onItemSelected: (Clientes? selected) {
                                     clienteSelected = selected;
-                                    VentaTabState.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
+                                    VentasStates.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
                                   },
                                   displayStringForOption: (cliente) => cliente.nombre, 
                                   normalBorder: false, 
                                   icono: Icons.perm_contact_cal_sharp, 
-                                  defaultFirst: true, 
+                                  defaultFirst: false, 
                                   hintText: 'Buscar Cliente', 
                                 )
                               ),
@@ -292,6 +294,7 @@ class _VentaState extends State<Venta> {
                                 child: Center(
                                   child: FeedBackButton(
                                     onPressed: () {
+                                      //TODO: agregar cliente
                                     },
                                     child: Icon(Icons.add, color: AppTheme.containerColor1, size: 28)
                                   )
@@ -332,10 +335,10 @@ class _VentaState extends State<Venta> {
                                     }
                                     setState(() {
                                       fechaEntrega = null;
-                                      VentaTabState.tabs[widget.index].fechaEntrega = null;
+                                      VentasStates.tabs[widget.index].fechaEntrega = null;
                                       checkboxFocus1.requestFocus();
                                       entregaInmediata = value!;
-                                      VentaTabState.tabs[widget.index].entregaInmediata = value;
+                                      VentasStates.tabs[widget.index].entregaInmediata = value;
                                     });
                                   } 
                                 ),
@@ -446,7 +449,7 @@ class _VentaState extends State<Venta> {
                             onItemSelected: (Productos? selected) {
                               setState(() {
                                 productoSelected = selected;
-                                VentaTabState.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
+                                VentasStates.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
                                 calcularSubtotal();
                               });
                             },
@@ -793,13 +796,9 @@ class _VentaState extends State<Venta> {
             
                         productos.add(productoSelected!);
 
-                        FocusScope.of(context).previousFocus();
-                        FocusScope.of(context).previousFocus();
-                        FocusScope.of(context).previousFocus();
-                        FocusScope.of(context).previousFocus();
+                        retrocederFocus(4);
                         if (productoSelected!.requiereMedida){
-                          FocusScope.of(context).previousFocus();
-                          FocusScope.of(context).previousFocus();
+                          retrocederFocus(2);
                         }
 
                         setState(() {
@@ -872,7 +871,39 @@ class _VentaState extends State<Venta> {
                             controller: _scrollController,
                             itemCount: detallesVenta.length,
                             itemBuilder: (context, index) {
-                              return FilaDetalles(index: index, detalle: detallesVenta[index], producto: productos[index]);
+                              return FilaDetalles(
+                                index: index, 
+                                detalle: detallesVenta[index], 
+                                producto: productos[index],
+                                onDelete: () {
+                                  detallesVenta.removeAt(index);
+                                  productos.removeAt(index);
+                                  calcularTotal();
+                                  setState(() {});
+                                },
+                                onModificate: () {
+                                  try {
+                                    productoSelected = widget.productosServices.productos.firstWhere((p) => p.id == detallesVenta[index].productoId);
+                                  } catch (e) {
+                                    return;
+                                  }
+                                  VentasStates.tabs[widget.index].productoSelected = productoSelected;
+                                  precioController.text = productoSelected!.precio.toString();
+                                  cantidadController.text = detallesVenta[index].cantidad.toString();
+                                  anchoController.text = detallesVenta[index].ancho.toString();
+                                  altoController.text = detallesVenta[index].alto.toString();
+                                  comentarioController.text = detallesVenta[index].comentarios.toString();
+                                  descuentoController.text = detallesVenta[index].descuento.toString();
+                                  ivaController.text = detallesVenta[index].iva.toString();
+                                  productoTotalController.text = detallesVenta[index].subtotal.toString();
+                                  calcularSubtotal();
+
+                                  detallesVenta.removeAt(index);
+                                  productos.removeAt(index);
+                                  calcularTotal();
+                                  setState(() {});
+                                },
+                              );
                             },
                           ) : FilaDetalles(index: -1),
                         ),
@@ -1026,12 +1057,14 @@ class _VentaState extends State<Venta> {
 
 class FilaDetalles extends StatelessWidget {
   const FilaDetalles({
-    super.key, required this.index, this.detalle, this.producto,
+    super.key, required this.index, this.detalle, this.producto, this.onDelete, this.onModificate
   });
 
   final int index;
   final DetallesVenta? detalle;
   final Productos? producto;
+  final VoidCallback? onDelete;
+  final VoidCallback? onModificate;
 
   @override
   Widget build(BuildContext context) {
@@ -1059,21 +1092,71 @@ class FilaDetalles extends StatelessWidget {
       descripcionProducto += ' (${detalle!.ancho} x ${detalle!.alto})';
     }
 
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      color: index % 2 == 0
-          ? AppTheme.tablaColor1
-          : AppTheme.tablaColor2,
-      child: Row(
-        children: [
-          Expanded(child: Text(formatoNumero.format(detalle!.cantidad), textAlign: TextAlign.center)),
-          Expanded(flex: 2, child: Text(descripcionProducto, textAlign: TextAlign.center)),
-          Expanded(child: Text(formatoMoneda.format(producto!.precio), textAlign: TextAlign.center)),
-          Expanded(child: Text(formatoMoneda.format(detalle!.descuentoAplicado), textAlign: TextAlign.center)),
-          Expanded(child: Text(formatoMoneda.format(detalle!.subtotal - detalle!.iva), textAlign: TextAlign.center)),
-          Expanded(child: Text(formatoMoneda.format(detalle!.iva), textAlign: TextAlign.center)),
-          Expanded(child: Text(formatoMoneda.format(detalle!.subtotal), textAlign: TextAlign.center)),
+    void mostrarMenu(BuildContext context, Offset offset) async {
+      final seleccion = await showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          offset.dx,
+          offset.dy,
+          offset.dx,
+          offset.dy,
+        ),
+        color: AppTheme.dropDownColor,
+        elevation: 2,
+        items: [
+          PopupMenuItem(
+            value: 'modificar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+                Text('  Modificar', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'eliminar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                Text('  Eliminar', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
         ],
+      );
+
+      if (seleccion == 'modificar') {
+        // Lógica para modificar
+        onModificate!();
+      } else if (seleccion == 'eliminar') {
+        // Lógica para eliminar
+        onDelete!();
+      }
+    }
+    
+
+    return GestureDetector(
+      onSecondaryTapDown: (details) {
+        mostrarMenu(context, details.globalPosition);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        color: index % 2 == 0
+            ? AppTheme.tablaColor1
+            : AppTheme.tablaColor2,
+        child: Row(
+          children: [
+            Expanded(child: Text(formatoNumero.format(detalle!.cantidad), textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(descripcionProducto, textAlign: TextAlign.center)),
+            Expanded(child: Text(formatoMoneda.format(producto!.precio), textAlign: TextAlign.center)),
+            Expanded(child: Text(formatoMoneda.format(detalle!.descuentoAplicado), textAlign: TextAlign.center)),
+            Expanded(child: Text(formatoMoneda.format(detalle!.subtotal - detalle!.iva), textAlign: TextAlign.center)),
+            Expanded(child: Text(formatoMoneda.format(detalle!.iva), textAlign: TextAlign.center)),
+            Expanded(child: Text(formatoMoneda.format(detalle!.subtotal), textAlign: TextAlign.center)),
+          ],
+        ),
       ),
     );
   }

@@ -3,11 +3,18 @@ import 'package:pbstation_frontend/models/clientes.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
 import 'package:pbstation_frontend/models/productos.dart';
 
-class VentaTabState {
+class VentasStates {
   static List<VentaTab> tabs = List.generate(3, (_) => VentaTab());
+  static int pestanias = 2;
+  static int indexSelected = 0;
+  static int count = 1;
 
   static void disposeTab(int index) {
     tabs[index].dispose();
+  }
+
+  static void clearTab(int index) {
+    tabs[index].clear();
   }
 
   static void disposeAll() {
@@ -37,7 +44,7 @@ class VentaTab {
   TextEditingController subtotalController;
   TextEditingController totalDescuentoController;
   TextEditingController totalIvaController;
-  TextEditingController totalController;
+  TextEditingController totalController;  
 
   VentaTab()
       : clienteSelected = null,
@@ -59,6 +66,7 @@ class VentaTab {
         totalDescuentoController = TextEditingController(text: '\$0.00'),
         totalIvaController = TextEditingController(text: '\$0.00'),
         totalController = TextEditingController(text: '\$0.00');
+  
 
   void dispose() {
     precioController.dispose();
@@ -74,5 +82,28 @@ class VentaTab {
     totalDescuentoController.dispose();
     totalIvaController.dispose();
     totalController.dispose();
+  }
+
+  void clear(){
+    clienteSelected = null;
+    productoSelected = null;
+    entregaInmediata = true;
+    fechaEntrega = null;
+    productos = [];
+    detallesVenta = [];
+    precioController = TextEditingController(text: '\$0.00');
+    cantidadController = TextEditingController(text: '1');
+    anchoController = TextEditingController(text: '1');
+    altoController = TextEditingController(text: '1');
+    comentarioController = TextEditingController();
+    descuentoController = TextEditingController(text: '0%');
+    descuentoAplicado = 0;
+    ivaController = TextEditingController(text: '\$0.00');
+    productoTotalController = TextEditingController(text: '\$0.00');
+    comentariosController = TextEditingController();
+    subtotalController = TextEditingController(text: '\$0.00');
+    totalDescuentoController = TextEditingController(text: '\$0.00');
+    totalIvaController = TextEditingController(text: '\$0.00');
+    totalController = TextEditingController(text: '\$0.00');
   }
 }

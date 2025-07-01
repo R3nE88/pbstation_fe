@@ -140,10 +140,6 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   Expanded(child: Text('RFC', textAlign: TextAlign.center)),
                   Expanded(child: Text('Direccion', textAlign: TextAlign.center)),
                   Expanded(child: Text('Razon Social', textAlign: TextAlign.center)),
-                  SizedBox(
-                    width: 120,
-                    child: Text('Acciones', textAlign: TextAlign.center),
-                  ),
                 ],
               ),
             ),
@@ -207,52 +203,90 @@ class FilaCliente extends StatelessWidget {
   Widget build(BuildContext context) {
     String mostrarCampo(String? valor) => capitalizarPrimeraLetra(valor ?? '-');
 
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Row(
-        children: [
-          Expanded(child: Text(mostrarCampo(cliente.nombre), textAlign: TextAlign.center)),
-          Expanded(child: Text(mostrarCampo(cliente.correo), textAlign: TextAlign.center)),
-          Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), textAlign: TextAlign.center)),
-          Expanded(child: Text(mostrarCampo(cliente.rfc), textAlign: TextAlign.center)),
-          Expanded(child: Text(mostrarCampo(cliente.direccion), textAlign: TextAlign.center)),
-          Expanded(child: Text(mostrarCampo(cliente.razonSocial), textAlign: TextAlign.center)),
-          SizedBox(
-            width: 120,
+    void mostrarMenu(BuildContext context, Offset offset) async {
+      final seleccion = await showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          offset.dx,
+          offset.dy,
+          offset.dx,
+          offset.dy,
+        ),
+        color: AppTheme.dropDownColor,
+        elevation: 2,
+        items: [
+          PopupMenuItem(
+            value: 'leer',
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                FeedBackButton(
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (_) => ClientesFormDialog(cliEdit: cliente, onlyRead: true),
-                  ),
-                  child: Icon(Icons.info, color: AppTheme.letraClara, shadows: [
-                    const Shadow(color: Colors.blue, offset: Offset(1.5, 1.5), blurRadius: 2),
-                  ]),
-                ),
-                const SizedBox(width: 22),
-                FeedBackButton(
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (_) => ClientesFormDialog(cliEdit: cliente),
-                  ),
-                  child: Icon(Icons.edit, color: AppTheme.letraClara, shadows: [
-                    const Shadow(color: Colors.orange, offset: Offset(1.5, 1.5), blurRadius: 2),
-                  ]),
-                ),
-                const SizedBox(width: 22),
-                FeedBackButton(
-                  onPressed: onDelete,
-                  child: Icon(Icons.delete, color: AppTheme.letraClara, shadows: [
-                    const Shadow(color: Colors.red, offset: Offset(1.5, 1.5), blurRadius: 2),
-                  ]),
-                ),
+                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'editar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+                Text('  Editar', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'eliminar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                Text('  Eliminar', style: AppTheme.subtituloPrimario),
               ],
             ),
           ),
         ],
+      );
+
+      if (seleccion != null) {
+        if (seleccion == 'leer') {
+          // Lógica para leer
+          if(!context.mounted){ return; }
+          showDialog(
+            context: context,
+            builder: (_) => ClientesFormDialog(cliEdit: cliente, onlyRead: true),
+          );
+        } else if (seleccion == 'editar') {
+          // Lógica para editar
+          if(!context.mounted){ return; }
+          showDialog(
+            context: context,
+            builder: (_) => ClientesFormDialog(cliEdit: cliente),
+          );
+        } else if (seleccion == 'eliminar') {
+          // Lógica para eliminar
+          onDelete();
+        }
+      }
+    }
+
+    return GestureDetector(
+      onSecondaryTapDown: (details) {
+        mostrarMenu(context, details.globalPosition);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+        child: Row(
+          children: [
+            Expanded(child: Text(mostrarCampo(cliente.nombre), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.correo), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.rfc), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.direccion), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.razonSocial), textAlign: TextAlign.center)),
+          ],
+        ),
       ),
     );
   }

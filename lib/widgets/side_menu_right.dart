@@ -34,7 +34,7 @@ class SideMenuRight extends StatelessWidget {
                       final iconData = Modulos.modulosIconos[modProv.moduloSeleccionado]?[idx + 1] ?? Icons.folder;
                       final selected = modProv.subModuloSeleccionado == idx;
                       return Padding(
-                        padding: const EdgeInsets.only(top: 15, left: 13),
+                        padding: const EdgeInsets.only(top: 22, left: 13),
                         child: GestureDetector(
                           onTap: () => modProv.seleccionarSubModulo(idx),
                           child: Container(
@@ -88,14 +88,17 @@ class SideMenuRight extends StatelessWidget {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: CustomNavigationButton(
-          icon: icon,
-          label: label[0].toUpperCase() + label.substring(1),
-          selected: selected,
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: CustomNavigationButton(
+            icon: icon,
+            label: label[0].toUpperCase() + label.substring(1),
+            selected: selected,
+          ),
         ),
       ),
     );

@@ -140,6 +140,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
           controller: controller,
           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
           readOnly: readOnly,
+          canRequestFocus: !readOnly,
           maxLength: maxLength,
           inputFormatters: inputFormatters,
           decoration: InputDecoration(
@@ -152,216 +153,221 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       );
     }
 
-    return AlertDialog(
+    return FocusScope(
+      canRequestFocus: !onlyRead,
+      child: AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: Text(titulo),
-      content: SizedBox(
-        width: 600,
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SeparadorConTexto(texto: 'General'), 
-              Row(
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: buildTextFormField(
-                      controller: controllers['clave']!,
-                      labelText: 'Codigo',
-                      autoFocus: !onlyRead,
-                      readOnly: onlyRead,
-                      maxLength: 10,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ingrese un codigo';
-                        }
-                        return null;
-                      },
-                    ),
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    child: buildTextFormField(
-                      controller: controllers['descripcion']!,
-                      labelText: 'Descripcion',
-                      readOnly: onlyRead,
-                      maxLength: 50,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingrese una descripcion';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),const SizedBox(height: 10),
-              Row(
-                children: [
-                  Row(
-                    children: [
-                      CustomDropDown<String>(
-                        isReadOnly: onlyRead,
-                        value: tipoSeleccionado,
-                        hintText: 'Tipo',
-                        empty: tipoEmpty,
-                        items: dropdownItemsTipo,
-                        onChanged: (val) => setState(() {
-                          tipoEmpty = false;
-                          tipoSeleccionado = val!;
-                        }),
-                      ), const SizedBox(width: 10),
-                      CustomDropDown<String>(
-                        isReadOnly: onlyRead,
-                        value: categoriaSeleccionada,
-                        hintText: 'Categoría',
-                        empty: categoriaEmpty,
-                        items: dropdownItemsCat,
-                        onChanged: (val) => setState(() {
-                          categoriaEmpty = false;
-                          categoriaSeleccionada = val!;
-                        })
-                      ),
-                    ],
-                  ), const SizedBox(width: 10),
-                  Expanded(
-                    child: IgnorePointer(
-                      ignoring: onlyRead,
-                      child: Focus(
-                        canRequestFocus: false,
-                        onFocusChange: (hasFocus) {
-                          if (!hasFocus) {
-                            if (controllers['precio']!.text.isEmpty) {
-                              controllers['precio']!.text = '0';
-                            }
-                            controllers['precio']!.text = '\$${controllers['precio']!.text.replaceAll('\$', '')}';
+        title: Text(titulo),
+        content: SizedBox(
+          width: 600,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SeparadorConTexto(texto: 'General'), 
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: buildTextFormField(
+                        controller: controllers['clave']!,
+                        labelText: 'Codigo',
+                        autoFocus: !onlyRead,
+                        readOnly: onlyRead,
+                        maxLength: 10,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Ingrese un codigo';
                           }
+                          return null;
                         },
-                        child: TextFormField(
-                          controller: controllers['precio']!,
-                          inputFormatters: [ CurrencyInputFormatter() ],
-                          decoration: InputDecoration(
-                            labelText: 'Precio',
-                            labelStyle: AppTheme.labelStyle,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor ingrese un precio';
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
+                      ),
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      child: buildTextFormField(
+                        controller: controllers['descripcion']!,
+                        labelText: 'Descripcion',
+                        readOnly: onlyRead,
+                        maxLength: 50,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor ingrese una descripcion';
+                          }
+                          return null;
+                        },
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const SeparadorConTexto(texto: 'Caracteristicas'), 
-              IgnorePointer(
-                ignoring: onlyRead,
-                child: Row(
-                  children: [
-                    Checkbox(
-                      focusColor: AppTheme.focusColor,
-                      value: requiereMedida,
-                      onChanged: (value) {
-                        if (onlyRead==false){
-                          setState(() {
-                            requiereMedida = value ?? false;
-                          });
-                        }
-                      }
-                    ),
-                    const Text('Requiere Medidas para calcular precio'),
                   ],
-                ),
-              ),
-              IgnorePointer(
-                ignoring: onlyRead,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),const SizedBox(height: 10),
+                Row(
                   children: [
                     Row(
                       children: [
-                        Checkbox(
-                          focusColor: AppTheme.focusColor,
-                          value: inventariable,
-                          onChanged: (value) {
-                            if (onlyRead==false){
-                              setState(() {
-                                inventariable = value ?? false;
-                              });
-                            }
-                          }
+                        CustomDropDown<String>(
+                          isReadOnly: onlyRead,
+                          value: tipoSeleccionado,
+                          hintText: 'Tipo',
+                          empty: tipoEmpty,
+                          items: dropdownItemsTipo,
+                          onChanged: (val) => setState(() {
+                            tipoEmpty = false;
+                            tipoSeleccionado = val!;
+                          }),
+                        ), const SizedBox(width: 10),
+                        CustomDropDown<String>(
+                          isReadOnly: onlyRead,
+                          value: categoriaSeleccionada,
+                          hintText: 'Categoría',
+                          empty: categoriaEmpty,
+                          items: dropdownItemsCat,
+                          onChanged: (val) => setState(() {
+                            categoriaEmpty = false;
+                            categoriaSeleccionada = val!;
+                          })
                         ),
-                        const Text('Inventariable   '),
                       ],
-                    ), 
-                    Row(
-                      children: [
-                        Checkbox(
-                          focusColor: AppTheme.focusColor,
-                          value: imprimible,
-                          onChanged: (value) {
-                            if (onlyRead==false){
-                              setState(() {
-                                imprimible = value ?? false;
-                              });
+                    ), const SizedBox(width: 10),
+                    Expanded(
+                      child: IgnorePointer(
+                        ignoring: onlyRead,
+                        child: Focus(
+                          canRequestFocus: false,
+                          onFocusChange: (hasFocus) {
+                            if (!hasFocus) {
+                              if (controllers['precio']!.text.isEmpty) {
+                                controllers['precio']!.text = '0';
+                              }
+                              controllers['precio']!.text = '\$${controllers['precio']!.text.replaceAll('\$', '')}';
                             }
-                          }
-                        ),
-                        const Text('Contar como impresion  '),
-                        SizedBox(
-                          width: 110,
+                          },
                           child: TextFormField(
-                            controller: controllers['valorImpresion']!,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
-                            readOnly: imprimible==false?true : onlyRead, //si esta marcado el checkbox habilitar
-                            maxLines: 1,
-                            textAlign: TextAlign.center,
+                            readOnly: onlyRead,
+                            canRequestFocus: !onlyRead,
+                            controller: controllers['precio']!,
+                            inputFormatters: [ CurrencyInputFormatter() ],
                             decoration: InputDecoration(
-                              isDense: true,
-                              errorStyle: TextStyle(height: 0),
-                              contentPadding: EdgeInsets.zero,
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
-                                borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
-                              ),
+                              labelText: 'Precio',
+                              labelStyle: AppTheme.labelStyle,
                             ),
                             validator: (value) {
-                              if (imprimible && (value == null || value.isEmpty)) {
-                                return 'valor de impresion';
+                              if (value == null || value.isEmpty) {
+                                return 'Por favor ingrese un precio';
                               }
                               return null;
                             },
                             autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),          
-            ],
+                const SizedBox(height: 10),
+                const SeparadorConTexto(texto: 'Caracteristicas'), 
+                IgnorePointer(
+                  ignoring: onlyRead,
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        focusColor: AppTheme.focusColor,
+                        value: requiereMedida,
+                        onChanged: (value) {
+                          if (onlyRead==false){
+                            setState(() {
+                              requiereMedida = value ?? false;
+                            });
+                          }
+                        }
+                      ),
+                      const Text('Requiere Medidas para calcular precio'),
+                    ],
+                  ),
+                ),
+                IgnorePointer(
+                  ignoring: onlyRead,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            focusColor: AppTheme.focusColor,
+                            value: inventariable,
+                            onChanged: (value) {
+                              if (onlyRead==false){
+                                setState(() {
+                                  inventariable = value ?? false;
+                                });
+                              }
+                            }
+                          ),
+                          const Text('Inventariable   '),
+                        ],
+                      ), 
+                      Row(
+                        children: [
+                          Checkbox(
+                            focusColor: AppTheme.focusColor,
+                            value: imprimible,
+                            onChanged: (value) {
+                              if (onlyRead==false){
+                                setState(() {
+                                  imprimible = value ?? false;
+                                });
+                              }
+                            }
+                          ),
+                          const Text('Contar como impresion  '),
+                          SizedBox(
+                            width: 110,
+                            child: TextFormField(
+                              controller: controllers['valorImpresion']!,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
+                              readOnly: imprimible==false?true : onlyRead, //si esta marcado el checkbox habilitar
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                errorStyle: TextStyle(height: 0),
+                                contentPadding: EdgeInsets.zero,
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (imprimible && (value == null || value.isEmpty)) {
+                                  return 'valor de impresion';
+                                }
+                                return null;
+                              },
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),          
+              ],
+            ),
           ),
         ),
+        actions: [
+          !onlyRead ? ElevatedButton(
+            onPressed: () async => guardarProducto(),
+            style: AppTheme.botonGuardar,
+            child: const Text('Guardar Producto')
+          ) : const SizedBox(),
+        ],
       ),
-      actions: [
-        !onlyRead ? ElevatedButton(
-          onPressed: () async => guardarProducto(),
-          style: AppTheme.botonGuardar,
-          child: const Text('Guardar Producto')
-        ) : const SizedBox(),
-      ],
     );
   }
 }

@@ -90,9 +90,9 @@ class AppTheme{
     
   static Color get tablaColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 103, 103, 103)
-      : const Color.fromARGB(255, 49, 145, 235);
+      : const Color.fromARGB(255, 49, 150, 244);
 
-    static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
+  static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 57, 57, 57)
       : const Color.fromARGB(255, 120, 190, 255);
 
@@ -104,7 +104,11 @@ class AppTheme{
       ? letraClara
       : letraOscura;
 
-  static final Color colorError = Color.fromARGB(255, 228, 15, 0);
+  //static final Color colorError = Color.fromARGB(255, 228, 15, 0);
+
+  static Color get colorError => changeThemeInstance?.isDarkTheme == true
+      ? Color.fromARGB(255, 228, 15, 0)
+      : Color.fromRGBO(235, 16, 0, 1);
   
   static TextStyle get subtituloConstraste => TextStyle(
     color: changeThemeInstance?.isDarkTheme == true ? letraClara : letraOscura
@@ -177,12 +181,21 @@ class AppTheme{
       ),
     );
 
-    static final InputDecoration inputNormal = InputDecoration(
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
-      ),
-    );
+  static final InputDecoration inputNormal = InputDecoration(
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.white),
+      borderRadius: const BorderRadius.all(Radius.circular(30))
+    ),
+  );
+
+  static Color get dropDownColor => changeThemeInstance?.isDarkTheme == true
+      ? backgroundColor
+      : const Color.fromARGB(255, 49, 145, 235);
+
+
+
+
+
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
     checkboxTheme: CheckboxThemeData(

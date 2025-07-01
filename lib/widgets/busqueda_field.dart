@@ -120,67 +120,103 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       });
     }
 
-    return Autocomplete<T>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        if (textEditingValue.text.isEmpty) {
-          return Iterable<T>.empty();
-        }
-        _updateFilteredOptions(textEditingValue.text);
-        return _filteredOptions;
+
+    if (widget.selectedItem != null && _selectedItem == null){
+      _selectedItem = widget.selectedItem;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _controller.text = widget.displayStringForOption(_selectedItem!);
+      });
+    }
+
+
+    return Shortcuts(
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.enter): const DoNothingIntent(),
       },
-      displayStringForOption: (T option) {
-        final secondary = widget.secondaryDisplayStringForOption != null
-            ? widget.secondaryDisplayStringForOption!(option).trim()
-            : '';
-        if (secondary.isEmpty) {
-          return widget.displayStringForOption(option);
-        }
-        return "$secondary - ${widget.displayStringForOption(option)}";
-      },
-      onSelected: (T selected) {
-        _controller.text = widget.displayStringForOption(selected);
-        _selectedItem = selected;
-        widget.onItemSelected(selected);
-        FocusScope.of(context).nextFocus();
-      },
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        _controller = controller;
-        _focusNode = focusNode; // Usar el FocusNode proporcionado
-        return Focus(
-          canRequestFocus: false,
-          onKeyEvent: (FocusNode node, KeyEvent event) {
-            if (event is KeyDownEvent) {
-              if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                if (_filteredOptions.isNotEmpty) {
-                  setState(() {
-                    _highlightedIndex = (_highlightedIndex + 1) % _filteredOptions.length;
-                  });
-                }
-                return KeyEventResult.handled;
-              } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                if (_filteredOptions.isNotEmpty) {
-                  setState(() {
-                    _highlightedIndex = (_highlightedIndex - 1 + _filteredOptions.length) % _filteredOptions.length;
-                  });
-                }
-                return KeyEventResult.handled;
-              } else if (event.logicalKey == LogicalKeyboardKey.tab) {
-                if (widget.items.isNotEmpty) {
-                  if (_controller.text.isEmpty) {
-                    if (widget.defaultFirst) {
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          DoNothingIntent: CallbackAction<DoNothingIntent>(
+            onInvoke: (intent) => null,
+          ),
+        },
+        child: Autocomplete<T>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return Iterable<T>.empty();
+            }
+            _updateFilteredOptions(textEditingValue.text);
+            return _filteredOptions;
+          },
+          displayStringForOption: (T option) {
+            final secondary = widget.secondaryDisplayStringForOption != null
+                ? widget.secondaryDisplayStringForOption!(option).trim()
+                : '';
+            if (secondary.isEmpty) {
+              return widget.displayStringForOption(option);
+            }
+            return "$secondary - ${widget.displayStringForOption(option)}";
+          },
+          onSelected: (T selected) {
+            _controller.text = widget.displayStringForOption(selected);
+            _selectedItem = selected;
+            widget.onItemSelected(selected);
+            FocusScope.of(context).nextFocus();
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            _controller = controller;
+            _focusNode = focusNode; // Usar el FocusNode proporcionado
+            return Focus(
+              canRequestFocus: false,
+              onKeyEvent: (FocusNode node, KeyEvent event) {
+                if (event is KeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                    if (_filteredOptions.isNotEmpty) {
                       setState(() {
-                        final firstItem = widget.items.first;
-                        _controller.text = widget.displayStringForOption(firstItem);
-                        _selectedItem = firstItem;
-                        widget.onItemSelected(firstItem);
+                        _highlightedIndex = (_highlightedIndex + 1) % _filteredOptions.length;
                       });
                     }
-                  } else if (_filteredOptions.isNotEmpty) {
-                    final selected = _filteredOptions[_highlightedIndex];
-                    _controller.text = widget.displayStringForOption(selected);
-                    _selectedItem = selected;
-                    widget.onItemSelected(selected);
-                  } else {
+                    return KeyEventResult.handled;
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    if (_filteredOptions.isNotEmpty) {
+                      setState(() {
+                        _highlightedIndex = (_highlightedIndex - 1 + _filteredOptions.length) % _filteredOptions.length;
+                      });
+                    }
+                    return KeyEventResult.handled;
+                  } else if (event.logicalKey == LogicalKeyboardKey.tab) {
+                    if (widget.items.isNotEmpty) {
+                      if (_controller.text.isEmpty) {
+                        if (widget.defaultFirst) {
+                          setState(() {
+                            final firstItem = widget.items.first;
+                            _controller.text = widget.displayStringForOption(firstItem);
+                            _selectedItem = firstItem;
+                            widget.onItemSelected(firstItem);
+                          });
+                        }
+                      } else if (_filteredOptions.isNotEmpty) {
+                        final selected = _filteredOptions[_highlightedIndex];
+                        _controller.text = widget.displayStringForOption(selected);
+                        _selectedItem = selected;
+                        widget.onItemSelected(selected);
+                      } else {
+                        setState(() {
+                          _controller.clear();
+                          _filteredOptions.clear();
+                          _selectedItem = null;
+                          widget.onItemSelected(null);
+                        });
+                      }
+                    }
+                    FocusScope.of(context).nextFocus();
+                    return KeyEventResult.handled;
+                  }
+                }
+                return KeyEventResult.ignored;
+              },
+              onFocusChange: (hasFocus) {
+                if (!hasFocus) {
+                  if (_selectedItem == null) {
                     setState(() {
                       _controller.clear();
                       _filteredOptions.clear();
@@ -189,111 +225,94 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                     });
                   }
                 }
-                FocusScope.of(context).nextFocus();
-                return KeyEventResult.handled;
-              } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-                return KeyEventResult.handled;
-              }
-            }
-            return KeyEventResult.ignored;
-          },
-          onFocusChange: (hasFocus) {
-            if (!hasFocus) {
-              if (_selectedItem == null) {
-                setState(() {
-                  _controller.clear();
-                  _filteredOptions.clear();
-                  _selectedItem = null;
-                  widget.onItemSelected(null);
-                });
-              }
-            }
-          },
-          child: TextFormField(
-            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-            maxLength: 50,
-            autofocus: _selectedItem == null ? true : false,
-            controller: controller,
-            focusNode: focusNode,
-            decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(
-                borderRadius: widget.normalBorder ? bordeNormal : borde,
-                borderSide: BorderSide(color: AppTheme.letraClara),
+              },
+              child: TextFormField(
+                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                maxLength: 50,
+                autofocus: _selectedItem == null ? true : false,
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: widget.normalBorder ? bordeNormal : borde,
+                    borderSide: BorderSide(color: AppTheme.letraClara),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: widget.normalBorder ? bordeNormal : borde,
+                    borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
+                  ),
+                  isDense: true,
+                  prefixIcon: Icon(widget.icono, size: 25, color: AppTheme.letra70),
+                  hintText: widget.hintText,
+                ),
+                onChanged: (value) {
+                  _updateFilteredOptions(value);
+                  if (value.isEmpty) {
+                    _selectedItem = null;
+                    widget.onItemSelected(null);
+                  } else {
+                    final exists = widget.items.any((item) => widget.displayStringForOption(item) == value);
+                    if (!exists) {
+                      _selectedItem = null;
+                      widget.onItemSelected(null);
+                    }
+                  }
+                },
+                onEditingComplete: () {
+                  _validateOrClear();
+                  FocusScope.of(context).nextFocus();
+                },
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: widget.normalBorder ? bordeNormal : borde,
-                borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
-              ),
-              isDense: true,
-              prefixIcon: Icon(widget.icono, size: 25, color: AppTheme.letra70),
-              hintText: widget.hintText,
-            ),
-            onChanged: (value) {
-              _updateFilteredOptions(value);
-              if (value.isEmpty) {
-                _selectedItem = null;
-                widget.onItemSelected(null);
-              } else {
-                final exists = widget.items.any((item) => widget.displayStringForOption(item) == value);
-                if (!exists) {
-                  _selectedItem = null;
-                  widget.onItemSelected(null);
-                }
-              }
-            },
-            onEditingComplete: () {
-              _validateOrClear();
-              FocusScope.of(context).nextFocus();
-            },
-          ),
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Transform.translate(
-          offset: Offset(30, 0),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              elevation: 4.0,
-              child: SizedBox(
-                width: 600,
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (context, index) {
-                    final T option = options.elementAt(index);
-                    final isHighlighted = index == _highlightedIndex;
-                    final secondary = widget.secondaryDisplayStringForOption != null
-                        ? widget.secondaryDisplayStringForOption!(option).trim()
-                        : '';
-                    final displayText = secondary.isEmpty
-                        ? widget.displayStringForOption(option)
-                        : "$secondary - ${widget.displayStringForOption(option)}";
-    
-                    return Container(
-                      color: isHighlighted ? AppTheme.tablaColor2 : AppTheme.tablaColor1,
-                      child: ListTile(
-                        title: Text(
-                          displayText,
-                          style: AppTheme.subtituloPrimario,
-                          textScaler: TextScaler.linear(0.9),
-                        ),
-                        onTap: () {
-                          _controller.text = widget.displayStringForOption(option);
-                          onSelected(option);
-                          _selectedItem = option;
-                          widget.onItemSelected(option);
-                        },
-                      ),
-                    );
-                  },
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Transform.translate(
+              offset: Offset(30, 0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4.0,
+                  child: SizedBox(
+                    width: 600,
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final T option = options.elementAt(index);
+                        final isHighlighted = index == _highlightedIndex;
+                        final secondary = widget.secondaryDisplayStringForOption != null
+                            ? widget.secondaryDisplayStringForOption!(option).trim()
+                            : '';
+                        final displayText = secondary.isEmpty
+                            ? widget.displayStringForOption(option)
+                            : "$secondary - ${widget.displayStringForOption(option)}";
+        
+                        return Container(
+                          color: isHighlighted ? AppTheme.tablaColor2 : AppTheme.tablaColor1,
+                          child: ListTile(
+                            title: Text(
+                              displayText,
+                              style: AppTheme.subtituloPrimario,
+                              textScaler: TextScaler.linear(0.9),
+                            ),
+                            onTap: () {
+                              _controller.text = widget.displayStringForOption(option);
+                              onSelected(option);
+                              _selectedItem = option;
+                              widget.onItemSelected(option);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
