@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -26,6 +27,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     'clave': TextEditingController(),
     'descripcion': TextEditingController(),
     'precio': TextEditingController(),
+    'precio_iva': TextEditingController(),
     'valorImpresion': TextEditingController(),
   };
   bool requiereMedida = false;
@@ -52,7 +54,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       final producto = widget.prodEdit!;
       controllers['clave']!.text = producto.codigo.toString();
       controllers['descripcion']!.text = producto.descripcion;
-      controllers['precio']!.text = producto.precio.toString();
+      controllers['precio']!.text = Formatos.pesos.format(producto.precio.toDouble());
+      controllers['precio_iva']!.text = Formatos.pesos.format(CalculosDinero().calcularConIva(producto.precio).toDouble());
       imprimible = widget.prodEdit!.imprimible;
       if (imprimible) controllers['valorImpresion']!.text = producto.valorImpresion.toString();
       requiereMedida = widget.prodEdit!.requiereMedida;
@@ -95,7 +98,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
           descripcion: controllers['descripcion']!.text,
           tipo: tipoSeleccionado!,
           categoria: categoriaSeleccionada!,
-          precio: Decimal.parse(controllers['precio']!.text.replaceAll('\$', '').replaceAll(',', '')),
+          precio: Decimal.parse(controllers['precio']!.text.replaceAll('MX\$', '').replaceAll(',', '')),
           requiereMedida: requiereMedida,
           inventariable: inventariable,
           imprimible: imprimible,
@@ -157,7 +160,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     return FocusScope(
       canRequestFocus: !onlyRead,
       child: AlertDialog(
-      backgroundColor: AppTheme.containerColor1,
+      backgroundColor: AppTheme.containerColor2,
         title: Text(titulo),
         content: SizedBox(
           width: 600,
@@ -231,23 +234,23 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                       ],
                     ), const SizedBox(width: 10),
                     Expanded(
+                      flex: 3,
                       child: IgnorePointer(
                         ignoring: onlyRead,
                         child: Focus(
                           canRequestFocus: false,
                           onFocusChange: (hasFocus) {
-                            if (!hasFocus) {
+                            /*if (!hasFocus) {
                               if (controllers['precio']!.text.isEmpty) {
-                                controllers['precio']!.text = '0';
+                                controllers['precio']!.text = Formatos.pesos.format(0);
                               }
-                              controllers['precio']!.text = '\$${controllers['precio']!.text.replaceAll('\$', '')}';
-                            }
+                            }*/
                           },
                           child: TextFormField(
                             readOnly: onlyRead,
                             canRequestFocus: !onlyRead,
                             controller: controllers['precio']!,
-                            inputFormatters: [ MoneyInputFormatter() ],
+                            inputFormatters: [ PesosInputFormatter() ],
                             decoration: InputDecoration(
                               labelText: 'Precio',
                               labelStyle: AppTheme.labelStyle,
@@ -259,6 +262,32 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                               return null;
                             },
                             autovalidateMode: AutovalidateMode.onUserInteraction,
+                            onChanged: (value) {
+                              if (value.isNotEmpty){
+                                String valueForm = value.replaceAll("MX\$", "").replaceAll(",", "");
+                                double result = CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
+                                controllers['precio_iva']!.text = Formatos.pesos.format(result);
+                              } else {
+                                controllers['precio_iva']!.text = '';
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ), const SizedBox(width: 10),
+
+                    Expanded(
+                      flex: 2,
+                      child: IgnorePointer(
+                        ignoring: true,
+                        child: TextFormField(
+                          readOnly: true,
+                          canRequestFocus: false,
+                          controller: controllers['precio_iva']!,
+                          inputFormatters: [ PesosInputFormatter() ],
+                          decoration: InputDecoration(
+                            labelText: 'Precio con Iva',
+                            labelStyle: AppTheme.labelStyle,
                           ),
                         ),
                       ),

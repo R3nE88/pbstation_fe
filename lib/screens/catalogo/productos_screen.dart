@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/productos_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -282,7 +283,7 @@ class FilaProducto extends StatelessWidget {
             Expanded(flex: 2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.tipo[producto.tipo]!, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.categoria[producto.categoria]!, textAlign: TextAlign.center)),
-            Expanded(child: Text('\$${producto.precio}', textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), textAlign: TextAlign.center)),
           ],
         ),
       ),

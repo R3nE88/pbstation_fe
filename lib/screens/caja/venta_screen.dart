@@ -28,8 +28,6 @@ class _VentaScreenState extends State<VentaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final clientesServices = Provider.of<ClientesServices>(context);
-    final productosServices = Provider.of<ProductosServices>(context);
 
     void agregarPestania() {
       if (VentasStates.pestanias >= maximoPestanias) { return; }
@@ -104,9 +102,8 @@ class _VentaScreenState extends State<VentaScreen> {
             key: ValueKey<int>(VentasStates.indexSelected),
             child: VentaForm(
               key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
-              clientesServices: clientesServices,
               index: VentasStates.indexSelected, 
-              productosServices: productosServices,
+              //productosServices: productosServices,
             ),
           ),
         ],

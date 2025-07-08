@@ -5,8 +5,10 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
 class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
@@ -57,14 +59,17 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final TextEditingController adeudoCtrl = TextEditingController(); //Total
   final TextEditingController saldoCtrl = TextEditingController(); //PorPagar
 
+  bool porPagar = true;
+  bool hayCambio = false;
+
+  static const int milliseconds = 300;
+
   double formatearEntrada(String entrada){
     return double.tryParse(entrada.replaceAll('MX\$', '').replaceAll('US\$', '').replaceAll('\$', '').replaceAll(',', '')) ?? 0;
   }
 
-  void calcularAbono(){
-    double total = widget.venta.total;
+  double calcularImporte(){
     double entrada = 0;
-
     if (efectivo){
       entrada += efectivoImporte;
       entrada += CalculosDinero().conversionADolar(dolarImporte);
@@ -75,6 +80,13 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     if (transferencia){
       entrada += transferenciaImporte;
     }
+    return entrada;
+  }
+
+  void calcularAbono(){
+    double total = widget.venta.total.toDouble();
+    
+    double entrada =  calcularImporte();
 
     if (entrada > total) { 
       abonarCtrl.text = Formatos.pesos.format(total);
@@ -91,8 +103,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
     //Si lo abonado supera el total
     if (entradaFormat >= total){
+      setState(() { hayCambio = true; });
       cambioCtrl.text = Formatos.pesos.format((entradaFormat - total).toDouble());
     } else {
+      setState(() { hayCambio = false; });
       cambioCtrl.text = Formatos.pesos.format(0);
     }
 
@@ -101,21 +115,17 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
   void desdeAbonarCalcular(double entrada){
     Decimal total = Decimal.parse(widget.venta.total.toString());
-    double totalImportes = 0;
-    if (efectivo){
-      totalImportes += efectivoImporte;
-      totalImportes += CalculosDinero().conversionADolar(dolarImporte);
-    } if (tarjeta){
-      totalImportes += tarjetaImporte;
-    } if (transferencia){
-      totalImportes += transferenciaImporte;
-    }
+    double totalImportes =  calcularImporte();
 
     //Si se supera el importe limitar a total
     if (entrada > total.toDouble()){
       abonarCtrl.text = Formatos.pesos.format(total.toDouble());
       entrada = total.toDouble();
     }
+
+    if (totalImportes-entrada != 0){
+      setState(() { hayCambio = true; });
+    } else { setState(() { hayCambio = false; }); }
 
     cambioCtrl.text = Formatos.pesos.format(totalImportes - entrada);
 
@@ -124,7 +134,11 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   
   void calcularTotal(){
     double abonado = formatearEntrada(abonarCtrl.text);
-    double total = widget.venta.total;
+    double total = widget.venta.total.toDouble();
+
+    if (total - abonado == 0){
+      setState(() { porPagar = false; });
+    } else { setState(() { porPagar = true; });}
 
     saldoCtrl.text = Formatos.pesos.format(total - abonado);
   }
@@ -138,16 +152,16 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
     abonarCtrl.text = 'MX\$0.00';
     cambioCtrl.text = Formatos.pesos.format(0);
-    adeudoCtrl.text = Formatos.pesos.format(widget.venta.total);
-    saldoCtrl.text = Formatos.pesos.format(widget.venta.total);
+    adeudoCtrl.text = Formatos.pesos.format(widget.venta.total.toDouble());
+    saldoCtrl.text = Formatos.pesos.format(widget.venta.total.toDouble());
   }
 
   @override
   Widget build(BuildContext context) {
-    const int milliseconds = 300;
+    
 
     return AlertDialog(
-      backgroundColor: AppTheme.containerColor1,
+      backgroundColor: AppTheme.containerColor2,
       title: const Text('Procesar Pago'),
       content: AnimatedSize(
         duration: const Duration(milliseconds: milliseconds),
@@ -490,7 +504,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                     maxLength: 10,
                                     focusNode: focusCambio,
-                                    decoration: AppTheme.inputDecorationCustom,
+                                    decoration: hayCambio
+                                    ? AppTheme.inputDecorationWaring
+                                    : AppTheme.inputDecorationCustom
                                   )
                                 )
                               ],
@@ -507,7 +523,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: saldoCtrl,
                                     canRequestFocus: false,
                                     readOnly: true,
-                                    decoration: AppTheme.inputDecorationCustom,
+                                    decoration: porPagar 
+                                    ? AppTheme.inputDecorationWaring
+                                    : AppTheme.inputDecorationSeccess,
                                     style: const TextStyle(fontSize: 17),
                                   )
                                 )
@@ -538,10 +556,28 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                         ElevatedButton(
                           focusNode: focusRealizarPago,
                           onPressed: ()async{
-                            /*final ventasServices = Provider.of<VentasServices>(context, listen: false);
+                            final ventasServices = Provider.of<VentasServices>(context, listen: false);
                             Ventas nuevaVenta = Ventas(
-                            )
-                            await ventasServices.createVenta(widget.venta);*/                        
+                              folio: 'TODO:', //TODO: Crear folio
+                              clienteId: widget.venta.clienteId,
+                              usuarioId: widget.venta.usuarioId,
+                              sucursalId: widget.venta.sucursalId,
+                              pedidoPendiente: widget.venta.pedidoPendiente,
+                              fechaEntrega: widget.venta.fechaEntrega,
+                              detalles: widget.venta.detalles,
+                              fechaVenta: DateTime.now().toString(),
+                              tipoPago: 'TODO:', //TODO: tipo de pago
+                              comentariosVenta: widget.venta.comentariosVenta,
+                              subTotal: widget.venta.subTotal,
+                              descuento: widget.venta.descuento,
+                              iva: widget.venta.iva,
+                              total: widget.venta.total,
+                              recibido: Decimal.parse(calcularImporte().toString()),
+                              abonado: Decimal.parse(formatearEntrada(abonarCtrl.text).toString()),
+                              cambio: Decimal.parse(formatearEntrada(cambioCtrl.text).toString()),    
+                              liquidado: formatearEntrada(abonarCtrl.text) - widget.venta.total.toDouble() == 0
+                            );
+                            await ventasServices.createVenta(nuevaVenta);                    
                           }, child: Text('Realizar Pago')
                         )
                       ],

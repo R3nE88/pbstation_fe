@@ -9,7 +9,7 @@ class CalculosDinero {
     Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = subtotal-descuentoAplicado;
 
-    Decimal iva = totalSinIva * Decimal.parse('0.08'); //TODO: 8% de iva
+    Decimal iva = totalSinIva * Decimal.parse('0.08').round(scale: 2); //TODO: 8% de iva
     Decimal total = (totalSinIva + iva).round(scale: 0); 
 
     return {
@@ -26,7 +26,7 @@ class CalculosDinero {
     Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = totalMedida-descuentoAplicado;
 
-    Decimal iva = totalSinIva * Decimal.parse('0.08'); //TODO: 8% de iva
+    Decimal iva = totalSinIva * Decimal.parse('0.08').round(scale: 2); //TODO: 8% de iva
     Decimal total = (totalSinIva + iva).round(scale: 0); 
 
     return {
@@ -62,6 +62,11 @@ class CalculosDinero {
     Decimal precioDolar = Decimal.parse("18.5");
     Decimal total = (imp * precioDolar).round(scale: 2);
     return total.toDouble();
+  }
+
+  Decimal calcularConIva(Decimal precio){
+    Decimal iva = Decimal.parse(precio.toString()) * Decimal.parse('0.08').round(scale: 3);//TODO: 8% de iva
+    return iva + precio; 
   }
 }
 

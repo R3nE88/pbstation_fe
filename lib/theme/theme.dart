@@ -16,7 +16,7 @@ class AppTheme{
 
   static Color get primario1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 60, 60, 60)
-      : const Color.fromARGB(255, 78, 175, 255);
+      : const Color.fromARGB(255, 52, 163, 254);
   static Color get secundario1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 16, 16, 16)
       : const Color.fromARGB(255, 54, 134, 233);
@@ -49,7 +49,7 @@ class AppTheme{
     
   static Color get containerColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 52, 52, 52)
-      : const Color.fromARGB(255, 87, 160, 227);
+      : const Color.fromARGB(255, 75, 164, 248);
 
   static Color get backgroundWidgetFormColor1 => changeThemeInstance?.isDarkTheme == true
       ? Color.fromARGB(0, 195, 195, 195)
@@ -182,6 +182,29 @@ class AppTheme{
     ),
   );
 
+  static const InputDecoration inputDecorationWaring = InputDecoration(
+    contentPadding: EdgeInsets.only(left: 10),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.amber, width: 2),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.amber, width: 2),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+  );
+
+  static const InputDecoration inputDecorationSeccess = InputDecoration(
+    contentPadding: EdgeInsets.only(left: 10),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.green, width: 2),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.green, width: 2),
+      borderRadius: BorderRadius.all(Radius.circular(12))
+    ),
+  );
 
   static final InputDecoration inputError = InputDecoration(
       enabledBorder: OutlineInputBorder(

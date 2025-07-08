@@ -175,7 +175,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     return FocusScope(
       canRequestFocus: !onlyRead,
       child: AlertDialog(
-        backgroundColor: AppTheme.containerColor1,
+        backgroundColor: AppTheme.containerColor2,
         title: Text(titulo),
         content: SizedBox(
           width: 600,
@@ -250,7 +250,12 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       ),
                     ), SizedBox(width: onlyRead ? 0 : 10),
       
-                    !onlyRead ? IconButton(onPressed:  () => setState(() => regimenFiscal = null), icon: Icon(Icons.clear)) : const SizedBox()
+                    !onlyRead 
+                    ? IconButton(
+                      onPressed:  () => setState(() => regimenFiscal = null), 
+                      icon: Icon(Icons.clear, color: AppTheme.letraClara,)
+                    ) 
+                    : const SizedBox()
                   ], 
                 ), const SizedBox(height: 15),
                 const SeparadorConTexto(texto: 'Direccion'),

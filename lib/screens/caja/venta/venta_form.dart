@@ -13,12 +13,11 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/busqueda_field.dart';
 import 'package:pbstation_frontend/widgets/seleccionador_hora.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
 class VentaForm extends StatefulWidget {
-  const VentaForm({super.key, required this.clientesServices, required this.index, required this.productosServices});
+  const VentaForm({super.key, required this.index});
 
-  final ClientesServices clientesServices;
-  final ProductosServices productosServices;
   final int index;
 
   @override
@@ -66,11 +65,15 @@ class _VentaFormState extends State<VentaForm> {
   bool canFocus = true;
 
   //Metodos
+  Decimal formatearEntrada(String entrada){
+    return Decimal.parse(entrada.replaceAll("MX\$", "").replaceAll(",", "")); 
+  }
+
   void calcularSubtotal(){
     if (productoSelected== null) { return; }
 
     Decimal precio = productoSelected!.precio;
-    precioController.text = Formatos.moneda.format(precio.toDouble());
+    precioController.text = Formatos.pesos.format(precio.toDouble());
     int descuento = int.tryParse(descuentoController.text.replaceAll('%', '')) ?? 0;
     int cantidad = 0;
     if (cantidadController.text.isNotEmpty){
@@ -84,8 +87,8 @@ class _VentaFormState extends State<VentaForm> {
     } else {
       resultado = calcular.calcularSubtotal(precio, cantidad, descuento);
     }
-      ivaController.text = Formatos.moneda.format(resultado['iva']);
-      productoTotalController.text = Formatos.moneda.format(resultado['total']);
+      ivaController.text = Formatos.pesos.format(resultado['iva']);
+      productoTotalController.text = Formatos.pesos.format(resultado['total']);
       descuentoAplicado = resultado['descuento'];
       VentasStates.tabs[widget.index].descuentoAplicado = descuentoAplicado;
   }
@@ -94,23 +97,23 @@ class _VentaFormState extends State<VentaForm> {
     CalculosDinero calcular = CalculosDinero();
     final Map<String, dynamic> resultado = calcular.calcularTotal(detallesVenta);
 
-    subtotalController.text = Formatos.moneda.format(resultado['subtotal']);
-    totalDescuentoController.text = Formatos.moneda.format(resultado['descuento']);
-    totalIvaController.text = Formatos.moneda.format(resultado['iva']);
-    totalController.text = Formatos.moneda.format(resultado['total']);
+    subtotalController.text = Formatos.pesos.format(resultado['subtotal']);
+    totalDescuentoController.text = Formatos.pesos.format(resultado['descuento']);
+    totalIvaController.text = Formatos.pesos.format(resultado['iva']);
+    totalController.text = Formatos.pesos.format(resultado['total']);
   }
 
   void limpiarCamposProducto() {
     productoSelected = null;
     VentasStates.tabs[widget.index].productoSelected = productoSelected;
-    precioController.text = '\$0.00';
+    precioController.text = Formatos.pesos.format(0);
     cantidadController.text = '1';
     anchoController.text = '1';
     altoController.text = '1';
     comentarioController.clear();
     descuentoController.text = '0%';
-    ivaController.text = '\$0.00';
-    productoTotalController.text = '\$0.00';
+    ivaController.text = Formatos.pesos.format(0);
+    productoTotalController.text = Formatos.pesos.format(0);
   }
 
   Future<void> elegirFecha()async{
@@ -208,13 +211,14 @@ class _VentaFormState extends State<VentaForm> {
             usuarioId: 'usuarioId', //TODO: usuario logeado
             sucursalId: 'sucursalId', //TODO: Sucursal
             pedidoPendiente: !entregaInmediata, 
-            fechaEntrega: fechaEntrega?.toString(), 
+            fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
             detalles: detallesVenta,
             comentariosVenta: comentarioController.text, 
-            subTotal: double.parse(subtotalController.text.replaceAll("\$", "").replaceAll(",", "")), 
-            descuento: double.parse(totalDescuentoController.text.replaceAll("\$", "").replaceAll(",", "")), 
-            iva: double.parse(totalIvaController.text.replaceAll("\$", "").replaceAll(",", "")), 
-            total: double.parse(totalController.text.replaceAll("\$", "").replaceAll(",", "")), 
+            subTotal: formatearEntrada(subtotalController.text),
+            descuento: formatearEntrada(totalDescuentoController.text),
+            iva: formatearEntrada(totalIvaController.text),
+            total: formatearEntrada(totalController.text), 
+            liquidado: null,
           )
         );
         
@@ -275,6 +279,11 @@ class _VentaFormState extends State<VentaForm> {
 
   @override
   Widget build(BuildContext context) {    
+    final productosServices = Provider.of<ProductosServices>(context);
+    final clientesServices = Provider.of<ClientesServices>(context);
+
+    print('build venta');
+    
     InputDecoration totalDecoration = AppTheme.inputDecorationCustom.copyWith(
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -312,7 +321,7 @@ class _VentaFormState extends State<VentaForm> {
                               children: [
                                 Expanded(
                                   child: BusquedaField<Clientes>(
-                                    items: widget.clientesServices.clientes,
+                                    items: clientesServices.clientes,
                                     selectedItem: clienteSelected,
                                     onItemSelected: (Clientes? selected) {
                                       setState(() {
@@ -489,7 +498,7 @@ class _VentaFormState extends State<VentaForm> {
                             const Text('   Producto *', style: AppTheme.subtituloPrimario),
                             const SizedBox(height: 2),
                             BusquedaField<Productos>(
-                              items: widget.productosServices.productos,
+                              items: productosServices.productos,
                               selectedItem: productoSelected,
                               onItemSelected: (Productos? selected) {
                                 setState(() {
@@ -836,8 +845,8 @@ class _VentaFormState extends State<VentaForm> {
                             comentarios: comentarioController.text,
                             descuento: int.tryParse(descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
                             descuentoAplicado: descuentoAplicado,
-                            iva: Decimal.parse(ivaController.text.replaceAll('\$', '').replaceAll(',', '')),
-                            subtotal: Decimal.parse(productoTotalController.text.replaceAll('\$', '').replaceAll(',', ''))
+                            iva: Decimal.parse(ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            subtotal: Decimal.parse(productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', ''))
                           );
               
                           productos.add(productoSelected!);
@@ -922,7 +931,7 @@ class _VentaFormState extends State<VentaForm> {
                                   },
                                   onModificate: () {
                                     try {
-                                      productoSelected = widget.productosServices.productos.firstWhere((p) => p.id == detallesVenta[index].productoId);
+                                      productoSelected = productosServices.productos.firstWhere((p) => p.id == detallesVenta[index].productoId);
                                     } catch (e) {
                                       return;
                                     }
@@ -1188,11 +1197,11 @@ class FilaDetalles extends StatelessWidget {
           children: [
             Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), textAlign: TextAlign.center)),
             Expanded(flex: 4, child: Text(descripcionProducto, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.moneda.format(producto!.precio.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.moneda.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.moneda.format(detalle!.descuentoAplicado.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 1, child: Text(Formatos.moneda.format(detalle!.iva.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.moneda.format(detalle!.subtotal.toDouble()), textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), textAlign: TextAlign.center)),
+            Expanded(flex: 1, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), textAlign: TextAlign.center)),
           ],
         ),
       ),

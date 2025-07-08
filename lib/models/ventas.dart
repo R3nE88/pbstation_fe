@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:decimal/decimal.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
 class Ventas {
@@ -23,7 +24,7 @@ class Ventas {
     this.recibido,
     this.abonado,
     this.cambio,
-    
+    this.liquidado
   });
 
   String? id; //id automatico de la base de datos
@@ -38,15 +39,16 @@ class Ventas {
   String? fechaVenta; //en que momento se realizo la venta (se genera al "imprimir ticket")
   String? tipoPago; //Tarjeta, efectivo, transferencia, mixto (mixto no valido para facturar)
   String comentariosVenta; //Comentario en general de la venta
-  double subTotal; //Total sin descuento ni impuestos $
-  double descuento; //Total del descuento $
-  double iva; //Total de impuestos $
-  double total; //Total total
+  Decimal subTotal; //Total sin descuento ni impuestos $
+  Decimal descuento; //Total del descuento $
+  Decimal iva; //Total de impuestos $
+  Decimal total; //Total total
 
   // vvv Determinar despues esto vvv
-  double? recibido; 
-  double? abonado;
-  double? cambio;
+  Decimal? recibido; 
+  Decimal? abonado;
+  Decimal? cambio;
+  bool? liquidado;
   
 
 
@@ -66,13 +68,14 @@ class Ventas {
     fechaVenta: json["fecha_venta"],
     tipoPago: json["tipo_pago"],
     comentariosVenta: json["comentarios_venta"],
-    subTotal: (json["subtotal"] ?? 0).toDouble(),
-    descuento: (json["descuento"] ?? 0).toDouble(),
-    iva: (json["iva"] ?? 0).toDouble(),
-    total: (json["total"] ?? 0).toDouble(),
-    recibido: (json["recibido"] ?? 0).toDouble(),
-    abonado: (json["abonado"] ?? 0).toDouble(),
-    cambio: (json["cambio"] ?? 0).toDouble(),
+    subTotal: Decimal.parse(json["subtotal"]),
+    descuento: Decimal.parse(json["descuento"]),
+    iva: Decimal.parse(json["iva"]),
+    total: Decimal.parse(json["total"]),
+    recibido: Decimal.parse(json["recibido"]),
+    abonado: Decimal.parse(json["abonado"]),
+    cambio: Decimal.parse(json["cambio"]),
+    liquidado: json["liquidado"],
   );
 
   Map<String, dynamic> toMap() => {
@@ -94,5 +97,6 @@ class Ventas {
     "recibido": recibido,
     "abonado": abonado,
     "cambio": cambio,
+    "liquidado":liquidado,
   };
 }

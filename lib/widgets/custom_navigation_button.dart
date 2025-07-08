@@ -3,12 +3,13 @@ import 'package:pbstation_frontend/theme/theme.dart';
 
 class CustomNavigationButton extends StatefulWidget {
   const CustomNavigationButton({
-    super.key, required this.label, required this.icon, required this.selected
+    super.key, required this.label, required this.icon, required this.selected, required this.first
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final bool first;
 
   @override
   State<CustomNavigationButton> createState() => _CustomNavigationButtonState();
@@ -22,7 +23,7 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 13, top: 15),
+      padding: EdgeInsets.only(left: 13, top: widget.first ? 0 : 15),
       child: MouseRegion(
         onEnter: widget.selected ? null : (event) {
           setState(() {

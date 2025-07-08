@@ -13,6 +13,8 @@ class SideMenuLeft extends StatelessWidget {
     final modProv = context.watch<ModulosProvider>();
     final modulos = modProv.listaModulos;
 
+    const double height = 130;
+
     return HoverSideMenu(
       side: MenuSide.left,
       height: MediaQuery.of(context).size.height,
@@ -20,8 +22,8 @@ class SideMenuLeft extends StatelessWidget {
       menuContent: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 20),
-          _buildLogo(),
+          //const SizedBox(height: 20),
+          _buildLogo(height),
           Expanded(
             child: ListView.builder(
               itemCount: modulos.length,
@@ -32,7 +34,8 @@ class SideMenuLeft extends StatelessWidget {
                   icon: Modulos.modulosIconos[modulo]![0],
                   label: modulo,
                   selected: selected,
-                  onTap: () => modProv.seleccionarModulo(modulo),
+                  onTap: () => modProv.seleccionarModulo(modulo), 
+                  index: i,
                 );
               },
             ),
@@ -45,7 +48,7 @@ class SideMenuLeft extends StatelessWidget {
       ),
       menuContentColapsed: Column(
         children: [
-          const SizedBox(height: 60+12+12+20, width: 20),
+          const SizedBox(height: height+9, width: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -86,6 +89,7 @@ class SideMenuLeft extends StatelessWidget {
     required String label,
     required bool selected,
     required VoidCallback onTap,
+    required int index,
   }) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -94,19 +98,20 @@ class SideMenuLeft extends StatelessWidget {
         child: CustomNavigationButton(
           icon: icon,
           label: label[0].toUpperCase() + label.substring(1),
-          selected: selected,
+          selected: selected, 
+          first: index==0,
         ),
       ),
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo(height) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Image.asset(
-        'assets/images/logo2.png',
-        height: 60,
-        color: AppTheme.colorContraste,
+        AppTheme.isDarkTheme ? 'assets/images/logo_darkmode.png' : 'assets/images/logo_normal.png',
+        height: height,
+        //color: AppTheme.colorContraste,
       ),
     );
   }

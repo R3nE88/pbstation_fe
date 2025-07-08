@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/clientes.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
 import 'package:pbstation_frontend/models/productos.dart';
@@ -53,20 +54,20 @@ class VentaTab {
         fechaEntrega = null,
         productos = [],
         detallesVenta = [],
-        precioController = TextEditingController(text: '\$0.00'),
+        precioController = TextEditingController(text: Formatos.pesos.format(0)),
         cantidadController = TextEditingController(text: '1'),
         anchoController = TextEditingController(text: '1'),
         altoController = TextEditingController(text: '1'),
         comentarioController = TextEditingController(),
         descuentoController = TextEditingController(text: '0%'),
         descuentoAplicado = Decimal.parse("0"),
-        ivaController = TextEditingController(text: '\$0.00'),
-        productoTotalController = TextEditingController(text: '\$0.00'),
+        ivaController = TextEditingController(text: Formatos.pesos.format(0)),
+        productoTotalController = TextEditingController(text: Formatos.pesos.format(0)),
         comentariosController = TextEditingController(),
-        subtotalController = TextEditingController(text: '\$0.00'),
-        totalDescuentoController = TextEditingController(text: '\$0.00'),
-        totalIvaController = TextEditingController(text: '\$0.00'),
-        totalController = TextEditingController(text: '\$0.00');
+        subtotalController = TextEditingController(text: Formatos.pesos.format(0)),
+        totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
+        totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
+        totalController = TextEditingController(text: Formatos.pesos.format(0));
   
 
   void dispose() {
@@ -92,19 +93,19 @@ class VentaTab {
     fechaEntrega = null;
     productos = [];
     detallesVenta = [];
-    precioController = TextEditingController(text: '\$0.00');
+    precioController = TextEditingController(text: Formatos.pesos.format(0));
     cantidadController = TextEditingController(text: '1');
     anchoController = TextEditingController(text: '1');
     altoController = TextEditingController(text: '1');
     comentarioController = TextEditingController();
     descuentoController = TextEditingController(text: '0%');
     descuentoAplicado = Decimal.parse("0");
-    ivaController = TextEditingController(text: '\$0.00');
-    productoTotalController = TextEditingController(text: '\$0.00');
+    ivaController = TextEditingController(text: Formatos.pesos.format(0));
+    productoTotalController = TextEditingController(text: Formatos.pesos.format(0));
     comentariosController = TextEditingController();
-    subtotalController = TextEditingController(text: '\$0.00');
-    totalDescuentoController = TextEditingController(text: '\$0.00');
-    totalIvaController = TextEditingController(text: '\$0.00');
-    totalController = TextEditingController(text: '\$0.00');
+    subtotalController = TextEditingController(text: Formatos.pesos.format(0));
+    totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0));
+    totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
+    totalController = TextEditingController(text: Formatos.pesos.format(0));
   }
 }

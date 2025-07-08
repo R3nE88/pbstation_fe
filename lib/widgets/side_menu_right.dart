@@ -97,7 +97,8 @@ class SideMenuRight extends StatelessWidget {
           child: CustomNavigationButton(
             icon: icon,
             label: label[0].toUpperCase() + label.substring(1),
-            selected: selected,
+            selected: selected, 
+            first: false,
           ),
         ),
       ),

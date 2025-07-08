@@ -45,13 +45,13 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Image.asset(
-                          'assets/images/logo2.png',
-                          height: 200,
-                          color: AppTheme.colorContraste.withAlpha(150),
+                          AppTheme.isDarkTheme ? 'assets/images/logo_darkmode.png' : 'assets/images/logo_normal.png',
+                          height: 300,
+                          //color: AppTheme.colorContraste.withAlpha(150),
                         ),
                         const SizedBox(height: 15),
                         Text(
-                          '¡Bienvenido a PrinterBoyStation!\n¿Qué haremos hoy?',
+                          '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
                           textScaler: TextScaler.linear(1.5),
                           style: TextStyle(
                             color: AppTheme.colorContraste.withAlpha(150),
