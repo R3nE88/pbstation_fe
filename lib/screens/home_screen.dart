@@ -98,9 +98,7 @@ class WindowBar extends StatelessWidget {
               child: Stack(
                 children: [
                   //Center(child: Text('                                  Login: {Usuario} ${Login.usuarioLogeado?.nombre ?? 'nA'}   <texto de prueba>', style: TextStyle(color: const Color.fromARGB(129, 255, 255, 255)))),
-                  MoveWindow(
-                    onDoubleTap: () {},
-                  ),
+                  MoveWindow(),
                 ],
               )
             ),

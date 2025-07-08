@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
-import 'package:pbstation_frontend/screens/venta.dart';
+import 'package:pbstation_frontend/screens/caja/venta/venta_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -102,7 +102,7 @@ class _VentaScreenState extends State<VentaScreen> {
           ),
           KeyedSubtree(
             key: ValueKey<int>(VentasStates.indexSelected),
-            child: Venta(
+            child: VentaForm(
               key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
               clientesServices: clientesServices,
               index: VentasStates.indexSelected, 

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:decimal/decimal.dart';
+
 class DetallesVenta {
   DetallesVenta({
     this.id,
@@ -17,13 +19,13 @@ class DetallesVenta {
   String? id;
   String productoId;
   int cantidad;
-  double ancho;
-  double alto;
+  Decimal ancho;
+  Decimal alto;
   String comentarios;
   int descuento;
-  double descuentoAplicado;
-  double iva;
-  double subtotal;
+  Decimal descuentoAplicado;
+  Decimal iva;
+  Decimal subtotal;
 
   factory DetallesVenta.fromJson(String str) => DetallesVenta.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -31,14 +33,14 @@ class DetallesVenta {
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
     id: json["id"]?.toString(),
     productoId: json["producto_id"].toString(),
-    cantidad: json["cantidad"] as int,
-    ancho: (json["ancho"] as num).toDouble(),
-    alto: (json["alto"] as num).toDouble(),
+    cantidad: int.parse(json["cantidad"]),
+    ancho: Decimal.parse(json["ancho"]),
+    alto: Decimal.parse(json["alto"]),
     comentarios: json["comentarios"].toString(),
-    descuento: json["descuento"] as int,
-    descuentoAplicado: (json["descuento_aplicado"] as num).toDouble(),
-    iva: (json["iva"] as num).toDouble(),
-    subtotal: (json["subtotal"] as num).toDouble(),
+    descuento: int.parse(json["descuento"]),
+    descuentoAplicado: Decimal.parse(json["descuento_aplicado"]),
+    iva: Decimal.parse(json["iva"]),
+    subtotal: Decimal.parse(json["subtotal"]),
   );
 
   Map<String, dynamic> toMap() => {

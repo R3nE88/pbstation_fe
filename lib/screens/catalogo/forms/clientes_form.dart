@@ -18,8 +18,12 @@ class ClientesFormDialog extends StatefulWidget {
 }
 
 class _ClientesFormState extends State<ClientesFormDialog> {
+  //Varaibles
   bool onlyRead = false;
   final formKey = GlobalKey<FormState>();
+  String? regimenFiscal;
+  String titulo = 'Agregar nuevo Cliente';
+  late final List<DropdownMenuItem<String>> dropdownItems;
   final Map<String, TextEditingController> controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
@@ -36,10 +40,99 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     'pais': TextEditingController(),
   };
 
-  String? regimenFiscal;
-  String titulo = 'Agregar nuevo Cliente';
+  //METODOS
+  Future<void> guardarCliente() async {
+    if (!formKey.currentState!.validate()) return;
 
-  late final List<DropdownMenuItem<String>> dropdownItems;
+    final clientesServices = Provider.of<ClientesServices>(context, listen: false);
+    Loading.displaySpinLoading(context);
+
+    String? localidad;
+    if (controllers['ciudad']!.text.isNotEmpty ||
+        controllers['estado']!.text.isNotEmpty ||
+        controllers['pais']!.text.isNotEmpty) {
+      if ([controllers['ciudad']!.text, controllers['estado']!.text, controllers['pais']!.text]
+          .any((text) => text.isEmpty)) {
+        await showDialog(
+          context: context,
+          builder: (context) => CustomErrorDialog(
+            respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.\nNo se permiten datos parciales.",
+          ),
+        );
+        if (!context.mounted) return;
+        Navigator.pop(context);
+        return;
+      }
+      localidad = "${controllers['ciudad']!.text}, ${controllers['estado']!.text}, ${controllers['pais']!.text}";
+    }
+
+    final cliente = Clientes(
+      nombre: controllers['nombre']!.text,
+      correo: controllers['correo']!.text.isEmpty ? null : controllers['correo']!.text,
+      telefono: controllers['telefono']!.text.isEmpty ? null : int.tryParse(controllers['telefono']!.text),        
+      razonSocial: controllers['razon']!.text.isEmpty ? null : controllers['razon']!.text,
+      rfc: controllers['rfc']!.text.isEmpty ? null : controllers['rfc']!.text,
+      codigoPostal: controllers['cp']!.text.isEmpty ? null : int.tryParse(controllers['cp']!.text),
+      direccion: controllers['direccion']!.text.isEmpty ? null : controllers['direccion']!.text,
+      noExt: controllers['noExt']!.text.isEmpty ? null : int.tryParse(controllers['noExt']!.text),
+      noInt: controllers['noInt']!.text.isEmpty ? null : int.tryParse(controllers['noInt']!.text),
+      colonia: controllers['colonia']!.text.isEmpty ? null : controllers['colonia']!.text,
+      localidad: localidad,
+      regimenFiscal: regimenFiscal,
+    );
+
+    final respuesta = widget.cliEdit == null
+        ? await clientesServices.createCliente(cliente)
+        : await clientesServices.updateCliente(cliente, widget.cliEdit!.id!);
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (respuesta == 'exito') {
+      Navigator.pop(context);
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => CustomErrorDialog(respuesta: respuesta),
+      );
+    }
+  }
+
+  String? validateRequiredField(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor ingrese $fieldName';
+    }
+    return null;
+  }
+
+  Widget buildTextFormField({
+    required TextEditingController controller,
+    required String labelText,
+    bool autoFocus = false,
+    bool readOnly = false,
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return IgnorePointer(
+      ignoring: readOnly,
+      child: TextFormField(
+        autofocus: autoFocus,
+        canRequestFocus: !onlyRead,
+        controller: controller,
+        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+        readOnly: readOnly,
+        maxLength: maxLength,
+        inputFormatters: inputFormatters,
+        decoration: InputDecoration(
+          labelText: labelText,
+          labelStyle: AppTheme.labelStyle,
+        ),
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -79,100 +172,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
   
   @override
   Widget build(BuildContext context) {
-
-    Future<void> guardarCliente() async {
-      if (!formKey.currentState!.validate()) return;
-
-      final clientesServices = Provider.of<ClientesServices>(context, listen: false);
-      Loading.displaySpinLoading(context);
-
-      String? localidad;
-      if (controllers['ciudad']!.text.isNotEmpty ||
-          controllers['estado']!.text.isNotEmpty ||
-          controllers['pais']!.text.isNotEmpty) {
-        if ([controllers['ciudad']!.text, controllers['estado']!.text, controllers['pais']!.text]
-            .any((text) => text.isEmpty)) {
-          await showDialog(
-            context: context,
-            builder: (context) => CustomErrorDialog(
-              respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.\nNo se permiten datos parciales.",
-            ),
-          );
-          if (!context.mounted) return;
-          Navigator.pop(context);
-          return;
-        }
-        localidad = "${controllers['ciudad']!.text}, ${controllers['estado']!.text}, ${controllers['pais']!.text}";
-      }
-
-      final cliente = Clientes(
-        nombre: controllers['nombre']!.text,
-        correo: controllers['correo']!.text.isEmpty ? null : controllers['correo']!.text,
-        telefono: controllers['telefono']!.text.isEmpty ? null : int.tryParse(controllers['telefono']!.text),        
-        razonSocial: controllers['razon']!.text.isEmpty ? null : controllers['razon']!.text,
-        rfc: controllers['rfc']!.text.isEmpty ? null : controllers['rfc']!.text,
-        codigoPostal: controllers['cp']!.text.isEmpty ? null : int.tryParse(controllers['cp']!.text),
-        direccion: controllers['direccion']!.text.isEmpty ? null : controllers['direccion']!.text,
-        noExt: controllers['noExt']!.text.isEmpty ? null : int.tryParse(controllers['noExt']!.text),
-        noInt: controllers['noInt']!.text.isEmpty ? null : int.tryParse(controllers['noInt']!.text),
-        colonia: controllers['colonia']!.text.isEmpty ? null : controllers['colonia']!.text,
-        localidad: localidad,
-        regimenFiscal: regimenFiscal,
-      );
-
-      final respuesta = widget.cliEdit == null
-          ? await clientesServices.createCliente(cliente)
-          : await clientesServices.updateCliente(cliente, widget.cliEdit!.id!);
-
-      if (!context.mounted) return;
-      Navigator.pop(context);
-
-      if (respuesta == 'exito') {
-        Navigator.pop(context);
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) => CustomErrorDialog(respuesta: respuesta),
-        );
-      }
-    }
-
-    String? validateRequiredField(String? value, String fieldName) {
-      if (value == null || value.isEmpty) {
-        return 'Por favor ingrese $fieldName';
-      }
-      return null;
-    }
-
-    Widget buildTextFormField({
-      required TextEditingController controller,
-      required String labelText,
-      bool autoFocus = false,
-      bool readOnly = false,
-      int? maxLength,
-      List<TextInputFormatter>? inputFormatters,
-      String? Function(String?)? validator,
-    }) {
-      return IgnorePointer(
-        ignoring: readOnly,
-        child: TextFormField(
-          autofocus: autoFocus,
-          canRequestFocus: !onlyRead,
-          controller: controller,
-          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-          readOnly: readOnly,
-          maxLength: maxLength,
-          inputFormatters: inputFormatters,
-          decoration: InputDecoration(
-            labelText: labelText,
-            labelStyle: AppTheme.labelStyle,
-          ),
-          validator: validator,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-        ),
-      );
-    }
-
     return FocusScope(
       canRequestFocus: !onlyRead,
       child: AlertDialog(

@@ -1,6 +1,9 @@
 class Constantes{
   static const String baseUrl = '//127.0.0.1:8000/';
 
+  static const double anchoMaximo = 25; //TODO: Agregar esto a ajustes?
+  static const double altoMaximo = 25; //Agregar esto a ajustes? para modificar el valor
+
   static const Map<String, String> regimenFiscal = {
     "601": "General de Ley Personas Morales",
     "603": "Personas Morales con Fines no Lucrativos",
@@ -18,5 +21,15 @@ class Constantes{
     "general": "General",
     "impresion": "Impresión Digital",
     "diseno": "Diseño",
+  };
+
+  static const Map<String, String> tarjeta = {
+    "debito": "Tarjeta de Débito",
+    "credito": "Tarjeta de Crédito"
+  };
+
+  static const Map<String, String> efectivo = {
+    "pesos": "Pesos  ",
+    "dolar": "Dolares"
   };
 }

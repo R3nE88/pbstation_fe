@@ -1,35 +1,35 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
+import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/forms/productos_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-class ProductosScreen extends StatefulWidget {
-  const ProductosScreen({super.key});
+class ClientesScreen extends StatefulWidget {
+  const ClientesScreen({super.key});
 
   @override
-  State<ProductosScreen> createState() => _ProductosScreenState();
+  State<ClientesScreen> createState() => _ClientesScreenState();
 }
 
-class _ProductosScreenState extends State<ProductosScreen> {
+class _ClientesScreenState extends State<ClientesScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    final productosServices = Provider.of<ProductosServices>(context, listen: false);
-    productosServices.loadProductos();
+    final clientesServices = Provider.of<ClientesServices>(context, listen: false);
+    clientesServices.loadClientes();
 
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController.text.toLowerCase();
-        productosServices.filtrarProductos(query);
+        clientesServices.filtrarClientes(query);
       });
     });
   }
@@ -68,8 +68,8 @@ class _ProductosScreenState extends State<ProductosScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Productos & Servicios',
+        const Text(
+          'Clientes',
           style: AppTheme.tituloClaro,
           textScaler: TextScaler.linear(1.7),
         ),
@@ -85,7 +85,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
-                    hintText: 'Buscar Producto',
+                    hintText: 'Buscar Cliente',
                   ),
                 ),
               ),
@@ -94,7 +94,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
             ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => const ProductoFormDialog(),
+                builder: (_) => const ClientesFormDialog(),
               ),
               child: Row(
                 children: [
@@ -103,7 +103,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                     child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
                   ),
                   Text(
-                    'Agregar Producto',
+                    'Agregar Cliente',
                     style: TextStyle(
                       color: AppTheme.containerColor1,
                       fontWeight: FontWeight.w700,
@@ -119,7 +119,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
   }
 
   Widget _buildTable() {
-    return Consumer<ProductosServices>(
+    return Consumer<ClientesServices>(
       builder: (context, servicios, _) {
         return Column(
           children: [
@@ -134,11 +134,12 @@ class _ProductosScreenState extends State<ProductosScreen> {
               ),
               child: Row(
                 children: const [
-                  Expanded(child: Text('Codigo', textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: Text('Descripcion', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Categoria', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Precio/Unidad', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Nombre', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Correo', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
+                  Expanded(child: Text('RFC', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Direccion', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Razon Social', textAlign: TextAlign.center)),
                 ],
               ),
             ),
@@ -146,13 +147,13 @@ class _ProductosScreenState extends State<ProductosScreen> {
               child: Container(
                 color: AppTheme.tablaColorFondo,
                 child: ListView.builder(
-                  itemCount: servicios.filteredProductos.length,
-                  itemBuilder: (context, index) => FilaProducto(
-                    producto: servicios.filteredProductos[index],
+                  itemCount: servicios.filteredClientes.length,
+                  itemBuilder: (context, index) => FilaCliente(
+                    cliente: servicios.filteredClientes[index],
                     index: index,
                     onDelete: () async {
                       Loading.displaySpinLoading(context);
-                      await servicios.deleteProducto(servicios.filteredProductos[index].id!);
+                      await servicios.deleteCliente(servicios.filteredClientes[index].id!);
                       if (!context.mounted) return;
                       Navigator.pop(context);
                     },
@@ -173,7 +174,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 children: [
                   const Spacer(),
                   Text(
-                    '  Total: ${servicios.filteredProductos.length}   ',
+                    '  Total: ${servicios.filteredClientes.length}   ',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -186,20 +187,21 @@ class _ProductosScreenState extends State<ProductosScreen> {
   }
 }
 
-class FilaProducto extends StatelessWidget {
-  const FilaProducto({
+class FilaCliente extends StatelessWidget {
+  const FilaCliente({
     super.key,
-    required this.producto,
+    required this.cliente,
     required this.index,
     required this.onDelete,
   });
 
-  final Productos producto;
+  final Clientes cliente;
   final int index;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    String mostrarCampo(String? valor) => capitalizarPrimeraLetra(valor ?? '-');
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final seleccion = await showMenu(
@@ -252,14 +254,14 @@ class FilaProducto extends StatelessWidget {
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto, onlyRead: true),
+            builder: (_) => ClientesFormDialog(cliEdit: cliente, onlyRead: true),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto),
+            builder: (_) => ClientesFormDialog(cliEdit: cliente),
           );
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
@@ -267,7 +269,6 @@ class FilaProducto extends StatelessWidget {
         }
       }
     }
-
 
     return GestureDetector(
       onSecondaryTapDown: (details) {
@@ -278,11 +279,12 @@ class FilaProducto extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(producto.codigo.toString(), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.tipo[producto.tipo]!, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.categoria[producto.categoria]!, textAlign: TextAlign.center)),
-            Expanded(child: Text('\$${producto.precio}', textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.nombre), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.correo), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.rfc), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.direccion), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.razonSocial), textAlign: TextAlign.center)),
           ],
         ),
       ),

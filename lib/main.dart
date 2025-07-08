@@ -14,13 +14,15 @@ void main() async {
 
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
-  final websocketService = WebSocketService(productosService, clientesServices);
+  final ventasServices = VentasServices();
+  final websocketService = WebSocketService(productosService, clientesServices, ventasServices);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: productosService),
         ChangeNotifierProvider.value(value: clientesServices),
+        ChangeNotifierProvider.value(value: ventasServices),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),

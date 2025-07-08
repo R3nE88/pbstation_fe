@@ -13,6 +13,7 @@ class BusquedaField<T extends Object> extends StatefulWidget {
   final bool defaultFirst;
   final String hintText;
   final LogicalKeyboardKey? teclaFocus;
+  final bool error;
 
   const BusquedaField({
     super.key,
@@ -26,6 +27,7 @@ class BusquedaField<T extends Object> extends StatefulWidget {
     required this.defaultFirst, 
     required this.hintText, 
     this.teclaFocus,
+    required this.error,
   });
 
   @override
@@ -74,7 +76,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
         }
         return false; // false para no consumir el evento
       };
-
       HardwareKeyboard.instance.addHandler(_keyHandler);
     }
   }
@@ -235,11 +236,11 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                 decoration: InputDecoration(
                   enabledBorder: OutlineInputBorder(
                     borderRadius: widget.normalBorder ? bordeNormal : borde,
-                    borderSide: BorderSide(color: AppTheme.letraClara),
+                    borderSide: BorderSide(color: !widget.error ? AppTheme.letraClara : Colors.red),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: widget.normalBorder ? bordeNormal : borde,
-                    borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
+                    borderSide: BorderSide(color: !widget.error ? AppTheme.letraClara : Colors.red, width: 3),
                   ),
                   isDense: true,
                   prefixIcon: Icon(widget.icono, size: 25, color: AppTheme.letra70),

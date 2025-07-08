@@ -1,3 +1,5 @@
+export 'package:pbstation_frontend/widgets/texto_boton.dart';
+export 'package:pbstation_frontend/widgets/expandable_card.dart';
 export 'package:pbstation_frontend/widgets/connection_overlay.dart';
 export 'package:pbstation_frontend/widgets/side_menu_left.dart';
 export 'package:pbstation_frontend/widgets/side_menu_right.dart';

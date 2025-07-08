@@ -5,26 +5,85 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
-class ProductosServices extends ChangeNotifier{
-  final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
-  List<Productos> productos = [];
-  List<Productos> filteredProductos = [];
+class VentasServices extends ChangeNotifier{
+  final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
+  List<Ventas> ventas = [];
 
   bool isLoading = false;
 
-  void filtrarProductos(String query) {
-    query = query.toLowerCase().trim();
-    if (query.isEmpty) {
-      filteredProductos = productos;
-    } else {
-      filteredProductos = productos.where((producto) {
-        return producto.descripcion.toLowerCase().contains(query) ||
-              producto.codigo.toString().contains(query);
+  Future<List<Ventas>> loadVentas() async { 
+    if (isLoading) { return ventas; }
+    
+    isLoading = true;
+
+    try {
+      final url = Uri.parse('${_baseUrl}all');
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
+
+      final List<dynamic> listaJson = json.decode(resp.body);
+
+      ventas = listaJson.map<Ventas>((jsonElem) {
+        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+        x.id = (jsonElem as Map)["id"]?.toString();
+        return x;
       }).toList();
+
+    } catch (e) {
+      isLoading = false;
+      notifyListeners();
+      return [];
     }
+    
+    isLoading = false;
     notifyListeners();
+    return ventas;
   }
 
+  Future<String> createVenta(Ventas venta) async {
+    isLoading = true;
+
+    print('json!\n\n');
+    print(venta.toJson());
+    print("\n\nfin del json");
+
+    try {
+      final url = Uri.parse(_baseUrl);
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: venta.toJson(),   
+      );
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final nuevo = Ventas.fromMap(data);
+        nuevo.id = data['id']?.toString();
+
+        ventas.add(nuevo);
+        if (kDebugMode) {
+          print('venta creada!');
+        }
+        return 'exito';
+      } else {
+        debugPrint('Error al crear venta: ${resp.statusCode} ${resp.body}');
+        final body = jsonDecode(resp.body);
+        return body['detail'];
+      }
+    } catch (e) {
+      debugPrint('Exception en createVenta: $e');
+      return 'Hubo un problema al crear la venta.\n$e';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
+
+}
+/*
   Future<List<Productos>> loadProductos() async { 
     if (isLoading) { return productos; }
     
@@ -46,7 +105,6 @@ class ProductosServices extends ChangeNotifier{
       filteredProductos = productos;
 
     } catch (e) {
-      print('error: $e');
       isLoading = false;
       notifyListeners();
       return [];
@@ -221,4 +279,16 @@ class ProductosServices extends ChangeNotifier{
       }
     }
   }
-}
+
+
+
+
+
+
+
+
+
+
+
+  
+}*/

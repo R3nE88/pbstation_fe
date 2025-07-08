@@ -45,7 +45,7 @@ class AppTheme{
 
   static Color get containerColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 40, 40, 40)
-      : const Color.fromARGB(255, 84, 167, 244);
+      : const Color.fromARGB(255, 101, 178, 251);
     
   static Color get containerColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 52, 52, 52)
@@ -66,7 +66,7 @@ class AppTheme{
     
   static Color get botonPrincipal => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 89, 89, 89)
-      : AppTheme.primario1;
+      : Colors.blue;
 
   static Color get botonPrincipalFocus => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 61, 61, 61)
@@ -82,15 +82,15 @@ class AppTheme{
 
   static Color get tablaColorHeader => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 78, 78, 78)
-      : const Color.fromARGB(255, 30, 128, 221);
+      : const Color.fromARGB(255, 39, 141, 236);
 
   static Color get tablaColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 115, 115, 115)
-      : const Color.fromARGB(255, 62, 160, 251);
+      : const Color.fromARGB(255, 70, 165, 255);
     
   static Color get tablaColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 103, 103, 103)
-      : const Color.fromARGB(255, 49, 150, 244);
+      : const Color.fromARGB(255, 56, 154, 246);
 
   static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 57, 57, 57)
@@ -103,8 +103,6 @@ class AppTheme{
   static Color get colorContraste => changeThemeInstance?.isDarkTheme == true
       ? letraClara
       : letraOscura;
-
-  //static final Color colorError = Color.fromARGB(255, 228, 15, 0);
 
   static Color get colorError => changeThemeInstance?.isDarkTheme == true
       ? Color.fromARGB(255, 228, 15, 0)
@@ -139,13 +137,24 @@ class AppTheme{
     color: Colors.white54
   );
 
-  static final botonSecStyle = ButtonStyle(
+  static final botonPrincipalStyle = ButtonStyle(
     backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
       if (states.contains(WidgetState.focused)) {
         return AppTheme.botonPrincipalFocus;// Color cuando está enfocado
       }
       return AppTheme.botonPrincipal; // Color normal
     }),
+    foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
+  );
+
+  static final botonSecundarioStyle = ButtonStyle(
+    backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.focused)) {
+          return AppTheme.letra70; // Color cuando está enfocado
+        }
+        return AppTheme.letraClara; // Color normal
+      }
+    ),
     foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
   );
 

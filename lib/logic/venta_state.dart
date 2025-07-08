@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/models/clientes.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
@@ -37,14 +38,14 @@ class VentaTab {
   TextEditingController altoController;
   TextEditingController comentarioController;
   TextEditingController descuentoController;
-  double descuentoAplicado;
+  Decimal descuentoAplicado;
   TextEditingController ivaController;
   TextEditingController productoTotalController;
   TextEditingController comentariosController;
   TextEditingController subtotalController;
   TextEditingController totalDescuentoController;
   TextEditingController totalIvaController;
-  TextEditingController totalController;  
+  TextEditingController totalController;
 
   VentaTab()
       : clienteSelected = null,
@@ -58,7 +59,7 @@ class VentaTab {
         altoController = TextEditingController(text: '1'),
         comentarioController = TextEditingController(),
         descuentoController = TextEditingController(text: '0%'),
-        descuentoAplicado = 0,
+        descuentoAplicado = Decimal.parse("0"),
         ivaController = TextEditingController(text: '\$0.00'),
         productoTotalController = TextEditingController(text: '\$0.00'),
         comentariosController = TextEditingController(),
@@ -97,7 +98,7 @@ class VentaTab {
     altoController = TextEditingController(text: '1');
     comentarioController = TextEditingController();
     descuentoController = TextEditingController(text: '0%');
-    descuentoAplicado = 0;
+    descuentoAplicado = Decimal.parse("0");
     ivaController = TextEditingController(text: '\$0.00');
     productoTotalController = TextEditingController(text: '\$0.00');
     comentariosController = TextEditingController();

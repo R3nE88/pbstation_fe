@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:decimal/decimal.dart';
+
 class Productos {
   Productos({
     this.id,
@@ -19,7 +21,7 @@ class Productos {
   String descripcion;
   String tipo;
   String categoria;
-  double precio;
+  Decimal precio;
   bool inventariable;
   bool imprimible;
   int valorImpresion;
@@ -34,12 +36,13 @@ class Productos {
     descripcion: json["descripcion"],
     tipo: json["tipo"].toString(),
     categoria: json["categoria"].toString(),
-    precio: (json["precio"] as num).toDouble(),
+    precio: Decimal.parse(json["precio"]),
     inventariable: json["inventariable"] as bool,
     imprimible: json["imprimible"] as bool,
     valorImpresion: json["valor_impresion"] as int,
     requiereMedida: json["requiere_medida"] as bool,
   );
+
 
   Map<String, dynamic> toMap() => {
     "id": id,

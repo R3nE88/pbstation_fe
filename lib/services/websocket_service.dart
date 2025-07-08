@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService with ChangeNotifier {
   static final WebSocketService _instance = WebSocketService._internal();
 
-  factory WebSocketService(ProductosServices productosService, ClientesServices clientesService) {
+  factory WebSocketService(ProductosServices productosService, ClientesServices clientesService, VentasServices ventasServices) {
     _instance.productosService = productosService;
     _instance.clientesService = clientesService;
+    _instance.ventasServices = ventasServices;
     return _instance;
   }
 
   WebSocketService._internal();
 
-  final String _socketUrl = 'ws://127.0.0.1:8000/ws'; // Cambia a tu IP si es necesario
+  final String _socketUrl = 'ws:${Constantes.baseUrl}ws'; // Cambia a tu IP si es necesario
   WebSocketChannel? _channel;
 
   bool isConnected = false;
@@ -22,6 +24,7 @@ class WebSocketService with ChangeNotifier {
 
   late ProductosServices productosService;
   late ClientesServices clientesService;
+  late VentasServices ventasServices;
 
   Timer? _reconnectTimer;
 
@@ -141,7 +144,25 @@ class WebSocketService with ChangeNotifier {
         }
         clientesService.updateACliente(id);
       }
-    } 
+    } else if (mensaje.startsWith('post-venta:')) {
+      final partes = mensaje.split(':');
+      if (partes.length > 1) {
+        final id = partes[1];
+        if (kDebugMode) {
+          print('→ Petición de cargar venta nueva: $id');
+        }
+        //TODO: clientesService.loadAVenta(id); 
+      }
+    } else if (mensaje.startsWith('delete-venta:')) {
+      final partes = mensaje.split(':');
+      if (partes.length > 1) {
+        final id = partes[1];
+        if (kDebugMode) {
+          print('→ Petición de eliminar venta: $id');
+        }
+        //TODO: clientesService.deleteAVenta(id);
+      }
+    }
   }
 
   void _scheduleReconnect() {

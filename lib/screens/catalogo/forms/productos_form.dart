@@ -1,7 +1,8 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/currency_input_formatter.dart';
+import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -94,7 +95,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
           descripcion: controllers['descripcion']!.text,
           tipo: tipoSeleccionado!,
           categoria: categoriaSeleccionada!,
-          precio: double.parse(controllers['precio']!.text.replaceAll('\$', '').replaceAll(',', '')),
+          precio: Decimal.parse(controllers['precio']!.text.replaceAll('\$', '').replaceAll(',', '')),
           requiereMedida: requiereMedida,
           inventariable: inventariable,
           imprimible: imprimible,
@@ -246,7 +247,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             readOnly: onlyRead,
                             canRequestFocus: !onlyRead,
                             controller: controllers['precio']!,
-                            inputFormatters: [ CurrencyInputFormatter() ],
+                            inputFormatters: [ MoneyInputFormatter() ],
                             decoration: InputDecoration(
                               labelText: 'Precio',
                               labelStyle: AppTheme.labelStyle,

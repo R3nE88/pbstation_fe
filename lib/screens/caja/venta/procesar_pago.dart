@@ -1,4 +1,3 @@
-/*
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +5,8 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
-import 'package:provider/provider.dart';
 
 class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
@@ -26,20 +23,19 @@ class ProcesarPago extends StatefulWidget {
 class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMixin {
   bool tipoEmpty = false;
   String? tipoTarjetaSeleccionado;
-  String? tipoEfectivo = 'pesos';
   late final List<DropdownMenuItem<String>> dropdownItemsTipo;
-  late final List<DropdownMenuItem<String>> dropdownItemsEfectivo;
   bool efectivo = true;
   bool tarjeta = false;
   bool transferencia = false;
   double efectivoImporte = 0;
+  double dolarImporte = 0;
   double tarjetaImporte = 0;
   double transferenciaImporte = 0;
   bool dropMenuFocusTarjeta = false;
-  bool dropMenuFocusEfectivo = false;
   bool dolares = false; 
   //Focus
-  final FocusNode focusEfectivo = FocusNode();
+  final FocusNode focusEfectivo = FocusNode(); 
+  final FocusNode focusDolar = FocusNode();
   final FocusNode focusTarjetaImporte = FocusNode();
   final FocusNode focusReferenciaTarjeta = FocusNode();
   final FocusNode focusDropDownMenuTarjeta = FocusNode();
@@ -51,6 +47,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final FocusNode focusRealizarPago = FocusNode();
   //Controllers
   final TextEditingController efectivoCtrl = TextEditingController();
+  final TextEditingController dolarCtrl = TextEditingController();
   final TextEditingController tarjetaImpCtrl = TextEditingController();
   final TextEditingController tarjetaRefCtrl = TextEditingController();
   final TextEditingController transImpCtrl = TextEditingController();
@@ -64,17 +61,13 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     return double.tryParse(entrada.replaceAll('MX\$', '').replaceAll('US\$', '').replaceAll('\$', '').replaceAll(',', '')) ?? 0;
   }
 
-
   void calcularAbono(){
     double total = widget.venta.total;
     double entrada = 0;
 
     if (efectivo){
-      if (!dolares){
-        entrada += efectivoImporte;
-      } else {
-        entrada += CalculosDinero().conversionADolar(efectivoImporte);
-      }
+      entrada += efectivoImporte;
+      entrada += CalculosDinero().conversionADolar(dolarImporte);
     }
     if (tarjeta){
       entrada += tarjetaImporte;
@@ -110,11 +103,8 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     Decimal total = Decimal.parse(widget.venta.total.toString());
     double totalImportes = 0;
     if (efectivo){
-      if (!dolares){
-        totalImportes += efectivoImporte;
-      } else {
-        totalImportes += CalculosDinero().conversionADolar(efectivoImporte);
-      }
+      totalImportes += efectivoImporte;
+      totalImportes += CalculosDinero().conversionADolar(dolarImporte);
     } if (tarjeta){
       totalImportes += tarjetaImporte;
     } if (transferencia){
@@ -143,9 +133,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   void initState() {
     super.initState();
     dropdownItemsTipo = Constantes.tarjeta.entries
-        .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
-        .toList();
-    dropdownItemsEfectivo = Constantes.efectivo.entries
         .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
         .toList();
 
@@ -188,87 +175,73 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               await Future.delayed(const Duration(milliseconds: milliseconds));
                               focusEfectivo.requestFocus(); 
                               if ( efectivoCtrl.text.isNotEmpty ){ calcularAbono(); }
+                              if ( dolarCtrl.text.isNotEmpty ){ calcularAbono(); }
                             } else {
                               calcularAbono();
-                              dropMenuFocusEfectivo = false;
                             }
                           },
                           title: 'Efectivo',
                           initiallyExpanded: true,
                           expandedContent: Padding(
                             padding: const EdgeInsets.only(
-                              top:0, bottom: 15, left: 12, right: 12
+                              top: 3, bottom: 15, left: 12, right: 12
                             ),
-                            child: Row(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: efectivoCtrl,
-                                    inputFormatters: [ dolares ? DolaresInputFormatter() : PesosInputFormatter() ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                    maxLength: 10,
-                                    autofocus: true,
-                                    focusNode: focusEfectivo,
-                                    canRequestFocus: efectivo,
-                                    decoration: InputDecoration(
-                                      labelText: 'Importe',
-                                      labelStyle: AppTheme.labelStyle,
-                                    ),
-                                    onChanged: (value) {
-                                      efectivoImporte = formatearEntrada(value);
-                                      calcularAbono();
-                                    },
-                                    onTap: () {
-                                      Future.delayed(Duration.zero, () {
-                                        efectivoCtrl.selection = TextSelection(
-                                          baseOffset: 0,
-                                          extentOffset: efectivoCtrl.text.length,
-                                        );
-                                      });
-                                    },
+                                TextFormField(
+                                  controller: efectivoCtrl,
+                                  inputFormatters: [ PesosInputFormatter() ],
+                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                  maxLength: 10,
+                                  autofocus: true,
+                                  focusNode: focusEfectivo,
+                                  canRequestFocus: efectivo,
+                                  decoration: InputDecoration(
+                                    labelText: 'Importe (MXN)',
+                                    labelStyle: AppTheme.labelStyle,
                                   ),
-                                ), const SizedBox(width: 8),
-
-                                Focus(
-                                  focusNode: focusDropDownMenuEfectivo, //focusDropDownMenu,
-                                  canRequestFocus: false,
-                                  onFocusChange: (value) {
-                                    setState(() {
-                                      dropMenuFocusEfectivo = value;
+                                  onChanged: (value) {
+                                    efectivoImporte = formatearEntrada(value);
+                                    calcularAbono();
+                                  },
+                                  onTap: () {
+                                    Future.delayed(Duration.zero, () {
+                                      efectivoCtrl.selection = TextSelection(
+                                        baseOffset: 0,
+                                        extentOffset: efectivoCtrl.text.length,
+                                      );
                                     });
                                   },
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        height: 50, width: 102.5,
-                                        decoration: BoxDecoration(
-                                          color: efectivo ? Colors.transparent : Colors.white10,
-                                          borderRadius: BorderRadius.circular(30),
-                                          border: Border.all(color: Colors.white, width: dropMenuFocusEfectivo ? 2 : 1)
-                                        ),
-                                      ),
-                                      efectivo ? CustomDropDown<String>(
-                                        isReadOnly: !efectivo,
-                                        value: tipoEfectivo,//tipoTarjetaSeleccionado,
-                                        hintText: 'Moneda',
-                                        empty: tipoEmpty,
-                                        items: dropdownItemsEfectivo,
-                                        onChanged: (val) => setState(() {
-                                          tipoEmpty = false;
-                                          tipoEfectivo = val!;
-                                          if (val=='pesos'){
-                                            dolares=false;
-                                          } else { dolares=true; }
-                                          efectivoCtrl.text = '';
-                                          efectivoImporte = 0;
-                                          calcularAbono();
-                                          focusEfectivo.requestFocus();
-                                        }),
-                                      ) : const SizedBox(),
-                                    ],
+                                ), const SizedBox(height: 10),
+
+                                TextFormField(
+                                  controller: dolarCtrl,
+                                  inputFormatters: [ DolaresInputFormatter()],
+                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                  maxLength: 10,
+                                  autofocus: true,
+                                  focusNode: focusDolar,
+                                  canRequestFocus: efectivo,
+                                  decoration: InputDecoration(
+                                    labelText: 'Importe (US)',
+                                    labelStyle: AppTheme.labelStyle,
                                   ),
-                                ),                                
+                                  onChanged: (value) {
+                                    dolarImporte = formatearEntrada(value);
+                                    calcularAbono();
+                                  },
+                                  onTap: () {
+                                    Future.delayed(Duration.zero, () {
+                                      dolarCtrl.selection = TextSelection(
+                                        baseOffset: 0,
+                                        extentOffset: dolarCtrl.text.length,
+                                      );
+                                    });
+                                  },
+                                ),
+
+                                
                               ],
                             ),
                           ),
@@ -583,4 +556,3 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     );
   }
 }
-*/

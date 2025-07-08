@@ -14,10 +14,11 @@ dependencies:
   web_socket_channel: ^2.4.0
   bitsdojo_window: ^0.1.5
   http: ^1.4.0
-  flutter_multi_formatter: ^2.13.7
+  #flutter_multi_formatter: ^2.13.7
   flutter_localization: ^0.3.2
 
   cupertino_icons: ^1.0.8
+  decimal: ^3.2.4
 
 dev_dependencies:
   flutter_test:
