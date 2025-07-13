@@ -7,8 +7,8 @@ import 'package:pbstation_frontend/models/usuarios.dart';
 
 class Login {
   final String _baseUrl = 'http:${Constantes.baseUrl}login';
-  static Usuarios? usuarioLogeado;
-
+  static late Usuarios usuarioLogeado;
+  static late bool admin;
   bool isLoading = false;
     
   Future<bool> login(String correo, String psw) async {
@@ -32,6 +32,9 @@ class Login {
       if (resp.statusCode == 200) {
         try {
           usuarioLogeado = Usuarios.fromJson(resp.body);
+          usuarioLogeado.id = json.decode(resp.body)["id"];
+
+          admin = usuarioLogeado.rol == "admin";
           success = true;
         } catch (e) {
           if (kDebugMode) {
@@ -52,5 +55,41 @@ class Login {
     }
 
     return success;
+  }
+
+  Future<bool> permisoDeAdmin(String correo, String psw) async {
+    final url = Uri.parse(_baseUrl);
+    try {
+      final resp = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "tkn": Env.tkn
+        },
+        body: jsonEncode({
+          "correo": correo,
+          "psw": psw,
+        }),
+      );
+
+      if (resp.statusCode == 200) {
+        try {
+          Usuarios user = Usuarios.fromJson(resp.body);
+          if (user.rol=="admin"){
+            return true;
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error parsing JSON: $e');
+          }
+        }
+      } 
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error during HTTP request: $e');
+      }
+    }
+
+    return false;
   }
 }

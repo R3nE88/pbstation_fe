@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -90,8 +91,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 15),
-            ElevatedButton(
+            SizedBox(width: Login.admin ? 15 : 0),
+            Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
                 builder: (_) => const ClientesFormDialog(),
@@ -111,7 +112,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   ),
                 ],
               ),
-            ),
+            ) : const SizedBox(),
           ],
         ),
       ],
@@ -204,7 +205,10 @@ class FilaCliente extends StatelessWidget {
     String mostrarCampo(String? valor) => capitalizarPrimeraLetra(valor ?? '-');
 
     void mostrarMenu(BuildContext context, Offset offset) async {
-      final seleccion = await showMenu(
+      
+      final String? seleccion;
+      if (Login.admin) {
+        seleccion = await showMenu(
         context: context,
         position: RelativeRect.fromLTRB(
           offset.dx,
@@ -247,6 +251,31 @@ class FilaCliente extends StatelessWidget {
           ),
         ],
       );
+      } else {
+        seleccion = await showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          offset.dx,
+          offset.dy,
+          offset.dx,
+          offset.dy,
+        ),
+        color: AppTheme.dropDownColor,
+        elevation: 2,
+        items: [
+          PopupMenuItem(
+            value: 'leer',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+        ],
+      );
+      }
 
       if (seleccion != null) {
         if (seleccion == 'leer') {

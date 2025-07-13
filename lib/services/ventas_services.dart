@@ -7,12 +7,12 @@ import 'package:pbstation_frontend/models/models.dart';
 
 class VentasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
-  List<Ventas> ventas = [];
+  //List<Ventas> ventas = [];
 
   bool isLoading = false;
 
-  Future<List<Ventas>> loadVentas() async { 
-    if (isLoading) { return ventas; }
+  /*Future<List<Ventas>> loadVentas() async { 
+    //if (isLoading) { return ventas; }
     
     isLoading = true;
 
@@ -39,14 +39,10 @@ class VentasServices extends ChangeNotifier{
     isLoading = false;
     notifyListeners();
     return ventas;
-  }
+  }*/
 
   Future<String> createVenta(Ventas venta) async {
     isLoading = true;
-
-    print('json!\n\n');
-    print(venta.toJson());
-    print("\n\nfin del json");
 
     try {
       final url = Uri.parse(_baseUrl);
@@ -61,11 +57,11 @@ class VentasServices extends ChangeNotifier{
         final nuevo = Ventas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        ventas.add(nuevo);
+        //ventas.add(nuevo);
         if (kDebugMode) {
           print('venta creada!');
         }
-        return 'exito';
+        return data['folio'];
       } else {
         debugPrint('Error al crear venta: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);

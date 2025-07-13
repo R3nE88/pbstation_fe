@@ -26,7 +26,7 @@ class ClientesServices extends ChangeNotifier{
   }
 
   Future<List<Clientes>> loadClientes() async { 
-    if (isLoading) { return clientes; }
+    //if (isLoading) { return clientes; }
     
     isLoading = true;
 

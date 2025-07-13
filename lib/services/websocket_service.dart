@@ -1,182 +1,148 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/services/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
+import 'package:pbstation_frontend/services/services.dart';
 
+/// Singleton WebSocket service con fábrica parametrizada, reconexión automática y handlers dinámicos.
 class WebSocketService with ChangeNotifier {
+  // Instancia singleton
   static final WebSocketService _instance = WebSocketService._internal();
 
-  factory WebSocketService(ProductosServices productosService, ClientesServices clientesService, VentasServices ventasServices) {
-    _instance.productosService = productosService;
-    _instance.clientesService = clientesService;
-    _instance.ventasServices = ventasServices;
+  /// Constructor de fábrica que inyecta dependencias y configura handlers.
+  factory WebSocketService(
+    ProductosServices productosService,
+    ClientesServices clientesService,
+    VentasServices ventasServices,
+    SucursalesServices sucursalesServices,
+    Configuracion configuracion,
+  ) {
+    // Guardamos servicios en la única instancia
+    _instance._productoSvc   = productosService;
+    _instance._clienteSvc    = clientesService;
+    _instance._ventaSvc      = ventasServices;
+    _instance._sucursalSvc   = sucursalesServices;
+    _instance._config        = configuracion;
+
+    // Configuramos handlers según los servicios
+    _instance._setupHandlers();
     return _instance;
   }
 
   WebSocketService._internal();
 
-  final String _socketUrl = 'ws:${Constantes.baseUrl}ws'; // Cambia a tu IP si es necesario
+  final String _socketUrl = 'ws:${Constantes.baseUrl}ws';
   WebSocketChannel? _channel;
-
-  bool isConnected = false;
-  List<String> mensajesRecibidos = [];
-
-  late ProductosServices productosService;
-  late ClientesServices clientesService;
-  late VentasServices ventasServices;
-
+  StreamSubscription? _subscription;
   Timer? _reconnectTimer;
 
+  bool isConnected = false;
+  final List<String> mensajesRecibidos = [];
+
+  // Servicios inyectados
+  late ProductosServices _productoSvc;
+  late ClientesServices _clienteSvc;
+  late VentasServices _ventaSvc;
+  late SucursalesServices _sucursalSvc;
+  late Configuracion _config;
+
+  // Map de comandos a handlers
+  final Map<String, void Function(String)> _handlers = {};
+
+  /// Inicializa el mapa de comandos
+  void _setupHandlers() {
+    _handlers
+      ..clear()
+      ..addAll({
+        'put-configuracion': (_ ) => _config.loadConfiguracion(),
+        'post-product':      (id) => _productoSvc.loadAProducto(id),
+        'put-product':       (id) => _productoSvc.updateAProducto(id),
+        'delete-product':    (id) => _productoSvc.deleteAProducto(id),
+        'post-cliente':      (id) => _clienteSvc.loadACliente(id),
+        'put-cliente':       (id) => _clienteSvc.updateACliente(id),
+        'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
+        'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
+        'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
+        // TODO: agrega 'post-venta', 'delete-venta', etc.
+      });
+  }
+
+  /// Abre la conexión WebSocket y comienza a escuchar.
   void conectar() {
     try {
       _channel = WebSocketChannel.connect(Uri.parse(_socketUrl));
       isConnected = true;
-      Future.microtask(() => notifyListeners());
-      if (kDebugMode) {
-        print('WebSocket conectado');
-      }
-
-      _channel!.stream.listen(
-        (message) {
-          if (kDebugMode) {
-            print('Mensaje recibido: $message');
-          }
-          mensajesRecibidos.add(message);
-          _procesarMensaje(message);
-        },
-        onDone: () {
-          if (kDebugMode) {
-            print('Conexión cerrada');
-          }
-          isConnected = false;
-          notifyListeners();
-          _scheduleReconnect();
-        },
-        onError: (error) {
-          if (kDebugMode) {
-            print('Error en WebSocket: $error');
-          }
-          isConnected = false;
-          notifyListeners();
-          _scheduleReconnect();
-        },
-      );
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error al conectar WebSocket: $e');
-      }
-      isConnected = false;
       notifyListeners();
-      _scheduleReconnect();
+
+      _subscription = _channel!.stream.listen(
+        _onMessage,
+        onDone:    _onDisconnected,
+        onError:   (_, __) => _onDisconnected(),
+      );
+
+      if (kDebugMode) print('WebSocket conectado');
+    } catch (e) {
+      if (kDebugMode) print('Error al conectar WebSocket: $e');
+      _onDisconnected();
     }
   }
 
-  void desconectar() {
-    _channel?.sink.close();
-    isConnected = false;
-    notifyListeners();
-    _reconnectTimer?.cancel();
+  /// Procesa mensajes entrantes usando el mapa de handlers.
+  void _onMessage(dynamic raw) {
+    final msg = raw.toString();
+    if (kDebugMode) print('Mensaje recibido: $msg');
+    mensajesRecibidos.add(msg);
+
+    final partes = msg.split(':');
+    final cmd = partes[0];
+    final arg = partes.length > 1 ? partes.sublist(1).join(':') : '';
+
+    final handler = _handlers[cmd];
+    if (handler != null) {
+      handler(arg);
+    } else if (kDebugMode) {
+      print('Comando no reconocido: $cmd');
+    }
   }
 
+  /// Maneja la desconexión y programa reconectar.
+  void _onDisconnected() {
+    if (kDebugMode) print('WebSocket desconectado');
+    isConnected = false;
+    notifyListeners();
+    _subscription?.cancel();
+    _scheduleReconnect();
+  }
+
+  /// Cierra la conexión y cancela reconexión.
+  void desconectar() {
+    _subscription?.cancel();
+    _channel?.sink.close();
+    _reconnectTimer?.cancel();
+    isConnected = false;
+    notifyListeners();
+  }
+
+  /// Envía mensaje si está conectado.
   void enviar(String mensaje) {
     if (isConnected) {
       _channel?.sink.add(mensaje);
-    } else {
-      if (kDebugMode) {
-        print('No se puede enviar el mensaje, WebSocket no está conectado');
-      }
+    } else if (kDebugMode) {
+      print('No está conectado; mensaje no enviado');
     }
   }
 
-  void _procesarMensaje(String mensaje) {
-    if (mensaje.startsWith('post-product:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de cargar el nuevo producto: $id');
-        }
-        productosService.loadAProducto(id);
-      }
-    } else if (mensaje.startsWith('delete-product:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de eliminar el producto: $id');
-        }
-        productosService.deleteAProducto(id);
-      }
-    } else if (mensaje.startsWith('put-product:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de recargar el productos: $id');
-        }
-        productosService.updateAProducto(id);
-      }
-    } else if (mensaje.startsWith('post-cliente:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de cargar el cliente nuevo: $id');
-        }
-        clientesService.loadACliente(id);
-      }
-    } else if (mensaje.startsWith('delete-cliente:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de eliminar el cliente: $id');
-        }
-        clientesService.deleteACliente(id);
-      }
-    } else if (mensaje.startsWith('put-cliente:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de recargar el cliente: $id');
-        }
-        clientesService.updateACliente(id);
-      }
-    } else if (mensaje.startsWith('post-venta:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de cargar venta nueva: $id');
-        }
-        //TODO: clientesService.loadAVenta(id); 
-      }
-    } else if (mensaje.startsWith('delete-venta:')) {
-      final partes = mensaje.split(':');
-      if (partes.length > 1) {
-        final id = partes[1];
-        if (kDebugMode) {
-          print('→ Petición de eliminar venta: $id');
-        }
-        //TODO: clientesService.deleteAVenta(id);
-      }
-    }
-  }
-
+  /// Programa reintento de conexión tras un retraso fijo.
   void _scheduleReconnect() {
-    if (_reconnectTimer == null || !_reconnectTimer!.isActive) {
-      _reconnectTimer = Timer(Duration(seconds: 5), () {
-        if (kDebugMode) {
-          print('Intentando reconectar WebSocket...');
-        }
-        conectar();
-      });
-    }
+    if (_reconnectTimer?.isActive ?? false) return;
+    const delay = 5;
+    _reconnectTimer = Timer(Duration(seconds: delay), () {
+      if (kDebugMode) print('Reintentando conexión en \$delay s');
+      conectar();
+    });
   }
 
-  bool isAppBlocked() {
-    return !isConnected;
-  }
+  /// Indica si la app debe bloquearse.
+  bool isAppBlocked() => !isConnected;
 }

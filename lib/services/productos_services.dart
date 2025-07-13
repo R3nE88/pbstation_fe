@@ -26,7 +26,7 @@ class ProductosServices extends ChangeNotifier{
   }
 
   Future<List<Productos>> loadProductos() async { 
-    if (isLoading) { return productos; }
+    //if (isLoading) { return productos; }
     
     isLoading = true;
 
@@ -46,7 +46,6 @@ class ProductosServices extends ChangeNotifier{
       filteredProductos = productos;
 
     } catch (e) {
-      print('error: $e');
       isLoading = false;
       notifyListeners();
       return [];

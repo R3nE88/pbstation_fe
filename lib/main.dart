@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -15,7 +16,15 @@ void main() async {
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
   final ventasServices = VentasServices();
-  final websocketService = WebSocketService(productosService, clientesServices, ventasServices);
+  final configuracion = Configuracion();
+  final sucursalesServices = SucursalesServices();
+  final websocketService = WebSocketService(
+    productosService, 
+    clientesServices, 
+    ventasServices, 
+    sucursalesServices,
+    configuracion, 
+  );
 
   runApp(
     MultiProvider(
@@ -23,6 +32,8 @@ void main() async {
         ChangeNotifierProvider.value(value: productosService),
         ChangeNotifierProvider.value(value: clientesServices),
         ChangeNotifierProvider.value(value: ventasServices),
+        ChangeNotifierProvider.value(value: sucursalesServices),
+        ChangeNotifierProvider.value(value: configuracion),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
@@ -33,9 +44,9 @@ void main() async {
   );
 
   doWhenWindowReady(() {
-    /*const initialSize = Size(400, 640);
+    const initialSize = Size(400, 640);
     appWindow.size = initialSize;
-    appWindow.minSize = initialSize;*/
+    appWindow.minSize = initialSize;
     appWindow.show();
   });
 }
@@ -52,12 +63,19 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    final websocketService = Provider.of<WebSocketService>(context, listen: false);
-    websocketService.conectar(); // Conecta al arrancar la app
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final websocketService = Provider.of<WebSocketService>(
+        context,
+        listen: false,
+      );
+      websocketService.conectar();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+
+
     return Builder(
       builder: (context) {
         final changeTheme = Provider.of<ChangeTheme>(context);
@@ -65,7 +83,7 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'PBStation',
-          initialRoute: 'home',//'login',
+          initialRoute: 'login',
           routes: appRoutes,
           theme: changeTheme.isDarkTheme ? AppTheme.customThemeDark : AppTheme.customTheme,
           scrollBehavior: const MaterialScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}),

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "pbstation_frontend" "\0"
+            VALUE "CompanyName", "com.r3ne88" "\0"
+            VALUE "FileDescription", "printerboy_pos" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "pbstation_frontend" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "pbstation_frontend.exe" "\0"
-            VALUE "ProductName", "pbstation_frontend" "\0"
+            VALUE "InternalName", "printerboy_pos" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 com.r3ne88. All rights reserved." "\0"
+            VALUE "OriginalFilename", "printerboy_pos.exe" "\0"
+            VALUE "ProductName", "printerboy_pos" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

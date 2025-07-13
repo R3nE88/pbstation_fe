@@ -28,6 +28,8 @@ class _VentaScreenState extends State<VentaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final suc = Provider.of<SucursalesServices>(context, listen: false);
+
 
     void agregarPestania() {
       if (VentasStates.pestanias >= maximoPestanias) { return; }
@@ -44,7 +46,8 @@ class _VentaScreenState extends State<VentaScreen> {
       });
     }
 
-    void rebuild() async{
+    void rebuild(index) async{
+      VentasStates.clearTab(index);
       indexResta = 10;
       setState(() {});
       await Future.delayed(const Duration(milliseconds: 235));
@@ -98,15 +101,72 @@ class _VentaScreenState extends State<VentaScreen> {
 
             ],
           ),
-          KeyedSubtree(
+          suc.sucursalActual!=null ? KeyedSubtree(
             key: ValueKey<int>(VentasStates.indexSelected),
             child: VentaForm(
               key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
               index: VentasStates.indexSelected, 
-              //productosServices: productosServices,
+              rebuild: rebuild,
             ),
-          ),
+          ) 
+          : 
+          const AdvertenciaSucursal(),
         ],
+      ),
+    );
+  }
+}
+
+class AdvertenciaSucursal extends StatelessWidget {
+  const AdvertenciaSucursal({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        color: AppTheme.containerColor1,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Esta terminal aún no tiene una sucursal asignada.",
+                  style: AppTheme.tituloClaro,
+                  textScaler: TextScaler.linear(1.5),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ), 
+            Transform.translate(
+              offset: Offset(0, -5),
+              child: Text(
+                "Asigne una para poder continuar.",
+                style: AppTheme.tituloClaro,
+                textScaler: TextScaler.linear(1.5),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 10),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                children: <TextSpan>[
+                  TextSpan(text: 'Acceda a  ', style: AppTheme.subtituloPrimario),
+                  TextSpan(text: 'Catálogo', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
+                  TextSpan(text: ' > ', style: AppTheme.subtituloPrimario,),
+                  TextSpan(text: 'Sucursales', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
+                  TextSpan(text: '  con una cuenta de administradory asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -162,8 +222,8 @@ class Pestania extends StatelessWidget {
     if (seleccion != null) {
       if (seleccion == 'limpiar') {
         // Lógica para limpiar
-        VentasStates.clearTab(index);
-        rebuild!();
+        
+        rebuild!(index);
       } else if (seleccion == 'cerrar') {
         // Lógica para eliminar
 

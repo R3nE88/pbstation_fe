@@ -1,6 +1,6 @@
 class Constantes{
   static const String baseUrl = '//127.0.0.1:8000/';
-
+  static const esCaja = true; //Tomar valores de config.json (por instalacion)
   static const double anchoMaximo = 25; //TODO: Agregar esto a ajustes?
   static const double altoMaximo = 25; //Agregar esto a ajustes? para modificar el valor
 
@@ -28,8 +28,8 @@ class Constantes{
     "credito": "Tarjeta de Crédito"
   };
 
-  static const Map<String, String> efectivo = {
+  /*static const Map<String, String> efectivo = {
     "pesos": "Pesos  ",
     "dolar": "Dolares"
-  };
+  };*/
 }

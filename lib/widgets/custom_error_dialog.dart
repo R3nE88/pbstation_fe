@@ -4,16 +4,17 @@ import 'package:pbstation_frontend/theme/theme.dart';
 class CustomErrorDialog extends StatelessWidget {
   const CustomErrorDialog({
     super.key,
-    required this.respuesta,
+    required this.respuesta, required this.titulo,
   });
 
+  final String titulo;
   final String respuesta;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: const Center(child: Text('Hubo un problema al crear', textScaler: TextScaler.linear(0.85))),
+      title: Center(child: Text(titulo, textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

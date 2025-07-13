@@ -1,7 +1,12 @@
 import 'package:decimal/decimal.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
 
 class CalculosDinero {
+
+  Decimal leerIva(){
+    return Decimal.parse((Configuracion.iva/100).toString());
+  }
 
   Map<String, dynamic> calcularSubtotal (Decimal productoPrecio, int productoCantidad, int descuento){
     Decimal subtotal = productoPrecio * Decimal.fromInt(productoCantidad);
@@ -9,7 +14,7 @@ class CalculosDinero {
     Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = subtotal-descuentoAplicado;
 
-    Decimal iva = totalSinIva * Decimal.parse('0.08').round(scale: 2); //TODO: 8% de iva
+    Decimal iva = totalSinIva * leerIva().round(scale: 2);
     Decimal total = (totalSinIva + iva).round(scale: 0); 
 
     return {
@@ -26,7 +31,7 @@ class CalculosDinero {
     Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = totalMedida-descuentoAplicado;
 
-    Decimal iva = totalSinIva * Decimal.parse('0.08').round(scale: 2); //TODO: 8% de iva
+    Decimal iva = totalSinIva * leerIva().round(scale: 2);
     Decimal total = (totalSinIva + iva).round(scale: 0); 
 
     return {
@@ -59,15 +64,17 @@ class CalculosDinero {
 
   double conversionADolar(double importe){
     Decimal imp = Decimal.parse(importe.toString());
-    Decimal precioDolar = Decimal.parse("18.5");
+    Decimal precioDolar = Decimal.parse(Configuracion.dolar.toString());
     Decimal total = (imp * precioDolar).round(scale: 2);
     return total.toDouble();
   }
 
   Decimal calcularConIva(Decimal precio){
-    Decimal iva = Decimal.parse(precio.toString()) * Decimal.parse('0.08').round(scale: 3);//TODO: 8% de iva
+    Decimal iva = Decimal.parse(precio.toString()) * leerIva().round(scale: 3);
     return iva + precio; 
   }
+
+
 }
 
 //8000 tabloides round0 = 80,006.00

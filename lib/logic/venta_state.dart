@@ -4,6 +4,7 @@ import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/clientes.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
 import 'package:pbstation_frontend/models/productos.dart';
+import 'package:pbstation_frontend/services/login.dart';
 
 class VentasStates {
   static List<VentaTab> tabs = List.generate(3, (_) => VentaTab());
@@ -47,6 +48,7 @@ class VentaTab {
   TextEditingController totalDescuentoController;
   TextEditingController totalIvaController;
   TextEditingController totalController;
+  bool permisoDeAdmin;
 
   VentaTab()
       : clienteSelected = null,
@@ -67,7 +69,8 @@ class VentaTab {
         subtotalController = TextEditingController(text: Formatos.pesos.format(0)),
         totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
         totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
-        totalController = TextEditingController(text: Formatos.pesos.format(0));
+        totalController = TextEditingController(text: Formatos.pesos.format(0)),
+        permisoDeAdmin = Login.admin;
   
 
   void dispose() {
@@ -107,5 +110,9 @@ class VentaTab {
     totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0));
     totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
     totalController = TextEditingController(text: Formatos.pesos.format(0));
+    permisoDeAdmin = Login.admin;
   }
 }
+
+//Login.usuarioLogeado.rol == "admin";
+//bool? permiso = await mostrarDialogoPermiso(context);

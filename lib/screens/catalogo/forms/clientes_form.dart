@@ -56,10 +56,11 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         await showDialog(
           context: context,
           builder: (context) => CustomErrorDialog(
-            respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.\nNo se permiten datos parciales.",
+            titulo: 'No se permiten datos parciales.',
+            respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.",
           ),
         );
-        if (!context.mounted) return;
+        if (!mounted) return;
         Navigator.pop(context);
         return;
       }
@@ -93,7 +94,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     } else {
       showDialog(
         context: context,
-        builder: (context) => CustomErrorDialog(respuesta: respuesta),
+        builder: (context) => CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
       );
     }
   }
@@ -193,6 +194,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                         labelText: 'Nombre',
                         autoFocus: !onlyRead && widget.cliEdit == null,
                         readOnly:  onlyRead,
+                        maxLength: 40,
                         validator: (value) => validateRequiredField(value, 'el nombre'),
                       )
                     ), const SizedBox(width: 10),
@@ -213,6 +215,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     controller: controllers['correo']!,
                     labelText: 'Correo Electronico',
                     readOnly: onlyRead,
+                    maxLength: 30,
                     validator: (value) => validateRequiredField(value, 'el correo electronico'),
                   ),
                 ), const SizedBox(height: 15),
@@ -225,6 +228,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                         controller: controllers['razon']!,
                         labelText: 'Razon Social',
                         readOnly: onlyRead,
+                        maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
@@ -232,6 +236,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                         controller: controllers['rfc']!,
                         labelText: 'RFC',
                         readOnly: onlyRead,
+                        maxLength: 30,
                       ),
                     ),
                   ],
@@ -266,7 +271,8 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       child: buildTextFormField(
                         controller: controllers['direccion']!,
                         labelText: 'Calle',
-                        readOnly: onlyRead,   
+                        readOnly: onlyRead,
+                        maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
@@ -276,6 +282,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                         labelText: 'No. Exterior',
                         readOnly: onlyRead,
                         maxLength: 6,
+                        
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(

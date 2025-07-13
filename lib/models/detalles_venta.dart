@@ -32,15 +32,15 @@ class DetallesVenta {
 
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
     id: json["id"]?.toString(),
-    productoId: json["producto_id"].toString(),
-    cantidad: int.parse(json["cantidad"]),
-    ancho: Decimal.parse(json["ancho"]),
-    alto: Decimal.parse(json["alto"]),
-    comentarios: json["comentarios"].toString(),
-    descuento: int.parse(json["descuento"]),
-    descuentoAplicado: Decimal.parse(json["descuento_aplicado"]),
-    iva: Decimal.parse(json["iva"]),
-    subtotal: Decimal.parse(json["subtotal"]),
+    productoId: json["producto_id"],
+    cantidad: json["cantidad"],
+    ancho: Decimal.parse(json["ancho"].toString()),
+    alto: Decimal.parse(json["alto"].toString()),
+    comentarios: json["comentarios"],
+    descuento: json["descuento"],
+    descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
+    iva: Decimal.parse(json["iva"].toString()),
+    subtotal: Decimal.parse(json["subtotal"].toString()),
   );
 
   Map<String, dynamic> toMap() => {

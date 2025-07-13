@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/login.dart';
+import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final config = Provider.of<Configuracion>(context);
+    if (config.init == false){
+      config.loadConfiguracion();
+      Provider.of<SucursalesServices>(context, listen: false);
+    }
+
     return Stack(
       children: [
         Scaffold(
@@ -19,56 +28,46 @@ class LoginScreen extends StatelessWidget {
         Scaffold(
           backgroundColor: Colors.transparent,
           body: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
 
               const BarraW(),
 
               Flexible(
                 flex: 4,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 40),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Transform.rotate(
-                        angle: 6.4,
-                        child: Text(
-                          '(Logo y nombre provisional)', 
-                          style: AppTheme.subtituloSecundario.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                            color: AppTheme.colorContraste.withAlpha(190)
-                          ),
-                          textAlign: TextAlign.center,
-                          textScaler: TextScaler.linear(0.85),
-                        ),
-                      ),
-                      Text(
-                        'PrinterBoy\nPunto de Venta', 
-                        style: AppTheme.subtituloSecundario.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 3,
-                          color: AppTheme.colorContraste
-                        ),
-                        textAlign: TextAlign.center,
-                        textScaler: TextScaler.linear(2.3),
-                      ),
-                    ],
-                  ),
+                child: Image.asset(
+                  AppTheme.isDarkTheme ? 'assets/images/logo_darkmode.png' : 'assets/images/logo_normal.png',
+                  height: 200,
                 )
               ),
 
               Flexible(
-                flex: 9,
+                flex: 5,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical:8.0, horizontal: 90),
-                  child: LoginFields(),
+                  child: config.loaded 
+                  ? LoginFields() 
+                  :  SizedBox(
+                    height: double.infinity,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.letraClara
+                      ),
+                    ),
+                  ),
                 )
-              ),
+              ), 
+              
 
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text('data', style: AppTheme.subtituloConstraste),
+                child: Text(
+                  'PrinterBoy Punto De Venta\nv0.0001', 
+                  style: AppTheme.subtituloConstraste.copyWith(
+                    letterSpacing: 1
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
 
             ],
@@ -113,7 +112,7 @@ class LoginFields extends StatefulWidget {
 }
 
 class _LoginFieldsState extends State<LoginFields> {
-  final TextEditingController _codigo = TextEditingController();
+  final TextEditingController _email = TextEditingController();
   final TextEditingController _psw = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>(); 
   bool loading = false;
@@ -125,7 +124,7 @@ class _LoginFieldsState extends State<LoginFields> {
         height: double.infinity,
         child: Center(
           child: CircularProgressIndicator(
-            color: AppTheme.backgroundColor
+            color: AppTheme.letraClara
           ),
         ),
       );
@@ -137,14 +136,15 @@ class _LoginFieldsState extends State<LoginFields> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           TextFormField(
-            controller: _codigo,
+            controller: _email,
             autofocus: true,
             style: AppTheme.textFormField, 
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
-              hintText: 'Usuario',
+              hintText: 'Correo / Telefono',
               counterText: ""
             ),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: (value){
               if (value == null || value.isEmpty) {
                 return 'Campo obligatorio';
@@ -166,6 +166,7 @@ class _LoginFieldsState extends State<LoginFields> {
               hintText: 'Contraseña',
               counterText: ""
             ),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: (value){
               if (value == null || value.isEmpty) {
                 return 'Campo obligatorio';
@@ -211,7 +212,7 @@ class _LoginFieldsState extends State<LoginFields> {
       });
 
       final login = Login();
-      bool success = await login.login(_codigo.text, _psw.text);
+      bool success = await login.login(_email.text, _psw.text);
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(

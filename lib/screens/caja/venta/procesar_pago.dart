@@ -13,10 +13,13 @@ import 'package:provider/provider.dart';
 class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
     super.key, 
-    required this.venta
+    required this.venta,
+    required this.rebuild, required this.index
   });
 
   final Ventas venta;
+  final Function rebuild;
+  final int index;
 
   @override
   State<ProcesarPago> createState() => _ProcesarPagoState();
@@ -35,6 +38,8 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   double transferenciaImporte = 0;
   bool dropMenuFocusTarjeta = false;
   bool dolares = false; 
+  bool porPagar = true;
+  bool hayCambio = false;
   //Focus
   final FocusNode focusEfectivo = FocusNode(); 
   final FocusNode focusDolar = FocusNode();
@@ -59,11 +64,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final TextEditingController adeudoCtrl = TextEditingController(); //Total
   final TextEditingController saldoCtrl = TextEditingController(); //PorPagar
 
-  bool porPagar = true;
-  bool hayCambio = false;
-
-  static const int milliseconds = 300;
-
+  //Metodos
   double formatearEntrada(String entrada){
     return double.tryParse(entrada.replaceAll('MX\$', '').replaceAll('US\$', '').replaceAll('\$', '').replaceAll(',', '')) ?? 0;
   }
@@ -117,10 +118,16 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     Decimal total = Decimal.parse(widget.venta.total.toString());
     double totalImportes =  calcularImporte();
 
-    //Si se supera el importe limitar a total
+    //Si se supera la entrada al total limitar a total
     if (entrada > total.toDouble()){
       abonarCtrl.text = Formatos.pesos.format(total.toDouble());
       entrada = total.toDouble();
+    }
+
+    //Si se supera la entrada al importe limitar a importe
+    if (entrada > totalImportes){
+      abonarCtrl.text = Formatos.pesos.format(totalImportes.toDouble());
+      entrada = totalImportes.toDouble();
     }
 
     if (totalImportes-entrada != 0){
@@ -158,7 +165,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    
+    const int milliseconds = 300;
 
     return AlertDialog(
       backgroundColor: AppTheme.containerColor2,
@@ -168,7 +175,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
         curve: Curves.easeInOut,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-
           child: FocusTraversalGroup(
             policy: WidgetOrderTraversalPolicy(),
             child: SingleChildScrollView(
@@ -524,7 +530,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     canRequestFocus: false,
                                     readOnly: true,
                                     decoration: porPagar 
-                                    ? AppTheme.inputDecorationWaring
+                                    ? AppTheme.inputDecorationWaringGrave
                                     : AppTheme.inputDecorationSeccess,
                                     style: const TextStyle(fontSize: 17),
                                   )
@@ -555,10 +561,53 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                         
                         ElevatedButton(
                           focusNode: focusRealizarPago,
-                          onPressed: ()async{
+                          onPressed: () async{
+
+                            //tipo de pago
+                            String tipoDePago = '';
+                            if (efectivo) { tipoDePago += ',efectivo'; } 
+                            if (tarjeta) {  tipoDePago += ',tarjeta'; } 
+                            if (transferencia) { tipoDePago += ',transferencia'; } 
+                            tipoDePago = tipoDePago.replaceFirst(',', '');
+
+                            bool continuar = true; //Adevertencia de adeudo
+                            if (porPagar==true){
+                              await showDialog(context: context, builder: (context) { 
+                                continuar = false;
+                                Decimal quedaPorPagar = Decimal.parse(formatearEntrada(saldoCtrl.text).toString());
+                                String format = Formatos.pesos.format(quedaPorPagar.toDouble());
+                                FocusNode boton = FocusNode();
+                                boton.requestFocus();
+                                return AlertDialog(
+                                  backgroundColor: AppTheme.containerColor1,
+                                  title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: TextScaler.linear(0.85))),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      focusNode: boton,
+                                      onPressed: () {
+                                        continuar = true;
+                                        //TODO: agregar adeudo al cliente
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Continuar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+                                    )
+                                  ],
+                                );
+                              });
+                            } //Termina la advertencia
+
+
+                            if (!continuar) return;
+                            
+                            if (!context.mounted) return;
                             final ventasServices = Provider.of<VentasServices>(context, listen: false);
                             Ventas nuevaVenta = Ventas(
-                              folio: 'TODO:', //TODO: Crear folio
                               clienteId: widget.venta.clienteId,
                               usuarioId: widget.venta.usuarioId,
                               sucursalId: widget.venta.sucursalId,
@@ -566,7 +615,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               fechaEntrega: widget.venta.fechaEntrega,
                               detalles: widget.venta.detalles,
                               fechaVenta: DateTime.now().toString(),
-                              tipoPago: 'TODO:', //TODO: tipo de pago
+                              tipoPago: tipoDePago,
                               comentariosVenta: widget.venta.comentariosVenta,
                               subTotal: widget.venta.subTotal,
                               descuento: widget.venta.descuento,
@@ -577,8 +626,24 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               cambio: Decimal.parse(formatearEntrada(cambioCtrl.text).toString()),    
                               liquidado: formatearEntrada(abonarCtrl.text) - widget.venta.total.toDouble() == 0
                             );
-                            await ventasServices.createVenta(nuevaVenta);                    
-                          }, child: Text('Realizar Pago')
+                            
+                            String folio = await ventasServices.createVenta(nuevaVenta);  
+
+                            if (!context.mounted) return;
+                            Navigator.pop(context, true);
+                            
+                            await showDialog(
+                              context: context,
+                              builder: (context) => VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(saldoCtrl.text).toDouble())
+                            ).then((value) {
+                              //Resetear pantalla de venta principal
+                              widget.rebuild(widget.index);
+                            },);
+
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+
+                          }, child: const Text('Realizar Pago')
                         )
                       ],
                     ),
@@ -589,6 +654,72 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class VentaRealizadaDialog extends StatelessWidget {
+  const VentaRealizadaDialog({
+    super.key, required this.venta, required this.folio, required this.adeudo,
+  });
+
+  final Ventas venta;
+  final String folio;
+  final double adeudo;
+
+  @override
+  Widget build(BuildContext context) {
+    FocusNode boton = FocusNode();
+    boton.requestFocus();
+
+    //TODO: imprimir ticket, abrir caja
+    
+    return AlertDialog(
+      backgroundColor: AppTheme.containerColor1,
+      title: Center(child: Text('Gracias por La Compra!', textScaler: TextScaler.linear(0.85))),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          //Text('Agregar el cambio xd, imprimir ticket, abrir caja', textAlign: TextAlign.center),
+          formField('Recibido:', venta.recibido!.toDouble(), AppTheme.inputDecorationSeccess), 
+          const SizedBox(height: 15),
+          formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
+          const SizedBox(height: 15),
+          venta.cambio!.toDouble() == 0 
+          ? formField('Adeudo:',  adeudo, AppTheme.inputDecorationWaringGrave)
+          : formField('Cambio:', venta.cambio!.toDouble(), AppTheme.inputDecorationWaring),           
+        ],
+      ),
+      actions: [
+        TextButton(
+          focusNode: boton,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+        )
+      ],
+    );
+  }
+
+  Row formField(String mensaje, double value, InputDecoration decoration) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text('$mensaje  ', style: AppTheme.subtituloPrimario),
+        SizedBox(
+          height: 30,
+          width: 150,
+          child: TextFormField(
+            controller: TextEditingController(text: Formatos.pesos.format(value)),
+            canRequestFocus: false,
+            inputFormatters: [ MoneyInputFormatter() ],
+            readOnly: true,
+            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+            maxLength: 10,
+            decoration: decoration
+          )
+        )
+      ],
     );
   }
 }

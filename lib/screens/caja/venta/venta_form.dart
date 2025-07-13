@@ -5,9 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/busqueda_field.dart';
@@ -16,9 +19,10 @@ import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class VentaForm extends StatefulWidget {
-  const VentaForm({super.key, required this.index});
+  const VentaForm({super.key, required this.index, required this.rebuild});
 
   final int index;
+  final Function rebuild;
 
   @override
   State<VentaForm> createState() => _VentaFormState();
@@ -63,6 +67,8 @@ class _VentaFormState extends State<VentaForm> {
   FocusNode f8FocusNode = FocusNode();
   late final bool Function(KeyEvent event) _keyHandler;
   bool canFocus = true;
+
+  late bool permisoDeAdmin;
 
   //Metodos
   Decimal formatearEntrada(String entrada){
@@ -194,6 +200,8 @@ class _VentaFormState extends State<VentaForm> {
   }
 
   void procesarPago() async{
+    if(!Configuracion.esCaja) return;
+    
     if (detallesVenta.isEmpty || clienteSelected==null){
       if (clienteSelected==null){setState((){clienteError = true;});}
       if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
@@ -208,8 +216,8 @@ class _VentaFormState extends State<VentaForm> {
         return ProcesarPago(
           venta: Ventas(
             clienteId: clienteSelected!.id!,
-            usuarioId: 'usuarioId', //TODO: usuario logeado
-            sucursalId: 'sucursalId', //TODO: Sucursal
+            usuarioId: Login.usuarioLogeado.id!,
+            sucursalId: Provider.of<SucursalesServices>(context).sucursalActualID!,
             pedidoPendiente: !entregaInmediata, 
             fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
             detalles: detallesVenta,
@@ -219,7 +227,9 @@ class _VentaFormState extends State<VentaForm> {
             iva: formatearEntrada(totalIvaController.text),
             total: formatearEntrada(totalController.text), 
             liquidado: null,
-          )
+          ),
+          rebuild: widget.rebuild, 
+          index: widget.index,
         );
         
       } 
@@ -233,6 +243,8 @@ class _VentaFormState extends State<VentaForm> {
   @override
   void initState() {
     super.initState();
+    permisoDeAdmin = VentasStates.tabs[widget.index].permisoDeAdmin;
+
     clienteSelected = VentasStates.tabs[widget.index].clienteSelected;
     entregaInmediata = VentasStates.tabs[widget.index].entregaInmediata;
     fechaEntrega = VentasStates.tabs[widget.index].fechaEntrega;
@@ -281,8 +293,6 @@ class _VentaFormState extends State<VentaForm> {
   Widget build(BuildContext context) {    
     final productosServices = Provider.of<ProductosServices>(context);
     final clientesServices = Provider.of<ClientesServices>(context);
-
-    print('build venta');
     
     InputDecoration totalDecoration = AppTheme.inputDecorationCustom.copyWith(
       enabledBorder: OutlineInputBorder(
@@ -712,42 +722,108 @@ class _VentaFormState extends State<VentaForm> {
                           children: [
                             const Text('   % Descuento', style: AppTheme.subtituloPrimario),
                             const SizedBox(height: 2),
-                            Focus(
-                              canRequestFocus: false,
-                              onFocusChange: (hasFocus) {
-                                if (!hasFocus) {
-                                  if (descuentoController.text.isEmpty) {
-                                    descuentoController.text = '0';
-                                    calcularSubtotal();
-                                  }
-                                  descuentoController.text = '${descuentoController.text.replaceAll('%', '')}%';
-                                } else {
-                                  descuentoController.text = '';
-                                  calcularSubtotal();
-                                }
-                              },
-                              child: TextFormField(
-                                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                maxLength: 4,
-                                controller: descuentoController,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Focus(
+                                    canRequestFocus: false,
+                                    onFocusChange: (hasFocus) {
+                                      if (!hasFocus) {
+                                        if (descuentoController.text.isEmpty) {
+                                          descuentoController.text = '0';
+                                          calcularSubtotal();
+                                        }
+                                        descuentoController.text = '${descuentoController.text.replaceAll('%', '')}%';
+                                      } else {
+                                        descuentoController.text = '';
+                                        calcularSubtotal();
+                                      }
+                                    },
+                                    child: TextFormField(
+                                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                      canRequestFocus: permisoDeAdmin,
+                                      readOnly: !permisoDeAdmin,
+                                      maxLength: 4,
+                                      controller: descuentoController,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      decoration: permisoDeAdmin 
+                                      ? InputDecoration(
+                                        isDense: true,
+                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                      )
+                                      : InputDecoration(
+                                        isDense: true,
+                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: AppTheme.letraClara
+                                          ),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            bottomLeft: Radius.circular(30),
+                                          )
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: AppTheme.letraClara,
+                                            width: 2
+                                          ),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            bottomLeft: Radius.circular(30),
+                                          )
+                                        )
+                                      ),
+                                      onChanged: (value) {
+                                        if (descuentoController.text.isEmpty) {
+                                          descuentoController.text = '0';
+                                        }
+                                        if (int.parse(descuentoController.text) > 100) {
+                                          descuentoController.text = '100';
+                                        } 
+                                        calcularSubtotal();
+                                      },
+                                    ),
+                                  ),
                                 ),
-                                onChanged: (value) {
-                                  if (descuentoController.text.isEmpty) {
-                                    descuentoController.text = '0';
-                                  }
-                                  if (int.parse(descuentoController.text) > 100) {
-                                    descuentoController.text = '100';
-                                  } 
-                                  calcularSubtotal();
-                                },
-                                
-                              ),
+                                permisoDeAdmin
+                                ? const SizedBox()
+                                : Container(
+                                  height: 40,
+                                  width: 42,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(30),
+                                      bottomRight: Radius.circular(30),
+                                    )
+                                  ),
+                                  child: FocusScope(
+                                    canRequestFocus: false,
+                                    child: IconButton(
+                                      onPressed: () async{
+                                        bool? permiso = await mostrarDialogoPermiso(context);
+                                        if (permiso == true) {
+                                          setState(() {
+                                            permisoDeAdmin=true;
+                                            VentasStates.tabs[widget.index].permisoDeAdmin=true;
+                                          });
+                                        }
+                                      }, 
+                                      icon: Transform.translate(
+                                        offset: Offset(-2.5, 0),
+                                        child: Icon(
+                                          Icons.lock, 
+                                          color: AppTheme.containerColor2, 
+                                          size: 24
+                                        ),
+                                      )
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -761,17 +837,16 @@ class _VentaFormState extends State<VentaForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('   IVA (8%)', style: AppTheme.subtituloPrimario),
+                            Text('   IVA (${Configuracion.iva}%)', style: AppTheme.subtituloPrimario),
                             const SizedBox(height: 2),
                             SizedBox(
                               height: 40,
-                              child: TextFormField( //TODO: iva
+                              child: TextFormField(
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                 maxLength: 3,
                                 controller: ivaController,
                                 canRequestFocus: false,
                                 readOnly: true,
-                                //initialValue: '\$0.00',
                               ),
                             )
                           ],
@@ -996,7 +1071,7 @@ class _VentaFormState extends State<VentaForm> {
                             Expanded(
                               child: Column(
                                 children: [
-                                  ElevatedButton(
+                                  Configuracion.esCaja ? ElevatedButton(
                                     focusNode: f8FocusNode,
                                     onPressed: (){
                                       procesarPago();
@@ -1005,7 +1080,7 @@ class _VentaFormState extends State<VentaForm> {
                                     child: Text('      Procesar Pago (f8)     ', 
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
-                                  ),
+                                  ) : const SizedBox(),
                                   const SizedBox(height: 10),
                                   ElevatedButton(
                                     onPressed: (){},

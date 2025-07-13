@@ -3,13 +3,14 @@ import 'package:pbstation_frontend/theme/theme.dart';
 
 class CustomNavigationButton extends StatefulWidget {
   const CustomNavigationButton({
-    super.key, required this.label, required this.icon, required this.selected, required this.first
+    super.key, required this.label, required this.icon, required this.selected, required this.first, required this.inhabilitado
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final bool first;
+  final bool inhabilitado;
 
   @override
   State<CustomNavigationButton> createState() => _CustomNavigationButtonState();
@@ -22,6 +23,12 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.inhabilitado){
+      color = Colors.white24;
+      colorInactive = Colors.white24;
+      colorActive = Colors.white38;
+    }
+
     return Padding(
       padding: EdgeInsets.only(left: 13, top: widget.first ? 0 : 15),
       child: MouseRegion(
@@ -47,7 +54,7 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(widget.icon, color: widget.selected ? AppTheme.primario1 : color, size: 23),
+                  child: Icon(!widget.inhabilitado ? widget.icon : Icons.lock, color: widget.selected ? AppTheme.primario1 : color, size: 23),
                 )
               ),
               const SizedBox(width: 10),

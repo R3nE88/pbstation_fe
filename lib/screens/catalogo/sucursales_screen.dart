@@ -1,46 +1,27 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/logic/input_formatter.dart';
-import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/screens/catalogo/forms/productos_form.dart';
+import 'package:pbstation_frontend/models/sucursales.dart';
+import 'package:pbstation_frontend/screens/catalogo/forms/sucursales_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-class ProductosScreen extends StatefulWidget {
-  const ProductosScreen({super.key});
+class SucursalesScreen extends StatefulWidget {
+  const SucursalesScreen({super.key});
 
   @override
-  State<ProductosScreen> createState() => _ProductosScreenState();
+  State<SucursalesScreen> createState() => _SucursalesScreenState();
 }
 
-class _ProductosScreenState extends State<ProductosScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  Timer? _debounce;
+class _SucursalesScreenState extends State<SucursalesScreen> {
 
-  @override
+@override
   void initState() {
     super.initState();
-    final productosServices = Provider.of<ProductosServices>(context, listen: false);
-    productosServices.loadProductos();
-
-    _searchController.addListener(() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 600), () {
-        final query = _searchController.text.toLowerCase();
-        productosServices.filtrarProductos(query);
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _debounce?.cancel();
-    super.dispose();
+    
+    final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
+    sucursalesServices.loadSucursales();
   }
 
   @override
@@ -57,7 +38,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
           child: Column(
             children: [
               _buildHeader(context),
-              const SizedBox(height: 10),
+              const SizedBox(height: 10),      
               Expanded(child: _buildTable()),
             ],
           ),
@@ -67,61 +48,76 @@ class _ProductosScreenState extends State<ProductosScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final sucursalesServices = Provider.of<SucursalesServices>(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Productos & Servicios',
+          'Sucursales',
           style: AppTheme.tituloClaro,
           textScaler: TextScaler.linear(1.7),
         ),
-        Row(
-          children: [
-            SizedBox(
-              height: 34,
-              width: 300,
-              child: Tooltip(
-                waitDuration: Durations.short4,
-                message: 'codigo o descripcion',
-                child: TextFormField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
-                    hintText: 'Buscar Producto',
-                  ),
-                ),
-              ),
+
+        Transform.translate(
+          offset: Offset(0, -2),
+          child: Container(
+            height: 40, 
+            //width: 300,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: AppTheme.tablaColorHeader,
             ),
-            SizedBox(width: Login.admin ? 15 : 0),
-            Login.admin ? ElevatedButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => const ProductoFormDialog(),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Transform.translate(
-                    offset: const Offset(-8, 1),
-                    child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
+                  Text(
+                    sucursalesServices.sucursalActual != null ? 'Sucursal Asignada:  '
+                    :'Aún no asignas una sucursal a esta terminal', 
+                    style: AppTheme.subtituloPrimario
                   ),
                   Text(
-                    'Agregar Producto',
-                    style: TextStyle(
-                      color: AppTheme.containerColor1,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                    sucursalesServices.sucursalActual != null ? sucursalesServices.sucursalActual!.nombre
+                    :'', 
+                    style: AppTheme.tituloClaro.copyWith(letterSpacing: 1.7, fontSize: 18)
+                  )
                 ],
               ),
-            ) : const SizedBox(),
-          ],
+            ),
+          ),
         ),
+
+        ElevatedButton(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const SucursalesFormDialog(),
+          ),
+          child: Row(
+            children: [
+              Transform.translate(
+                offset: const Offset(-8, 1),
+                child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
+              ),
+              Text(
+                'Agregar Sucursal',
+                style: TextStyle(
+                  color: AppTheme.containerColor1,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        )
       ],
     );
   }
 
   Widget _buildTable() {
-    return Consumer<ProductosServices>(
+    return Consumer<SucursalesServices>(
       builder: (context, servicios, _) {
         return Column(
           children: [
@@ -136,11 +132,11 @@ class _ProductosScreenState extends State<ProductosScreen> {
               ),
               child: Row(
                 children: const [
-                  Expanded(child: Text('Codigo', textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: Text('Descripcion', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Categoria', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Precio/Unidad', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Sucursal', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Correo', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Direccion', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Ciudad', textAlign: TextAlign.center)),
                 ],
               ),
             ),
@@ -148,16 +144,16 @@ class _ProductosScreenState extends State<ProductosScreen> {
               child: Container(
                 color: AppTheme.tablaColorFondo,
                 child: ListView.builder(
-                  itemCount: servicios.filteredProductos.length,
-                  itemBuilder: (context, index) => FilaProducto(
-                    producto: servicios.filteredProductos[index],
+                  itemCount: servicios.sucursales.length,
+                  itemBuilder: (context, index) => FilaSucursales(
+                    sucursal: servicios.sucursales[index],
                     index: index,
-                    onDelete: () async {
+                    /*onDelete: () async {
                       Loading.displaySpinLoading(context);
-                      await servicios.deleteProducto(servicios.filteredProductos[index].id!);
+                      await servicios.deleteSucursal(servicios.sucursales[index].id!);
                       if (!context.mounted) return;
                       Navigator.pop(context);
-                    },
+                    },*/
                   ),
                 ),
               ),
@@ -175,7 +171,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 children: [
                   const Spacer(),
                   Text(
-                    '  Total: ${servicios.filteredProductos.length}   ',
+                    '  Total: ${servicios.sucursales.length}   ',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -188,20 +184,23 @@ class _ProductosScreenState extends State<ProductosScreen> {
   }
 }
 
-class FilaProducto extends StatelessWidget {
-  const FilaProducto({
+class FilaSucursales extends StatelessWidget {
+  const FilaSucursales({
     super.key,
-    required this.producto,
+    required this.sucursal,
     required this.index,
-    required this.onDelete,
   });
 
-  final Productos producto;
+  final Sucursales sucursal;
   final int index;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final partes = sucursal.localidad.split(',');
+    String ciudad = partes[0].trim();
+    String estado = partes[1].trim();
+    String Pais = partes[2].trim();
+    String localidad = '$ciudad, ${estado.substring(0, 3)}, ${Pais.substring(0, 3)}';
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
@@ -217,6 +216,16 @@ class FilaProducto extends StatelessWidget {
         color: AppTheme.dropDownColor,
         elevation: 2,
         items: [
+          PopupMenuItem(
+            value: 'asignar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_business, color: AppTheme.letraClara, size: 17),
+                Text('  Asignar Sucursal a Terminal', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
           PopupMenuItem(
             value: 'leer',
             child: Row(
@@ -276,23 +285,31 @@ class FilaProducto extends StatelessWidget {
       }
 
       if (seleccion != null) {
-        if (seleccion == 'leer') {
+        if (seleccion == 'asignar') {
+          // Lógica para leer
+          if(!context.mounted){ return; }
+          Loading.displaySpinLoading(context);
+          final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
+          await sucursalesServices.establecerSucursal(sucursal);
+          if(!context.mounted){ return; }
+          Navigator.pop(context);
+        } else if (seleccion == 'leer') {
           // Lógica para leer
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto, onlyRead: true),
+            builder: (_) => SucursalesFormDialog(sucEdit: sucursal, onlyRead: true),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto),
+            builder: (_) => SucursalesFormDialog(sucEdit: sucursal),
           );
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          onDelete();
+          //onDelete();
         }
       }
     }
@@ -307,11 +324,11 @@ class FilaProducto extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(producto.codigo.toString(), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.tipo[producto.tipo]!, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.categoria[producto.categoria]!, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.nombre, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.correo, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.telefono, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.direccion, textAlign: TextAlign.center)),
+            Expanded(child: Text(localidad, textAlign: TextAlign.center)),
           ],
         ),
       ),

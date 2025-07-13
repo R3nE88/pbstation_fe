@@ -44,12 +44,6 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          AppTheme.isDarkTheme ? 'assets/images/logo_darkmode.png' : 'assets/images/logo_normal.png',
-                          height: 300,
-                          //color: AppTheme.colorContraste.withAlpha(150),
-                        ),
-                        const SizedBox(height: 15),
                         Text(
                           '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
                           textScaler: TextScaler.linear(1.5),

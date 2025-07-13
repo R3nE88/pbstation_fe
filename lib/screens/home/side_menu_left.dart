@@ -99,7 +99,8 @@ class SideMenuLeft extends StatelessWidget {
           icon: icon,
           label: label[0].toUpperCase() + label.substring(1),
           selected: selected, 
-          first: index==0,
+          first: index==0, 
+          inhabilitado: false,
         ),
       ),
     );

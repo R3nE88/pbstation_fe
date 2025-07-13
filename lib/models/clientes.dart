@@ -29,6 +29,18 @@ class Clientes {
   int? noInt;
   String? colonia;
   String? localidad;
+  /*
+  List<Adeudos> adeudos;
+
+  Adeudos adeudo = Adeudos(
+    fecha: fecha del adeudo
+    adeudo: cuanto dinero se adeuda
+    usuario_id: que usuario permitio el adeudo
+    venta_id: cual es la venta que debe
+    pagado: si ya se pago el adeudo
+  );
+  
+  }*/
 
 
   factory Clientes.fromJson(String str) => Clientes.fromMap(json.decode(str));

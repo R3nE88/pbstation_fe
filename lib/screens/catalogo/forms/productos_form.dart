@@ -22,6 +22,9 @@ class ProductoFormDialog extends StatefulWidget {
 
 class _ProductoFormDialogState extends State<ProductoFormDialog> {
   bool onlyRead = false;
+  String titulo = 'Agregar nuevo Producto';
+  late final List<DropdownMenuItem<String>> dropdownItemsTipo;
+  late final List<DropdownMenuItem<String>> dropdownItemsCat;
   final formKey = GlobalKey<FormState>();
   final Map<String, TextEditingController> controllers = {
     'clave': TextEditingController(),
@@ -38,9 +41,77 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   String? tipoSeleccionado;
   String? categoriaSeleccionada;
 
-  String titulo = 'Agregar nuevo Producto';
-  late final List<DropdownMenuItem<String>> dropdownItemsTipo;
-  late final List<DropdownMenuItem<String>> dropdownItemsCat;
+  //METODOS
+  Future<void> guardarProducto() async {
+    if (tipoSeleccionado==null) tipoEmpty = true;
+    if (categoriaSeleccionada==null) categoriaEmpty = true;
+    if (categoriaEmpty || tipoEmpty) setState(() {});
+    if (formKey.currentState!.validate() && !tipoEmpty && !categoriaEmpty) {
+
+      final productosServices = Provider.of<ProductosServices>(context, listen: false);
+      Loading.displaySpinLoading(context);      
+
+      Productos producto = Productos(
+        codigo: int.parse(controllers['clave']!.text),
+        descripcion: controllers['descripcion']!.text,
+        tipo: tipoSeleccionado!,
+        categoria: categoriaSeleccionada!,
+        precio: Decimal.parse(controllers['precio']!.text.replaceAll('MX\$', '').replaceAll(',', '')),
+        requiereMedida: requiereMedida,
+        inventariable: inventariable,
+        imprimible: imprimible,
+        valorImpresion: int.tryParse(controllers['valorImpresion']!.text) ?? 0,
+      );
+      
+      late String respuesta;
+      if (widget.prodEdit==null){
+        respuesta = await productosServices.createProducto(producto);
+      } else {
+        String id = widget.prodEdit!.id!;
+        respuesta = await productosServices.updateProducto(producto, id);
+      }      
+      if (!mounted) return;
+      Navigator.pop(context); // Cierra el loading      
+      if (!context.mounted) return;
+      if (respuesta == 'exito') {
+        Navigator.pop(context); // Cierra el formulario o vuelve atrás
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+        );
+      }
+    }
+  }
+
+  Widget buildTextFormField({
+    required TextEditingController controller,
+    required String labelText,
+    bool autoFocus = false,
+    bool readOnly = false,
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return IgnorePointer(
+      ignoring: readOnly,
+      child: TextFormField(
+        autofocus: autoFocus,
+        controller: controller,
+        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+        readOnly: readOnly,
+        canRequestFocus: !readOnly,
+        maxLength: maxLength,
+        inputFormatters: inputFormatters,
+        decoration: InputDecoration(
+          labelText: labelText,
+          labelStyle: AppTheme.labelStyle,
+        ),
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+      ),
+    );
+  }
   
 
   @override
@@ -83,80 +154,6 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    
-    Future<void> guardarProducto() async {
-      if (tipoSeleccionado==null) tipoEmpty = true;
-      if (categoriaSeleccionada==null) categoriaEmpty = true;
-      if (categoriaEmpty || tipoEmpty) setState(() {});
-      if (formKey.currentState!.validate() && !tipoEmpty && !categoriaEmpty) {
-
-        final productosServices = Provider.of<ProductosServices>(context, listen: false);
-        Loading.displaySpinLoading(context);      
-
-        Productos producto = Productos(
-          codigo: int.parse(controllers['clave']!.text),
-          descripcion: controllers['descripcion']!.text,
-          tipo: tipoSeleccionado!,
-          categoria: categoriaSeleccionada!,
-          precio: Decimal.parse(controllers['precio']!.text.replaceAll('MX\$', '').replaceAll(',', '')),
-          requiereMedida: requiereMedida,
-          inventariable: inventariable,
-          imprimible: imprimible,
-          valorImpresion: int.tryParse(controllers['valorImpresion']!.text) ?? 0,
-        );
-        
-        late String respuesta;
-        if (widget.prodEdit==null){
-          respuesta = await productosServices.createProducto(producto);
-        } else {
-          String id = widget.prodEdit!.id!;
-          respuesta = await productosServices.updateProducto(producto, id);
-        }      
-        if (!context.mounted) return;
-        Navigator.pop(context); // Cierra el loading      
-        if (!context.mounted) return;
-        if (respuesta == 'exito') {
-          Navigator.pop(context); // Cierra el formulario o vuelve atrás
-        } else {
-          showDialog(
-            context: context,
-            builder: (context) {
-              return CustomErrorDialog(respuesta: respuesta);
-            },
-          );
-        }
-      }
-    }
-
-    Widget buildTextFormField({
-      required TextEditingController controller,
-      required String labelText,
-      bool autoFocus = false,
-      bool readOnly = false,
-      int? maxLength,
-      List<TextInputFormatter>? inputFormatters,
-      String? Function(String?)? validator,
-    }) {
-      return IgnorePointer(
-        ignoring: readOnly,
-        child: TextFormField(
-          autofocus: autoFocus,
-          controller: controller,
-          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-          readOnly: readOnly,
-          canRequestFocus: !readOnly,
-          maxLength: maxLength,
-          inputFormatters: inputFormatters,
-          decoration: InputDecoration(
-            labelText: labelText,
-            labelStyle: AppTheme.labelStyle,
-          ),
-          validator: validator,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-        ),
-      );
-    }
-
     return FocusScope(
       canRequestFocus: !onlyRead,
       child: AlertDialog(
@@ -251,6 +248,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             canRequestFocus: !onlyRead,
                             controller: controllers['precio']!,
                             inputFormatters: [ PesosInputFormatter() ],
+                            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                            maxLength: 12,
                             decoration: InputDecoration(
                               labelText: 'Precio',
                               labelStyle: AppTheme.labelStyle,
@@ -358,6 +357,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                               inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
                               readOnly: imprimible==false?true : onlyRead, //si esta marcado el checkbox habilitar
                               maxLines: 1,
+                              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                              maxLength: 3,
                               textAlign: TextAlign.center,
                               decoration: InputDecoration(
                                 isDense: true,

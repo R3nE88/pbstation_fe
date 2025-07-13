@@ -1,111 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
+import 'package:pbstation_frontend/services/login.dart';
 
 class Modulos{
   static String moduloSelected = 'inicio';
   static int subModuloSelected = 0;
 
+  static bool deshabilitar(String value){
+    if (Login.usuarioLogeado.rol == "admin") return false;
+    if (value == 'usuarios' || value == 'sucursales'){
+      return true;
+    }
+    return false;
+  }
+
   static const Map<String, List<String>> modulos = {
-    'Caja': [
-      'Venta',
-      'Caja',
-      'Historial\nde Ventas'
+    'caja': [
+      'venta',
+      'caja',
+      'historial\nde ventas' 
     ],
-    'Catalogo': [
-      'Productos y\nServicios',
-      'Usuarios',
-      'Clientes',
-      'Sucursales'
+    'catalogo': [
+      'productos y\nservicios',
+      'usuarios', //Solo administrador
+      'clientes',
+      'sucursales' //Solo administrador
     ],
-    'Cotizaciones': [
-      'Cotizaciones',
+    'cotizaciones': [
+      'cotizaciones',
     ],
-    'Inventario':[
-      'Inventario'
+    'inventario':[
+      'inventario'
     ],
-    'Impresoras':[
-      'Impresoras',
+    'impresoras':[
+      'impresoras',
     ],
-    'Pedidos': [
-      'Produccion',
-      'Historial',
-      'Cuentas por\nCobrar'
+    'pedidos': [
+      'produccion',
+      'historial',
+      'cuentas por\ncobrar'
     ],
-    'Reportes':[
-      'Reportes'
+    'reportes':[
+      'reportes'
     ],
-    'Preferencias' : [
-      'Preferencias'
+    'preferencias' : [
+      'preferencias'
     ]
   };
 
   static const Map<String, List<IconData>> modulosIconos = {
-    'Caja' : [
+    'caja' : [
       Icons.point_of_sale,
       Icons.sell,
       Icons.attach_money,
       Icons.history
     ],
-    'Catalogo' : [
+    'catalogo' : [
       Icons.menu_book,
       Icons.design_services,
       Icons.supervised_user_circle_sharp,
       Icons.people,
       Icons.house_siding
     ],
-    'Cotizaciones' : [
+    'cotizaciones' : [
       Icons.request_quote,
     ],
-    'Inventario' : [
+    'inventario' : [
       Icons.inventory
     ],
-    'Impresoras': [
+    'impresoras': [
       Icons.print
     ],
-    'Pedidos' : [
+    'pedidos' : [
       Icons.check_box_outlined,
       Icons.production_quantity_limits,
       Icons.history,
       Icons.monetization_on_outlined
     ],
-    'Reportes' : [
+    'reportes' : [
       Icons.list_alt
     ],
-    'Preferencias' : [
+    'preferencias' : [
       Icons.settings
     ]
   };
 
   static const Map<String, List<Widget>> modulosScreens = {
-    'Caja': [
+    'caja': [
       VentaScreen(),
       CajaScreen(),
       SizedBox(), //Falta
     ],
-    'Catalogo': [
+    'catalogo': [
       ProductosScreen(),
       SizedBox(), //Falta
       ClientesScreen(),
-      SizedBox(), //Falta
+      SucursalesScreen(), //Falta
     ],
-    'Cotizaciones': [
+    'cotizaciones': [
       CotizacionesScreen()
     ],
-    'Inventario' : [
+    'inventario' : [
       SizedBox(), //Falta
     ],
-    'Impresoras' : [
+    'impresoras' : [
       SizedBox(), //Falta
     ],
-    'Pedidos' : [
+    'pedidos' : [
       SizedBox(), //Falta
       SizedBox(), //Falta
       SizedBox(), //Falta
     ],
-    'Reportes' : [
+    'reportes' : [
       SizedBox(), //Falta
     ],
-    'Preferencias' : [
+    'preferencias' : [
       SettingsScreen()
     ]
 

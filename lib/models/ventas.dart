@@ -28,7 +28,7 @@ class Ventas {
   });
 
   String? id; //id automatico de la base de datos
-  String? folio; //Folio generado por el sistema
+  String? folio; //Folio generado por el sistema backend
   String clienteId; //Cliente que hizo la compra
   String usuarioId; //usuario que realizo la venta
   String sucursalId; //Sucursal donde se hizo lo venta
