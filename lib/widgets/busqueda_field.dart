@@ -290,7 +290,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                             : "$secondary - ${widget.displayStringForOption(option)}";
         
                         return Container(
-                          color: isHighlighted ? AppTheme.tablaColor2 : AppTheme.tablaColor1,
+                          color: isHighlighted ? AppTheme.secundario1 : AppTheme.primario1,
                           child: ListTile(
                             title: Text(
                               displayText,

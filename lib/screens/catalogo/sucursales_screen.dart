@@ -142,7 +142,7 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
             ),
             Expanded(
               child: Container(
-                color: AppTheme.tablaColorFondo,
+                color: servicios.sucursales.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
                 child: ListView.builder(
                   itemCount: servicios.sucursales.length,
                   itemBuilder: (context, index) => FilaSucursales(
@@ -324,11 +324,11 @@ class FilaSucursales extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(sucursal.nombre, textAlign: TextAlign.center)),
-            Expanded(child: Text(sucursal.correo, textAlign: TextAlign.center)),
-            Expanded(child: Text(sucursal.telefono, textAlign: TextAlign.center)),
-            Expanded(child: Text(sucursal.direccion, textAlign: TextAlign.center)),
-            Expanded(child: Text(localidad, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.nombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.correo, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.telefono, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursal.direccion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(localidad, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),

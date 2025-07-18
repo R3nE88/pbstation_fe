@@ -14,6 +14,7 @@ class DetallesVenta {
     required this.descuentoAplicado,
     required this.iva,
     required this.subtotal,
+    this.cotizacionPrecio
   });
 
   String? id;
@@ -26,6 +27,7 @@ class DetallesVenta {
   Decimal descuentoAplicado;
   Decimal iva;
   Decimal subtotal;
+  Decimal? cotizacionPrecio; ///Agregar a base de datos
 
   factory DetallesVenta.fromJson(String str) => DetallesVenta.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -41,6 +43,7 @@ class DetallesVenta {
     descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
     iva: Decimal.parse(json["iva"].toString()),
     subtotal: Decimal.parse(json["subtotal"].toString()),
+    cotizacionPrecio: Decimal.parse(json["cotizacion_precio"].toString()),
   );
 
   Map<String, dynamic> toMap() => {
@@ -54,5 +57,6 @@ class DetallesVenta {
     "descuento_aplicado": descuentoAplicado,
     "iva": iva,
     "subtotal": subtotal,
+    "cotizacion_precio": cotizacionPrecio
   };
 }

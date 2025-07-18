@@ -9,8 +9,32 @@ class ProductosServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
+  late Map<String, Productos> _productosPorId;
 
   bool isLoading = false;
+
+
+  void cargarProductos(List<Productos> nuevosProductos) {
+    productos = nuevosProductos;
+    _productosPorId = {
+      for (var p in productos) p.id!: p
+    };
+    notifyListeners();
+  }
+  Productos? obtenerProductoPorId(String id) {
+    return _productosPorId[id];
+  }
+  String descripcionConCantidad(String productoId, int cantidad) {
+    final producto = _productosPorId[productoId];
+    final descripcion = producto?.descripcion ?? 'Desconocido';
+    return '$descripcion: $cantidad';
+  }
+  String obtenerDetallesComoTexto(List<DetallesVenta> detalles) {
+    return detalles.map((detalle) {
+      return descripcionConCantidad(detalle.productoId, detalle.cantidad);
+    }).join(' - ');
+  }
+
 
   void filtrarProductos(String query) {
     query = query.toLowerCase().trim();
@@ -25,9 +49,7 @@ class ProductosServices extends ChangeNotifier{
     notifyListeners();
   }
 
-  Future<List<Productos>> loadProductos() async { 
-    //if (isLoading) { return productos; }
-    
+  Future<List<Productos>> loadProductos() async {   
     isLoading = true;
 
     try {
@@ -52,7 +74,7 @@ class ProductosServices extends ChangeNotifier{
     }
     
     isLoading = false;
-    notifyListeners();
+    cargarProductos(productos);
     return productos;
   }
 

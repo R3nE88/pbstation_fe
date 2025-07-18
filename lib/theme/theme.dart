@@ -86,15 +86,15 @@ class AppTheme{
 
   static Color get tablaColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 115, 115, 115)
-      : const Color.fromARGB(255, 70, 165, 255);
+      : const Color.fromARGB(255, 228, 228, 228);
     
   static Color get tablaColor2 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 103, 103, 103)
-      : const Color.fromARGB(255, 56, 154, 246);
+      : const Color.fromARGB(255, 204, 204, 204);
 
-  static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
+  /*static Color get tablaColorFondo => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 57, 57, 57)
-      : const Color.fromARGB(255, 120, 190, 255);
+      : const Color.fromARGB(255, 239, 242, 243);*/
 
   static bool get isDarkTheme => changeThemeInstance?.isDarkTheme == true
       ? true
@@ -109,7 +109,7 @@ class AppTheme{
       : Color.fromRGBO(235, 16, 0, 1);
   
   static TextStyle get subtituloConstraste => TextStyle(
-    color: changeThemeInstance?.isDarkTheme == true ? letraClara : letraOscura
+    color: changeThemeInstance?.isDarkTheme == true ? letraClara : const Color.fromARGB(255, 38, 38, 38)
   );
 
   static const TextStyle subtituloPrimario = TextStyle(

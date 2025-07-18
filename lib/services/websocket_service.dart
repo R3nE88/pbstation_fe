@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/services.dart';
 
 /// Singleton WebSocket service con fábrica parametrizada, reconexión automática y handlers dinámicos.
@@ -16,14 +15,16 @@ class WebSocketService with ChangeNotifier {
     ClientesServices clientesService,
     VentasServices ventasServices,
     SucursalesServices sucursalesServices,
+    CotizacionesServices cotizacionesServices,
     Configuracion configuracion,
   ) {
     // Guardamos servicios en la única instancia
-    _instance._productoSvc   = productosService;
-    _instance._clienteSvc    = clientesService;
-    _instance._ventaSvc      = ventasServices;
-    _instance._sucursalSvc   = sucursalesServices;
-    _instance._config        = configuracion;
+    _instance._productoSvc     = productosService;
+    _instance._clienteSvc      = clientesService;
+    _instance._ventaSvc        = ventasServices;
+    _instance._sucursalSvc     = sucursalesServices;
+    _instance._cotizacionesSvc = cotizacionesServices;
+    _instance._config          = configuracion;
 
     // Configuramos handlers según los servicios
     _instance._setupHandlers();
@@ -45,6 +46,7 @@ class WebSocketService with ChangeNotifier {
   late ClientesServices _clienteSvc;
   late VentasServices _ventaSvc;
   late SucursalesServices _sucursalSvc;
+  late CotizacionesServices _cotizacionesSvc;
   late Configuracion _config;
 
   // Map de comandos a handlers
@@ -64,29 +66,49 @@ class WebSocketService with ChangeNotifier {
         'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
+        'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
         // TODO: agrega 'post-venta', 'delete-venta', etc.
       });
   }
 
   /// Abre la conexión WebSocket y comienza a escuchar.
-  void conectar() {
-    try {
-      _channel = WebSocketChannel.connect(Uri.parse(_socketUrl));
-      isConnected = true;
-      notifyListeners();
+/// Abre la conexión WebSocket y comienza a escuchar.
+void conectar() {
+  try {
+    _channel = WebSocketChannel.connect(Uri.parse(_socketUrl));
+    isConnected = false; // No marcar como conectado inmediatamente
+    notifyListeners();
 
-      _subscription = _channel!.stream.listen(
-        _onMessage,
-        onDone:    _onDisconnected,
-        onError:   (_, __) => _onDisconnected(),
-      );
+    _subscription = _channel!.stream.listen(
+      _onMessage,
+      onDone: () {
+        if (kDebugMode) print('WebSocket cerrado por el servidor.');
+        _onDisconnected();
+      },
+      onError: (error, stackTrace) {
+        if (kDebugMode) print('Error en WebSocket: $error');
+        _onDisconnected();
+      },
+    );
 
-      if (kDebugMode) print('WebSocket conectado');
-    } catch (e) {
-      if (kDebugMode) print('Error al conectar WebSocket: $e');
-      _onDisconnected();
-    }
+    if (kDebugMode) print('Intentando conectar WebSocket...');
+
+    // Validar conexión después de un breve retraso
+    Future.delayed(Duration(seconds: 2), () {
+      if (_channel != null && _channel!.sink != null) {
+        isConnected = true;
+        notifyListeners();
+        if (kDebugMode) print('WebSocket conectado');
+      } else {
+        if (kDebugMode) print('No se pudo establecer la conexión WebSocket.');
+        _onDisconnected();
+      }
+    });
+  } catch (e) {
+    if (kDebugMode) print('Error al conectar WebSocket: $e');
+    _onDisconnected();
   }
+}
 
   /// Procesa mensajes entrantes usando el mapa de handlers.
   void _onMessage(dynamic raw) {

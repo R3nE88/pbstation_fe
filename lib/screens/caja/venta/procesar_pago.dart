@@ -675,13 +675,34 @@ class VentaRealizadaDialog extends StatelessWidget {
 
     //TODO: imprimir ticket, abrir caja
     
+    Row formField(String mensaje, double value, InputDecoration decoration) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('$mensaje  ', style: AppTheme.subtituloPrimario),
+          SizedBox(
+            height: 30,
+            width: 150,
+            child: TextFormField(
+              controller: TextEditingController(text: Formatos.pesos.format(value)),
+              canRequestFocus: false,
+              inputFormatters: [ MoneyInputFormatter() ],
+              readOnly: true,
+              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+              maxLength: 10,
+              decoration: decoration
+            )
+          )
+        ],
+      );
+    }
+    
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       title: Center(child: Text('Gracias por La Compra!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          //Text('Agregar el cambio xd, imprimir ticket, abrir caja', textAlign: TextAlign.center),
           formField('Recibido:', venta.recibido!.toDouble(), AppTheme.inputDecorationSeccess), 
           const SizedBox(height: 15),
           formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
@@ -696,28 +717,6 @@ class VentaRealizadaDialog extends StatelessWidget {
           focusNode: boton,
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
-        )
-      ],
-    );
-  }
-
-  Row formField(String mensaje, double value, InputDecoration decoration) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Text('$mensaje  ', style: AppTheme.subtituloPrimario),
-        SizedBox(
-          height: 30,
-          width: 150,
-          child: TextFormField(
-            controller: TextEditingController(text: Formatos.pesos.format(value)),
-            canRequestFocus: false,
-            inputFormatters: [ MoneyInputFormatter() ],
-            readOnly: true,
-            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-            maxLength: 10,
-            decoration: decoration
-          )
         )
       ],
     );

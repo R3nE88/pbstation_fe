@@ -146,7 +146,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
             ),
             Expanded(
               child: Container(
-                color: AppTheme.tablaColorFondo,
+                color: servicios.filteredProductos.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
                 child: ListView.builder(
                   itemCount: servicios.filteredProductos.length,
                   itemBuilder: (context, index) => FilaProducto(
@@ -307,11 +307,11 @@ class FilaProducto extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(producto.codigo.toString(), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(producto.descripcion, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.tipo[producto.tipo]!, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.categoria[producto.categoria]!, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), textAlign: TextAlign.center)),
+            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),

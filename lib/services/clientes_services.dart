@@ -9,9 +9,25 @@ class ClientesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
+  late Map<String, Clientes> _clientesPorId;
 
   bool isLoading = false;
 
+
+  //Esto es para mapear y buscar clientes//
+  void cargarClientes(List<Clientes> nuevosClientes) {
+    clientes = nuevosClientes;
+    _clientesPorId = {
+      for (var c in clientes) c.id!: c
+    };
+    notifyListeners();
+  }
+  String obtenerNombreClientePorId(String id) {
+    return _clientesPorId[id]?.nombre ?? '¡no se encontró el cliente!';
+  } //Aqui termina  para mapear y buscar clientes//
+
+
+  //Para SearchField
   void filtrarClientes(String query) {
     query = query.toLowerCase().trim();
     if (query.isEmpty) {
@@ -23,13 +39,12 @@ class ClientesServices extends ChangeNotifier{
       }).toList();
     }
     notifyListeners();
-  }
+  }//Aqui termina para SearchField
 
+
+  //Metodos HTTPs
   Future<List<Clientes>> loadClientes() async { 
-    //if (isLoading) { return clientes; }
-    
     isLoading = true;
-
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
@@ -52,7 +67,7 @@ class ClientesServices extends ChangeNotifier{
     }
     
     isLoading = false;
-    notifyListeners();
+    cargarClientes(clientes);
     return clientes;
   }
 

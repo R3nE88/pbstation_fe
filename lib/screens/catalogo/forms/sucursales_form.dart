@@ -73,6 +73,16 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     return null;
   }
 
+  String? validateRequiredField2(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor ingrese $fieldName';
+    }
+    if (value.length < 3) {
+      return 'Ingresa al menos 3 caracteres';
+    }
+    return null;
+  }
+
   Widget buildTextFormField({
     required TextEditingController controller,
     required String labelText,
@@ -81,6 +91,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     int? maxLength,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    required AutovalidateMode autovalidateMode,
   }) {
     return IgnorePointer(
       ignoring: readOnly,
@@ -147,6 +158,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                         readOnly:  onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'el nombre'),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       )
                     ), const SizedBox(width: 10),
                     Expanded(
@@ -158,6 +170,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         validator: (value) => validateRequiredField(value, 'el telefono'),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       ),
                     ),
                   ],
@@ -172,6 +185,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                         readOnly:  onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'el correo'),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       )
                     ), const SizedBox(width: 10),
                     Expanded(
@@ -182,6 +196,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                         readOnly:  onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'la direccion'),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                       )
                     ),
                   ],
@@ -189,33 +204,36 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: buildTextFormField( //TODO: minimo 3 digitos
+                      child: buildTextFormField(
                         controller: controllers['ciudad']!, 
                         labelText: 'Ciudad',
                         autoFocus: !onlyRead && widget.sucEdit == null,
                         readOnly:  onlyRead,
                         maxLength: 30,
-                        validator: (value) => validateRequiredField(value, 'el correo'),
+                        validator: (value) => validateRequiredField2(value, 'el correo'),
+                        autovalidateMode: AutovalidateMode.onUnfocus,
                       )
                     ), const SizedBox(width: 10),
                     Expanded(
-                      child: buildTextFormField( //TODO: minimo 3 digitos
+                      child: buildTextFormField(
                         controller: controllers['estado']!, 
                         labelText: 'Estado',
                         autoFocus: !onlyRead && widget.sucEdit == null,
                         readOnly:  onlyRead,
                         maxLength: 30,
-                        validator: (value) => validateRequiredField(value, 'la direccion'),
+                        validator: (value) => validateRequiredField2(value, 'la direccion'),
+                        autovalidateMode: AutovalidateMode.onUnfocus,
                       )
                     ), const SizedBox(width: 10),
                     Expanded(
-                      child: buildTextFormField( //TODO: minimo 3 digitos
+                      child: buildTextFormField(
                         controller: controllers['pais']!, 
                         labelText: 'Pais',
                         autoFocus: !onlyRead && widget.sucEdit == null,
                         readOnly:  onlyRead,
                         maxLength: 30,
-                        validator: (value) => validateRequiredField(value, 'la direccion'),
+                        validator: (value) => validateRequiredField2(value, 'la direccion'),
+                        autovalidateMode: AutovalidateMode.onUnfocus,
                       )
                     ),
                   ],

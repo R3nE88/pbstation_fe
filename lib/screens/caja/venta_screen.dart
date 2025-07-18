@@ -82,7 +82,7 @@ class _VentaScreenState extends State<VentaScreen> {
                 ),
               ),
 
-              Transform.translate(
+              /*Transform.translate(
                 offset: const Offset(0, -8),
                 child: ElevatedButton(
                   onPressed: (){}, 
@@ -97,7 +97,7 @@ class _VentaScreenState extends State<VentaScreen> {
                     ],
                   ),
                 ),
-              ),
+              ),*/
 
             ],
           ),

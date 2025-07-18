@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
-import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -16,13 +15,15 @@ void main() async {
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
   final ventasServices = VentasServices();
-  final configuracion = Configuracion();
   final sucursalesServices = SucursalesServices();
+  final cotizacionesServices = CotizacionesServices();
+  final configuracion = Configuracion();
   final websocketService = WebSocketService(
     productosService, 
     clientesServices, 
     ventasServices, 
     sucursalesServices,
+    cotizacionesServices,
     configuracion, 
   );
 
@@ -33,6 +34,7 @@ void main() async {
         ChangeNotifierProvider.value(value: clientesServices),
         ChangeNotifierProvider.value(value: ventasServices),
         ChangeNotifierProvider.value(value: sucursalesServices),
+        ChangeNotifierProvider.value(value: cotizacionesServices),
         ChangeNotifierProvider.value(value: configuracion),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => UsuariosServices()),

@@ -146,7 +146,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
             ),
             Expanded(
               child: Container(
-                color: AppTheme.tablaColorFondo,
+                color: servicios.filteredClientes.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
                 child: ListView.builder(
                   itemCount: servicios.filteredClientes.length,
                   itemBuilder: (context, index) => FilaCliente(
@@ -308,12 +308,12 @@ class FilaCliente extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(mostrarCampo(cliente.nombre), textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.correo), textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.rfc), textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.direccion), textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.razonSocial), textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.rfc), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.direccion), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(mostrarCampo(cliente.razonSocial), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),

@@ -193,9 +193,9 @@ class _VentaFormState extends State<VentaForm> {
     FocusScope.of(context).nextFocus();
   }
 
-  void retrocederFocus(int veces) {
+  void retrocederFocus(int veces, c) {
     for (int i = 0; i < veces; i++) {
-      FocusScope.of(context).previousFocus();
+      FocusScope.of(c).previousFocus();
     }
   }
 
@@ -217,7 +217,7 @@ class _VentaFormState extends State<VentaForm> {
           venta: Ventas(
             clienteId: clienteSelected!.id!,
             usuarioId: Login.usuarioLogeado.id!,
-            sucursalId: Provider.of<SucursalesServices>(context).sucursalActualID!,
+            sucursalId: Provider.of<SucursalesServices>(context, listen: false).sucursalActualID!,
             pedidoPendiente: !entregaInmediata, 
             fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
             detalles: detallesVenta,
@@ -238,6 +238,128 @@ class _VentaFormState extends State<VentaForm> {
         canFocus = true;
       });
     },);
+  }
+
+  void procesarCotizacion() async{
+    if (detallesVenta.isEmpty || clienteSelected==null){
+      if (clienteSelected==null){setState((){clienteError = true;});}
+      if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
+      return;
+    }
+    canFocus = false;
+
+    //Realizar cotizacion///////////////////
+    Loading.displaySpinLoading(context);
+
+    final cotizacionSvc = Provider.of<CotizacionesServices>(context, listen: false);
+    final productoSvc = Provider.of<ProductosServices>(context, listen: false);
+    final DateTime now = DateTime.now();
+    
+    for (var detalle in detallesVenta) { //Agregar precio actual a la cotizacion
+      detalle.cotizacionPrecio = productoSvc.productos.firstWhere((element) => element.id == detalle.productoId).precio;
+    } 
+
+    final cotizacion = Cotizaciones(
+      clienteId: clienteSelected!.id!, 
+      usuarioId: Login.usuarioLogeado.id!,
+      sucursalId: Provider.of<SucursalesServices>(context, listen: false).sucursalActualID!,
+      detalles: detallesVenta, 
+      fechaCotizacion: now.toString(), 
+      comentariosVenta: comentariosController.text,
+      subTotal: formatearEntrada(subtotalController.text),
+      descuento: formatearEntrada(totalDescuentoController.text),
+      iva: formatearEntrada(ivaController.text),
+      total: formatearEntrada(totalController.text), 
+      vigente: true
+    );
+
+    String folio = await cotizacionSvc.createCotizacion(cotizacion);
+    
+    DateTime lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+    String vigencia = '${lastDayOfMonth.day}/${lastDayOfMonth.month}/${lastDayOfMonth.year}';
+    //Realizar cotizacion finalizado ///////////////
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    
+    await showDialog(
+      context: context,
+      builder: (_) {
+        
+        return AlertDialog(
+          backgroundColor: AppTheme.containerColor2,
+          title: Center(child: const Text('  ¡Cotizacion guardada!  ')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "La cotización será válida hasta el último\ndía del mes en curso.", 
+                style: TextStyle(color: Colors.white38),
+                textAlign: TextAlign.center,
+              ), const SizedBox(height: 10),
+              const Text('Vigencia:', textScaler: TextScaler.linear(1.1)),
+              Text(vigencia, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.25)),
+              const SizedBox(height: 10),
+              SelectableText('Folio: $folio', textScaler: TextScaler.linear(1.1)),
+              
+              const SizedBox(height: 25),
+              Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: (){}, 
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(Icons.print, color: Colors.transparent),
+                        Transform.translate(
+                          offset: Offset(0, -1.5),
+                          child: const Text('  Imprimir')
+                        ),
+                        const Icon(Icons.print),
+                      ],
+                    )
+                  ), const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: (){}, 
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(Icons.send, color: Colors.transparent),
+                        Transform.translate(
+                          offset: Offset(0, -1.5),
+                          child:  const Text('  Enviar por WhatsApp'),
+                        ),
+                        const Icon(Icons.send),
+                      ],
+                    )
+                  ), const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: (){}, 
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(Icons.email, color: Colors.transparent),
+                        Transform.translate(
+                          offset: Offset(0, -1.5),
+                          child: const Text('  Enviar por Correo'),
+                        ),
+                        const Icon(Icons.email),
+                      ],
+                    )
+                  )
+                ],
+              )
+            ],
+          ),
+        );
+        
+      } 
+    ).then((value) {
+      setState(() {
+        canFocus = true;
+      });
+    },);
+
   }
 
   @override
@@ -272,7 +394,7 @@ class _VentaFormState extends State<VentaForm> {
     _keyHandler = (KeyEvent event) {
       if (event is KeyDownEvent) {
         if (event.logicalKey == LogicalKeyboardKey.f8) {
-          if (mounted && canFocus) { //TODO: verificar que no se ejecute con la ventana de procesar pago abierta
+          if (mounted && canFocus) {
             f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
             procesarPago();
           }
@@ -612,6 +734,10 @@ class _VentaFormState extends State<VentaForm> {
                                     
                                     //No exeder el limite de anchura
                                     if (value.isNotEmpty){
+                                      if (value=="."){
+                                        value="";
+                                        return;
+                                      }
                                       if (double.parse(value.replaceAll(",", "")) > Constantes.anchoMaximo ){
                                         anchoController.text = Constantes.anchoMaximo.toString();
                                       }
@@ -662,6 +788,10 @@ class _VentaFormState extends State<VentaForm> {
 
                                     //No exeder el limite de altura
                                     if (value.isNotEmpty){
+                                      if (value=="."){
+                                        value="";
+                                        return;
+                                      }
                                       if (double.parse(value.replaceAll(",", "")) > Constantes.altoMaximo ){
                                         altoController.text = Constantes.altoMaximo.toString();
                                       }
@@ -926,10 +1056,15 @@ class _VentaFormState extends State<VentaForm> {
               
                           productos.add(productoSelected!);
             
-                          retrocederFocus(4);
+                          //FocusScope.of(context).previousFocus();
+                          /*FocusScope.of(context).previousFocus();
+                          FocusScope.of(context).previousFocus();
+                          FocusScope.of(context).previousFocus();
+                          
                           if (productoSelected!.requiereMedida){
-                            retrocederFocus(2);
-                          }
+                            FocusScope.of(context).previousFocus();
+                            FocusScope.of(context).previousFocus();
+                          }*/
             
                           setState(() {
                             detallesError = false;
@@ -1077,13 +1212,15 @@ class _VentaFormState extends State<VentaForm> {
                                       procesarPago();
                                     },
                                     style: AppTheme.botonPrincipalStyle,
-                                    child: Text('      Procesar Pago (f8)     ', 
+                                    child: Text('      Procesar Pago  (F8)     ', 
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
                                   ) : const SizedBox(),
                                   const SizedBox(height: 10),
                                   ElevatedButton(
-                                    onPressed: (){},
+                                    onPressed: (){
+                                      procesarCotizacion();
+                                    },
                                     style: AppTheme.botonSecundarioStyle,
                                     child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
                                   ),
@@ -1201,7 +1338,7 @@ class FilaDetalles extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(8.0),
             decoration: BoxDecoration(
-              color: AppTheme.tablaColorFondo,
+              color: AppTheme.tablaColor1
             ),
             child: Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
           ),
@@ -1270,13 +1407,13 @@ class FilaDetalles extends StatelessWidget {
             : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(descripcionProducto, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 1, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(descripcionProducto, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 1, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),
