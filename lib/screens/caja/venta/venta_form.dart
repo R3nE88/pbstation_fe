@@ -217,7 +217,7 @@ class _VentaFormState extends State<VentaForm> {
           venta: Ventas(
             clienteId: clienteSelected!.id!,
             usuarioId: Login.usuarioLogeado.id!,
-            sucursalId: Provider.of<SucursalesServices>(context, listen: false).sucursalActualID!,
+            sucursalId: SucursalesServices.sucursalActualID!,
             pedidoPendiente: !entregaInmediata, 
             fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
             detalles: detallesVenta,
@@ -262,7 +262,7 @@ class _VentaFormState extends State<VentaForm> {
     final cotizacion = Cotizaciones(
       clienteId: clienteSelected!.id!, 
       usuarioId: Login.usuarioLogeado.id!,
-      sucursalId: Provider.of<SucursalesServices>(context, listen: false).sucursalActualID!,
+      sucursalId: SucursalesServices.sucursalActualID!,
       detalles: detallesVenta, 
       fechaCotizacion: now.toString(), 
       comentariosVenta: comentariosController.text,

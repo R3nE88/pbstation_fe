@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
+
 
 class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
@@ -671,9 +673,9 @@ class VentaRealizadaDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     FocusNode boton = FocusNode();
-    boton.requestFocus();
 
-    //TODO: imprimir ticket, abrir caja
+    //imprimir ticket, abrir caja
+    Ticket.imprimirTicket(context, venta);
     
     Row formField(String mensaje, double value, InputDecoration decoration) {
       return Row(
@@ -698,12 +700,12 @@ class VentaRealizadaDialog extends StatelessWidget {
     }
     
     return AlertDialog(
-      backgroundColor: AppTheme.containerColor1,
+      backgroundColor: AppTheme.containerColor2,
       title: Center(child: Text('Gracias por La Compra!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', venta.recibido!.toDouble(), AppTheme.inputDecorationSeccess), 
+          formField('Recibido:', venta.recibido!.toDouble(), AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
           formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),
@@ -713,10 +715,10 @@ class VentaRealizadaDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(
+        ElevatedButton(
           focusNode: boton,
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+          child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))
         )
       ],
     );

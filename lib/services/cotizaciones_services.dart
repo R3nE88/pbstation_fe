@@ -4,14 +4,92 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/clientes_services.dart';
+import 'package:pbstation_frontend/services/services.dart';
+import 'package:provider/provider.dart';
 
 class CotizacionesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}cotizaciones/';
   List<Cotizaciones> cotizaciones = [];
+  List<Cotizaciones> filteredCotizaciones = [];
   List<Cotizaciones> vencidas = [];
-  
+  List<Cotizaciones> filteredVencidas = [];
+  bool todasLasSucursales = false;
 
   bool isLoading = false;
+
+
+  //Para SearchField
+  void filtrarCotizaciones(String query, context) {
+    final List<Clientes> clientes = Provider.of<ClientesServices>(context, listen: false).clientes;
+    final sucursalId = SucursalesServices.sucursalActualID;
+    query = query.toLowerCase().trim();
+
+    // Base: filtrar por sucursal si es necesario
+    List<Cotizaciones> filtradas = todasLasSucursales
+        ? cotizaciones
+        : cotizaciones.where((c) => c.sucursalId == sucursalId).toList();
+
+    if (query.isEmpty) {
+      filteredCotizaciones = obtenerFilter(false);
+    } else {
+      filteredCotizaciones = filtradas.where((cotizacion) {
+        final folioMatch = cotizacion.folio?.toLowerCase().contains(query) ?? false;
+        // Buscar cliente correspondiente
+        final cliente = clientes.firstWhere(
+          (c) => c.id == cotizacion.clienteId,
+          orElse: () => Clientes(nombre: 'error'),
+        );
+        final nombreMatch = cliente.nombre.toLowerCase().contains(query);
+
+        return folioMatch || nombreMatch;
+      }).toList();
+    }
+    notifyListeners();
+  }
+  void filtrarVencidas(String query, context) {
+    final List<Clientes> clientes = Provider.of<ClientesServices>(context, listen: false).clientes;
+    final sucursalId = SucursalesServices.sucursalActualID;
+    query = query.toLowerCase().trim();
+
+    // Base: filtrar por sucursal si es necesario
+    List<Cotizaciones> filtradas = todasLasSucursales
+        ? vencidas
+        : vencidas.where((c) => c.sucursalId == sucursalId).toList();
+
+    if (query.isEmpty) {
+      filteredVencidas = obtenerFilter(true);
+    } else {
+      filteredVencidas = filtradas.where((cotizacion) {
+        final folioMatch = cotizacion.folio?.toLowerCase().contains(query) ?? false;
+        // Buscar cliente correspondiente
+        final cliente = clientes.firstWhere(
+          (c) => c.id == cotizacion.clienteId,
+          orElse: () => Clientes(nombre: 'error'),
+        );
+        final nombreMatch = cliente.nombre.toLowerCase().contains(query);
+
+        return folioMatch || nombreMatch;
+      }).toList();
+    }
+    notifyListeners();
+  }//Aqui termina para SearchField
+  
+  List<Cotizaciones> obtenerFilter(bool isVencidas){
+      if (todasLasSucursales){
+      return isVencidas ? vencidas : cotizaciones;
+    } else {
+      final sucursalId = SucursalesServices.sucursalActualID;
+      return isVencidas ? vencidas.where((element) => element.sucursalId == sucursalId).toList() :
+        cotizaciones.where((element) => element.sucursalId == sucursalId).toList();
+    }
+  }
+
+  void recargarFilters(){
+    filteredCotizaciones = obtenerFilter(false);
+    filteredVencidas = obtenerFilter(true);
+    notifyListeners();
+  }
 
   Future<List<Cotizaciones>> loadCotizaciones() async {    
     isLoading = true;
@@ -39,6 +117,8 @@ class CotizacionesServices extends ChangeNotifier{
           cotizaciones.add(cotizacion);
         }
       }
+      filteredCotizaciones = obtenerFilter(false);
+      filteredVencidas = obtenerFilter(true);
 
       isLoading = false;
       notifyListeners();
@@ -69,6 +149,8 @@ class CotizacionesServices extends ChangeNotifier{
         } else {
           cotizaciones.add(prod);
         }
+        filteredCotizaciones = obtenerFilter(false);
+        filteredVencidas = obtenerFilter(true);
         
         notifyListeners();
         isLoading = false;
@@ -97,6 +179,7 @@ class CotizacionesServices extends ChangeNotifier{
         nuevo.id = data['id']?.toString();
 
         cotizaciones.add(nuevo);
+        filteredCotizaciones = obtenerFilter(false);
         if (kDebugMode) {
           print('cotizacion creada!');
         }

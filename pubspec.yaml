@@ -16,6 +16,10 @@ dependencies:
   http: ^1.4.0
   path_provider: ^2.1.5
   flutter_localization: ^0.3.2
+  # a partir de aqui es para tickets
+  esc_pos_utils_plus: ^2.0.4
+  print_usb: ^0.0.3
+  qr_flutter: ^4.1.0
 
   cupertino_icons: ^1.0.8
   decimal: ^3.2.4

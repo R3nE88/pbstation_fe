@@ -11,7 +11,8 @@ class SucursalesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}sucursales/';
   List<Sucursales> sucursales = [];
   Sucursales? sucursalActual;
-  String? sucursalActualID;
+  static String? sucursalActualID;
+  late Map<String, Sucursales> _sucursalesPorId;
   bool isLoading = false;
   bool init = true;
 
@@ -21,6 +22,18 @@ class SucursalesServices extends ChangeNotifier{
       obtenerSucursalId();
     }
   }
+
+  //Esto es para mapear y buscar sucursal//
+  void cargarSucursales(List<Sucursales> nuevasSucursales) {
+    sucursales = nuevasSucursales;
+    _sucursalesPorId= {
+      for (var c in sucursales) c.id!: c
+    };
+    notifyListeners();
+  }
+  String obtenerNombreSucursalPorId(String id) {
+    return _sucursalesPorId[id]?.nombre ?? '¡no se encontró la sucursal!';
+  } //Aqui termina  para mapear y buscar sucursales//
 
   Future<void> obtenerSucursalId() async {
     print('obtrener Sucursal Id');
@@ -116,6 +129,7 @@ class SucursalesServices extends ChangeNotifier{
     }
     
     isLoading = false;
+    cargarSucursales(sucursales);
     notifyListeners();
     return sucursales;
   }
@@ -134,8 +148,8 @@ class SucursalesServices extends ChangeNotifier{
         suc.id = (body as Map)["id"]?.toString();
         
         sucursales.add(suc);
-        notifyListeners();
         isLoading = false;
+        cargarSucursales(sucursales);
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar a sucursal!');

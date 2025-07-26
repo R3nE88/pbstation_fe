@@ -86,8 +86,8 @@ class ClientesServices extends ChangeNotifier{
         
         clientes.add(cli);
         filteredClientes = clientes;
-        notifyListeners();
         isLoading = false;
+        cargarClientes(clientes);
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar el cliente!');

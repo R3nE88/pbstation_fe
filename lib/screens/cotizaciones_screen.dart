@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
@@ -33,19 +32,21 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
     clienteServices.loadClientes();
     final productosServices = Provider.of<ProductosServices>(context, listen: false);
     productosServices.loadProductos();
+    final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
+    sucursalesServices.loadSucursales();
 
-    _searchController1.addListener(() { //TODO: searchfields
+    _searchController1.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController1.text.toLowerCase();
-        //TODO: cotizacionesServices.filtrarVigentes(query);
+        cotizacionesServices.filtrarCotizaciones(query, context);
       });
     });
     _searchController2.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController2.text.toLowerCase();
-        //TODO cotizacionesServices.filtrarVencidas(query);
+        cotizacionesServices.filtrarVencidas(query, context);
       });
     });
   }
@@ -60,9 +61,9 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<CotizacionesServices, ClientesServices, ProductosServices>(
-      builder: (context, cot, cli, prod, _) {
-        if (cot.isLoading || cli.isLoading || prod.isLoading) {
+    return Consumer4<CotizacionesServices, ClientesServices, ProductosServices, SucursalesServices>(
+      builder: (context, cot, cli, prod, suc, _) {
+        if (cot.isLoading || cli.isLoading || prod.isLoading || suc.isLoading) {
           return const Center(child: CircularProgressIndicator());
         } else {
           return Padding(
@@ -100,6 +101,8 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
   }
 
   Widget _buildHeader(BuildContext context, bool isVigente) {
+    final cotizacionesServices = Provider.of<CotizacionesServices>(context, listen: false);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -108,10 +111,16 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
           style: AppTheme.tituloClaro,
           textScaler: TextScaler.linear(1.7),
         ),
-        Row(
+        isVigente ? Row(
           children: [
             ElevatedButton(
-              onPressed: (){}, 
+              onPressed: (){
+                
+                cotizacionesServices.todasLasSucursales;
+                cotizacionesServices.todasLasSucursales = !cotizacionesServices.todasLasSucursales;
+                cotizacionesServices.recargarFilters();
+
+              }, 
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -123,7 +132,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
                   ),
                   Transform.translate(
                     offset: Offset(3, -1),
-                    child: Text("Esta Sucursal"), //TODO: filtrar por: esta sucursal / todas las sucursales
+                    child: Text(cotizacionesServices.todasLasSucursales ?  "Todas las sucursales" : "Esta Sucursal"), //TODO: filtrar por: esta sucursal / todas las sucursales
                   ),
                 ],
               )
@@ -145,7 +154,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
               ),
             ),
           ],
-        ),
+        ) : const SizedBox(),
       ],
     );
   }
@@ -165,15 +174,16 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
           ),
           child: Row(
             children: const [
-              Expanded(child: Text('Folio', textAlign: TextAlign.center)),
-              Expanded(child: Text('Fecha', textAlign: TextAlign.center)),
-              Expanded(flex: 1, child: Text('Cliente', textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Productos', textAlign: TextAlign.center)),
-              Expanded(flex: 1, child: Text('Total', textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Folio', textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Fecha', textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Sucursal', textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text('Cliente', textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text('Productos', textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center)),
             ],
           ),
         ),
-        TablaListView(cotizaciones: isVigente ? servicios.cotizaciones : servicios.vencidas),
+        TablaListView(cotizaciones: isVigente ? servicios.filteredCotizaciones : servicios.filteredVencidas, vigente: isVigente),
         Container(
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
@@ -203,10 +213,11 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
 
 class TablaListView extends StatelessWidget {
   const TablaListView({
-    super.key, required this.cotizaciones,
+    super.key, required this.cotizaciones, required this.vigente,
   });
 
   final List<Cotizaciones> cotizaciones;
+  final bool vigente;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +227,7 @@ class TablaListView extends StatelessWidget {
         child: ListView.builder( //TODO: acomodar por fecha, mas nuevo arriba siempre
           itemCount: cotizaciones.length,
           itemBuilder: (context, index) => FilaCotizaciones(
+            vigente: vigente,
             cotizacion: cotizaciones[index],
             index: index,
             onDelete: () async {
@@ -236,20 +248,20 @@ class FilaCotizaciones extends StatelessWidget {
     super.key,
     required this.cotizacion,
     required this.index,
-    required this.onDelete,
+    required this.onDelete, required this.vigente,
   });
 
   final Cotizaciones cotizacion;
   final int index;
   final VoidCallback onDelete;
+  final bool vigente;
 
   @override
   Widget build(BuildContext context) {
 
-    /*void mostrarMenu(BuildContext context, Offset offset) async {
+    void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
-      if (Login.admin) {
-        seleccion = await showMenu(
+      seleccion = await showMenu(
         context: context,
         position: RelativeRect.fromLTRB(
           offset.dx,
@@ -266,17 +278,38 @@ class FilaCotizaciones extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+                Text('  Ver Cotizacion Completa', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+          vigente 
+          ? PopupMenuItem(
+            value: 'usar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.navigate_next, color: AppTheme.letraClara, size: 17),
+                 Text('  Utilizar', style: AppTheme.subtituloPrimario)
+              ],
+            ),
+          )
+          : PopupMenuItem(
+            value: 'renovar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.repeat, color: AppTheme.letraClara, size: 17),
+                 Text('  Renovar', style: AppTheme.subtituloPrimario)
               ],
             ),
           ),
           PopupMenuItem(
-            value: 'editar',
+            value: 'print',
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
-                Text('  Editar', style: AppTheme.subtituloPrimario),
+                Icon(Icons.print, color: AppTheme.letraClara, size: 17),
+                Text('  Imprimir', style: AppTheme.subtituloPrimario),
               ],
             ),
           ),
@@ -292,33 +325,8 @@ class FilaCotizaciones extends StatelessWidget {
           ),
         ],
       );
-      } else {
-        seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
-        ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          PopupMenuItem(
-            value: 'leer',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          ),
-        ],
-      );
-      }
 
-      /*if (seleccion != null) {
+      /*if (seleccion != null) { //TODO
         if (seleccion == 'leer') {
           // Lógica para leer
           if(!context.mounted){ return; }
@@ -338,7 +346,7 @@ class FilaCotizaciones extends StatelessWidget {
           onDelete();
         }
       }*/
-    }*/
+    }
 
     //Conseguir cliente
     final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
@@ -348,6 +356,10 @@ class FilaCotizaciones extends StatelessWidget {
     final productosSvc = Provider.of<ProductosServices>(context, listen: false);
     final detalles = productosSvc.obtenerDetallesComoTexto(cotizacion.detalles);
 
+    //Conseguir Sucursal
+    final sucursalSvc = Provider.of<SucursalesServices>(context, listen: false);
+    final sucursalNombre = sucursalSvc.obtenerNombreSucursalPorId(cotizacion.sucursalId);
+
     //fecha
     DateTime dt = DateTime.parse(cotizacion.fechaCotizacion);
     final DateFormat formatter = DateFormat('dd-MM-yyyy');
@@ -356,18 +368,19 @@ class FilaCotizaciones extends StatelessWidget {
 
     return GestureDetector(
       onSecondaryTapDown: (details) {
-        //TODO: mostrarMenu(context, details.globalPosition);
+        mostrarMenu(context, details.globalPosition);
       },
       child: Container(
         padding: const EdgeInsets.all(8.0),
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(cotizacion.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(formatted, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 1,child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2,child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 1, child: Text(Formatos.pesos.format(cotizacion.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(cotizacion.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(formatted, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(sucursalNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 3, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 3, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(cotizacion.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
 
         ),

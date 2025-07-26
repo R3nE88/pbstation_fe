@@ -185,11 +185,11 @@ class AppTheme{
   static const InputDecoration inputDecorationWaring = InputDecoration(
     contentPadding: EdgeInsets.only(left: 10),
     enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.amber, width: 2),
+      borderSide: BorderSide(color: Color.fromARGB(255, 255, 200, 34), width: 2),
       borderRadius: BorderRadius.all(Radius.circular(12))
     ),
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.amber, width: 2),
+      borderSide: BorderSide(color: Color.fromARGB(255, 255, 200, 34), width: 2),
       borderRadius: BorderRadius.all(Radius.circular(12))
     ),
   );
@@ -209,11 +209,11 @@ class AppTheme{
   static const InputDecoration inputDecorationSeccess = InputDecoration(
     contentPadding: EdgeInsets.only(left: 10),
     enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.green, width: 2),
+      borderSide: BorderSide(color: Color.fromARGB(255, 66, 255, 45), width: 2),
       borderRadius: BorderRadius.all(Radius.circular(12))
     ),
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.green, width: 2),
+      borderSide: BorderSide(color: Color.fromARGB(255, 66, 255, 45), width: 2),
       borderRadius: BorderRadius.all(Radius.circular(12))
     ),
   );

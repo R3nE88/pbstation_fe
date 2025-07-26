@@ -222,7 +222,7 @@ class FilaSucursales extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.add_business, color: AppTheme.letraClara, size: 17),
-                Text('  Asignar Sucursal a Terminal', style: AppTheme.subtituloPrimario),
+                Text('  Asignar Sucursal a esta Terminal', style: AppTheme.subtituloPrimario),
               ],
             ),
           ),

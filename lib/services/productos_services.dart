@@ -35,7 +35,6 @@ class ProductosServices extends ChangeNotifier{
     }).join(' - ');
   }
 
-
   void filtrarProductos(String query) {
     query = query.toLowerCase().trim();
     if (query.isEmpty) {
