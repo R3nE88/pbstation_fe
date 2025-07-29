@@ -28,7 +28,7 @@ class CalculosDinero {
     Decimal subtotal = productoPrecio * Decimal.fromInt(productoCantidad);
     Decimal totalMedida = ((ancho * alto) * subtotal);
   
-    Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
+    Decimal descuentoAplicado = totalMedida * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = totalMedida-descuentoAplicado;
 
     Decimal iva = totalSinIva * leerIva().round(scale: 2);

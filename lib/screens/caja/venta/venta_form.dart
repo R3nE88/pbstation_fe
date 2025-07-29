@@ -9,7 +9,6 @@ import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
-import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -238,6 +237,42 @@ class _VentaFormState extends State<VentaForm> {
         canFocus = true;
       });
     },);
+  }
+
+  void procesarEnvio()async{
+    if(Configuracion.esCaja) return;
+
+    if (detallesVenta.isEmpty || clienteSelected==null){
+      if (clienteSelected==null){setState((){clienteError = true;});}
+      if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
+      return;
+    }
+
+    Loading.displaySpinLoading(context);
+
+    VentasEnviadas venta = VentasEnviadas(
+      clienteId: clienteSelected!.id!, 
+      usuarioId: Login.usuarioLogeado.id!, 
+      sucursalId: SucursalesServices.sucursalActualID!,
+      pedidoPendiente: !entregaInmediata, 
+      fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(),
+      detalles: detallesVenta,
+
+      comentariosVenta: comentarioController.text, 
+      subTotal: formatearEntrada(subtotalController.text), 
+      descuento: formatearEntrada(totalDescuentoController.text), 
+      iva: formatearEntrada(ivaController.text), 
+      total: formatearEntrada(totalController.text),
+    );
+
+    final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
+    await ventaEnviada.enviarVenta(venta);
+
+    if(!mounted) return;
+    Navigator.pop(context);
+
+    widget.rebuild(widget.index);
+
   }
 
   void procesarCotizacion() async{
@@ -639,6 +674,7 @@ class _VentaFormState extends State<VentaForm> {
                                   calcularSubtotal();
                                 });
                               },
+                              //TODO: onItemUnselected clacularSubTotal
                               displayStringForOption: (producto) => producto.descripcion, 
                               normalBorder: true, 
                               icono: Icons.copy, 
@@ -685,16 +721,30 @@ class _VentaFormState extends State<VentaForm> {
                           SizedBox(
                             height: 40,
                             width: 100,
-                            child: TextFormField(
-                              controller: cantidadController,
-                              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                              maxLength: 6,
-                              inputFormatters: [ NumericFormatter() ],
-                              onChanged: (value) {
-                                setState(() {
-                                  calcularSubtotal();
-                                });
+                            child: Focus(
+                              canRequestFocus: false,
+                              onFocusChange: (value) {
+                                if (value==false && cantidadController.text == ''){
+                                  cantidadController.text = '1';
+                                  setState(() {
+                                    calcularSubtotal();
+                                  });
+                                }
                               },
+                              child: TextFormField(
+                                controller: cantidadController,
+                                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                maxLength: 6,
+                                inputFormatters: [ NumericFormatter() ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    calcularSubtotal();
+                                  });
+                                },
+                                onTap: () {
+                                  cantidadController.text = '';
+                                },
+                              ),
                             ),
                           )
                         ],
@@ -721,6 +771,9 @@ class _VentaFormState extends State<VentaForm> {
                                   inputFormatters: [ DecimalInputFormatter() ],
                                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                                   decoration: anchoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                  onTap: () {
+                                    anchoController.text = '';
+                                  },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
@@ -775,6 +828,9 @@ class _VentaFormState extends State<VentaForm> {
                                   inputFormatters: [ DecimalInputFormatter() ],
                                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                                   decoration: altoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                  onTap: () {
+                                    altoController.text = '';
+                                  },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
@@ -1151,7 +1207,7 @@ class _VentaFormState extends State<VentaForm> {
                                     anchoController.text = detallesVenta[index].ancho.toString();
                                     altoController.text = detallesVenta[index].alto.toString();
                                     comentarioController.text = detallesVenta[index].comentarios.toString();
-                                    descuentoController.text = detallesVenta[index].descuento.toString();
+                                    descuentoController.text = '${detallesVenta[index].descuento.toString()}%';
                                     ivaController.text = detallesVenta[index].iva.toString();
                                     productoTotalController.text = detallesVenta[index].subtotal.toString();
                                     calcularSubtotal();
@@ -1215,7 +1271,16 @@ class _VentaFormState extends State<VentaForm> {
                                     child: Text('      Procesar Pago  (F8)     ', 
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
-                                  ) : const SizedBox(),
+                                  ) : ElevatedButton(
+                                    focusNode: f8FocusNode,
+                                    onPressed: (){
+                                      procesarEnvio();
+                                    },
+                                    style: AppTheme.botonPrincipalStyle,
+                                    child: Text('      Enviar a Caja  (F8)     ', 
+                                      style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
                                   ElevatedButton(
                                     onPressed: (){

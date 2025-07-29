@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/models/ventas_enviadas.dart';
 export 'package:pbstation_frontend/models/cotizaciones.dart';
 export 'package:pbstation_frontend/models/sucursales.dart';
 export 'package:pbstation_frontend/models/ventas.dart';

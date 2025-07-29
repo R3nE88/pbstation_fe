@@ -14,6 +14,7 @@ class WebSocketService with ChangeNotifier {
     ProductosServices productosService,
     ClientesServices clientesService,
     VentasServices ventasServices,
+    VentasEnviadasServices ventasEnviadasServices,
     SucursalesServices sucursalesServices,
     CotizacionesServices cotizacionesServices,
     Configuracion configuracion,
@@ -22,6 +23,7 @@ class WebSocketService with ChangeNotifier {
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
     _instance._ventaSvc        = ventasServices;
+    _instance._ventaEnviadasSvc= ventasEnviadasServices;
     _instance._sucursalSvc     = sucursalesServices;
     _instance._cotizacionesSvc = cotizacionesServices;
     _instance._config          = configuracion;
@@ -45,6 +47,7 @@ class WebSocketService with ChangeNotifier {
   late ProductosServices _productoSvc;
   late ClientesServices _clienteSvc;
   late VentasServices _ventaSvc;
+  late VentasEnviadasServices _ventaEnviadasSvc;
   late SucursalesServices _sucursalSvc;
   late CotizacionesServices _cotizacionesSvc;
   late Configuracion _config;
@@ -67,7 +70,11 @@ class WebSocketService with ChangeNotifier {
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
         'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
-        // TODO: agrega 'post-venta', 'delete-venta', etc.
+        'ventaenviada': (id) {
+          if (id == SucursalesServices.sucursalActualID){
+            _ventaEnviadasSvc.recibirVenta();
+          }
+        },
       });
   }
 

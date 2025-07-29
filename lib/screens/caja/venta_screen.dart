@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
+import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/venta_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -22,14 +24,15 @@ class _VentaScreenState extends State<VentaScreen> {
     super.initState();
     final clientesServices = Provider.of<ClientesServices>(context, listen: false);
     final productosServices = Provider.of<ProductosServices>(context, listen: false);
+    final ventasEnviadasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
     clientesServices.loadClientes();
     productosServices.loadProductos();
+    ventasEnviadasServices.ventasRecibidas();
   }
 
   @override
   Widget build(BuildContext context) {
     final suc = Provider.of<SucursalesServices>(context, listen: false);
-
 
     void agregarPestania() {
       if (VentasStates.pestanias >= maximoPestanias) { return; }
@@ -46,8 +49,16 @@ class _VentaScreenState extends State<VentaScreen> {
       });
     }
 
-    void rebuild(index) async{
+    void rebuildAndClean(index) async{
       VentasStates.clearTab(index);
+      indexResta = 10;
+      setState(() {});
+      await Future.delayed(const Duration(milliseconds: 235));
+      setState(() {});
+      indexResta = 0;
+    }
+
+    void rebuild() async{
       indexResta = 10;
       setState(() {});
       await Future.delayed(const Duration(milliseconds: 235));
@@ -77,27 +88,48 @@ class _VentaScreenState extends State<VentaScreen> {
                     if (index == VentasStates.pestanias - 1) {
                       return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
                     }
-                    return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuild, index: index);
+                    return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuildAndClean, index: index);
                   },
                 ),
               ),
 
-              /*Transform.translate(
-                offset: const Offset(0, -8),
-                child: ElevatedButton(
-                  onPressed: (){}, 
-                  child: Row(
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-8, 1),
-                        child: Icon(Icons.search, color: AppTheme.containerColor1, size: 26)
-                      ),
-                      Text('Leer Corizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700) ),
-                      Text('   F11', style: TextStyle(color: AppTheme.containerColor1.withAlpha(180), fontWeight: FontWeight.w700) ),
-                    ],
-                  ),
-                ),
-              ),*/
+              Configuracion.esCaja 
+              ? VentasRecibidasButton(
+                onPressed: (){
+                  //TODO: si es solo una y no hay datos en la pagina actual. Leer directamente,
+                  //Si hay 2 o mas mostrar una lista de mas viejo a mas nuevo, y elegir cual leer (con nombre de empleado y cliente)
+                  //si hay datos en la pagina actual, y se elige una venta recibida, advertir que se remplazara la pagina actual.
+                 
+                 //Cargar Datos
+                  int index = VentasStates.indexSelected;
+                  VentasStates.tabs[index].clear();
+                  final ventasRecibida = Provider.of<VentasEnviadasServices>(context, listen: false);
+                  VentasEnviadas venta = ventasRecibida.ventas[0];
+                  final clientesS = Provider.of<ClientesServices>(context, listen: false);
+                  final productosS = Provider.of<ProductosServices>(context, listen: false);
+
+                  //Pasar los Datos a VentaForm
+                  VentasStates.tabs[index].clienteSelected = clientesS.clientes.firstWhere((element) => element.id == venta.clienteId);
+                  VentasStates.tabs[index].entregaInmediata = !venta.pedidoPendiente;
+                  VentasStates.tabs[index].fechaEntrega = DateTime.tryParse(venta.fechaEntrega??'');
+                  for (var detalle in venta.detalles) {
+                    VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
+                  }
+                  VentasStates.tabs[index].detallesVenta = venta.detalles;
+                  VentasStates.tabs[index].comentariosController.text = venta.comentariosVenta;
+                  VentasStates.tabs[index].subtotalController.text = Formatos.pesos.format(venta.subTotal.toDouble());
+                  VentasStates.tabs[index].totalDescuentoController.text = Formatos.pesos.format(venta.descuento.toDouble());
+                  VentasStates.tabs[index].totalIvaController.text = Formatos.pesos.format(venta.iva.toDouble());
+                  VentasStates.tabs[index].totalController.text = Formatos.pesos.format(venta.total.toDouble());
+
+                  //Eliminar VentaRecibida
+                  //ventasRecibida.eliminarRecibida(venta.id!, venta.sucursalId);
+
+                  //Volver a Renderizar para mostrar Cambios
+                  rebuild();          
+                  print(VentasStates.indexSelected);
+                }
+              ) : const SizedBox()
 
             ],
           ),
@@ -106,7 +138,7 @@ class _VentaScreenState extends State<VentaScreen> {
             child: VentaForm(
               key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
               index: VentasStates.indexSelected, 
-              rebuild: rebuild,
+              rebuild: rebuildAndClean,
             ),
           ) 
           : 

@@ -15,6 +15,7 @@ void main() async {
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
   final ventasServices = VentasServices();
+  final ventasEnvServices = VentasEnviadasServices();
   final sucursalesServices = SucursalesServices();
   final cotizacionesServices = CotizacionesServices();
   final configuracion = Configuracion();
@@ -22,6 +23,7 @@ void main() async {
     productosService, 
     clientesServices, 
     ventasServices, 
+    ventasEnvServices,
     sucursalesServices,
     cotizacionesServices,
     configuracion, 
@@ -33,6 +35,7 @@ void main() async {
         ChangeNotifierProvider.value(value: productosService),
         ChangeNotifierProvider.value(value: clientesServices),
         ChangeNotifierProvider.value(value: ventasServices),
+        ChangeNotifierProvider.value(value: ventasEnvServices),
         ChangeNotifierProvider.value(value: sucursalesServices),
         ChangeNotifierProvider.value(value: cotizacionesServices),
         ChangeNotifierProvider.value(value: configuracion),

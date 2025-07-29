@@ -215,7 +215,7 @@ class FilaSucursales extends StatelessWidget {
         ),
         color: AppTheme.dropDownColor,
         elevation: 2,
-        items: [
+        items: [ //TODO: Solo el administrador puede establecer las sucursales, editar, e eliminar
           PopupMenuItem(
             value: 'asignar',
             child: Row(
