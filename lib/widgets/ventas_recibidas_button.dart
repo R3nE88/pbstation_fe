@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
@@ -59,7 +60,7 @@ class _VentasRecibidasButtonState extends State<VentasRecibidasButton> with Sing
           builder: (context, child) {
             return Transform.translate(
               offset: const Offset(0, -8),
-              child: ElevatedButton(
+              child: ElevatedButton( //TOIDO: Agregar F4 como tecla de acceso directo
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tieneVentas ? _colorAnimation.value : Colors.white,
                   elevation: tieneVentas ? 3 : 1,

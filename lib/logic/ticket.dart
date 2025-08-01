@@ -45,7 +45,7 @@ class Ticket {
     return bytes;
   }
 
-  static Future<List<int>> generateReceiptBytes(BuildContext context, Ventas venta) async {
+  static Future<List<int>> generateReceiptBytes(BuildContext context, Ventas venta, String folio) async {
     // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
@@ -76,8 +76,8 @@ class Ticket {
     //Body Header
     bytes += generator.text('Nota de venta',
         styles: PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2,));
-    bytes += generator.text('Folio: ${venta.folio}',
-        styles: PosStyles(align: PosAlign.left, bold: true));
+    bytes += generator.text('Folio: $folio',
+        styles: PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.text(formattedDate, //'25/07/2025 04:16p.m.'
         styles: PosStyles(align: PosAlign.right, bold: false));
     bytes += generator.text('Publico en General',
@@ -135,16 +135,18 @@ class Ticket {
     return bytes;
   }
 
-  static void imprimirTicket(context, venta) async{
-      List<UsbDevice> devices = await PrintUsb.getList();
-      for (var device in devices) {
-        print(device.name);
-      }
-      if (devices.isNotEmpty) {
-        bool connected = await PrintUsb.connect(name: devices[0].name);
+  static void imprimirTicket(context, venta, folio) async{
+      if (Configuracion.impresora != 'null') {
+        bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+        UsbDevice device = UsbDevice(
+          name: Configuracion.impresora, 
+          model: 'x', 
+          isDefault: true, 
+          available: true
+        );
         if (connected) {
-          List<int> bytes = await generateReceiptBytes(context, venta);
-          bool success = await PrintUsb.printBytes(bytes: bytes, device: devices[0]);
+          List<int> bytes = await generateReceiptBytes(context, venta, folio);
+          bool success = await PrintUsb.printBytes(bytes: bytes, device: device);
           // Check success...
           //await PrintUsb.close();
 

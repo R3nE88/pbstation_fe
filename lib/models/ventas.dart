@@ -10,10 +10,10 @@ class Ventas {
     required this.clienteId,
     required this.usuarioId,
     required this.sucursalId,
+    required this.cajaId,
     required this.pedidoPendiente,
     this.fechaEntrega,
     required this.detalles,
-    //this.detallesId,
     this.fechaVenta,
     this.tipoPago,
     required this.comentariosVenta,
@@ -32,10 +32,10 @@ class Ventas {
   String clienteId; //Cliente que hizo la compra
   String usuarioId; //usuario que realizo la venta
   String sucursalId; //Sucursal donde se hizo lo venta
+  String cajaId; //a que caja pertenece la venta
   bool pedidoPendiente; //determina si es pedido y se entregara en otro momento
   String? fechaEntrega; //fecha establecida para entrega
   List<DetallesVenta> detalles; //todos los detalles de venta
-  //List<String>? detallesId;
   String? fechaVenta; //en que momento se realizo la venta (se genera al "imprimir ticket")
   String? tipoPago; //Tarjeta, efectivo, transferencia, mixto (mixto no valido para facturar)
   String comentariosVenta; //Comentario en general de la venta
@@ -43,8 +43,6 @@ class Ventas {
   Decimal descuento; //Total del descuento $
   Decimal iva; //Total de impuestos $
   Decimal total; //Total total
-
-  // vvv Determinar despues esto vvv
   Decimal? recibido; 
   Decimal? abonado;
   Decimal? cambio;
@@ -60,6 +58,7 @@ class Ventas {
     clienteId: json["cliente_id"],
     usuarioId: json["usuario_id"],
     sucursalId: json["sucursal_id"],
+    cajaId: json["caja_id"],
     pedidoPendiente: json["pedido_pendiente"],
     fechaEntrega: json["fecha_entrega"],
     detalles: List<DetallesVenta>.from(
@@ -84,6 +83,7 @@ class Ventas {
     "cliente_id": clienteId,
     "usuario_id": usuarioId,
     "sucursal_id": sucursalId,
+    "caja_id": cajaId,
     "pedido_pendiente": pedidoPendiente,
     "fecha_entrega": fechaEntrega,
     'detalles': detalles.map((d) => d.toMap()).toList(),

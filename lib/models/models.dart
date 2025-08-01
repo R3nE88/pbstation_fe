@@ -1,3 +1,5 @@
+export 'package:pbstation_frontend/models/cajas.dart';
+export 'package:pbstation_frontend/models/movimiento_cajas.dart';
 export 'package:pbstation_frontend/models/ventas_enviadas.dart';
 export 'package:pbstation_frontend/models/cotizaciones.dart';
 export 'package:pbstation_frontend/models/sucursales.dart';

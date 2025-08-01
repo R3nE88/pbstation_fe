@@ -28,7 +28,7 @@ class AppTheme{
       : const Color.fromARGB(255, 5, 77, 186);
 
   static Color get backgroundColor => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 30, 30, 30)
+      ? const Color.fromARGB(255, 32, 32, 32)
       : const Color.fromARGB(255, 231, 229, 229);
   static Color get backgroundWidgetColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 50, 50, 50)
@@ -44,11 +44,11 @@ class AppTheme{
       : const Color.fromARGB(167, 73, 158, 255);
 
   static Color get containerColor1 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 40, 40, 40)
+      ? const Color.fromARGB(255, 43, 43, 43)
       : const Color.fromARGB(255, 101, 178, 251);
     
   static Color get containerColor2 => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 52, 52, 52)
+      ? const Color.fromARGB(255, 60, 60, 60)
       : const Color.fromARGB(255, 75, 164, 248);
 
   static Color get backgroundWidgetFormColor1 => changeThemeInstance?.isDarkTheme == true

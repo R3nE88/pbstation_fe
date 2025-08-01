@@ -41,6 +41,7 @@ void main() async {
         ChangeNotifierProvider.value(value: configuracion),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
+        ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
         ChangeNotifierProvider(create: (_) => ModulosProvider()),
       ],

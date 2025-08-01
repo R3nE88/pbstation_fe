@@ -61,10 +61,9 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
         ),
 
         Transform.translate(
-          offset: Offset(0, -2),
+          offset: Offset(37, 0),
           child: Container(
-            height: 40, 
-            //width: 300,
+            height: 35, 
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: AppTheme.tablaColorHeader,
@@ -76,14 +75,20 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    sucursalesServices.sucursalActual != null ? 'Sucursal Asignada:  '
+                    sucursalesServices.sucursalActual != null ? 'Sucursal Asignada  '
                     :'Aún no asignas una sucursal a esta terminal', 
-                    style: AppTheme.subtituloPrimario
+                    style: AppTheme.subtituloPrimario.copyWith(
+                      fontWeight: FontWeight.w700
+                    ),
+                    textScaler: TextScaler.linear(0.9),
                   ),
-                  Text(
-                    sucursalesServices.sucursalActual != null ? sucursalesServices.sucursalActual!.nombre
-                    :'', 
-                    style: AppTheme.tituloClaro.copyWith(letterSpacing: 1.7, fontSize: 18)
+                  Transform.translate(
+                    offset: Offset(0, -1),
+                    child: Text(
+                      sucursalesServices.sucursalActual != null ? sucursalesServices.sucursalActual!.nombre
+                      :'', 
+                      style: AppTheme.tituloClaro.copyWith(letterSpacing: 1.7, fontSize: 18)
+                    ),
                   )
                 ],
               ),

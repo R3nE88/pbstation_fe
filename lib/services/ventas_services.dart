@@ -7,24 +7,22 @@ import 'package:pbstation_frontend/models/models.dart';
 
 class VentasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
-  //List<Ventas> ventas = [];
+  List<Ventas> ventasDeCaja = [];
 
   bool isLoading = false;
 
-  /*Future<List<Ventas>> loadVentas() async { 
-    //if (isLoading) { return ventas; }
-    
+  Future<void> loadVentasDeCaja(String cajaId) async { 
     isLoading = true;
-
+    
     try {
-      final url = Uri.parse('${_baseUrl}all');
+      final url = Uri.parse('${_baseUrl}caja/$cajaId');
       final resp = await http.get(
         url, headers: {"tkn": Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      ventas = listaJson.map<Ventas>((jsonElem) {
+      ventasDeCaja = listaJson.map<Ventas>((jsonElem) {
         final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
         x.id = (jsonElem as Map)["id"]?.toString();
         return x;
@@ -33,13 +31,11 @@ class VentasServices extends ChangeNotifier{
     } catch (e) {
       isLoading = false;
       notifyListeners();
-      return [];
     }
     
     isLoading = false;
     notifyListeners();
-    return ventas;
-  }*/
+  }
 
   Future<String> createVenta(Ventas venta) async {
     isLoading = true;

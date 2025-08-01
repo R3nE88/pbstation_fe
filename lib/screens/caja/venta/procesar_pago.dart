@@ -613,6 +613,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               clienteId: widget.venta.clienteId,
                               usuarioId: widget.venta.usuarioId,
                               sucursalId: widget.venta.sucursalId,
+                              cajaId: CajasServices.cajaActualId!,
                               pedidoPendiente: widget.venta.pedidoPendiente,
                               fechaEntrega: widget.venta.fechaEntrega,
                               detalles: widget.venta.detalles,
@@ -675,7 +676,7 @@ class VentaRealizadaDialog extends StatelessWidget {
     FocusNode boton = FocusNode();
 
     //imprimir ticket, abrir caja
-    Ticket.imprimirTicket(context, venta);
+    Ticket.imprimirTicket(context, venta, folio);
     
     Row formField(String mensaje, double value, InputDecoration decoration) {
       return Row(

@@ -14,9 +14,19 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = Provider.of<Configuracion>(context);
+    final caja = Provider.of<CajasServices>(context);
+    bool loaded = false;
+
     if (config.init == false){
       config.loadConfiguracion();
-      Provider.of<SucursalesServices>(context, listen: false);
+      Provider.of<SucursalesServices>(context, listen: false); //Eejcutar constructor de sucursalesServices
+    }
+    if (caja.init == false){
+      caja.initCaja();
+    }
+
+    if (config.loaded && caja.loaded){
+      loaded = true;
     }
 
     return Stack(
@@ -45,7 +55,7 @@ class LoginScreen extends StatelessWidget {
                 flex: 5,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical:8.0, horizontal: 90),
-                  child: config.loaded 
+                  child: loaded
                   ? LoginFields() 
                   :  SizedBox(
                     height: double.infinity,

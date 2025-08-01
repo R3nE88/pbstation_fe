@@ -16,6 +16,7 @@ dependencies:
   http: ^1.4.0
   path_provider: ^2.1.5
   flutter_localization: ^0.3.2
+  shared_preferences: ^2.5.3
   # a partir de aqui es para tickets
   esc_pos_utils_plus: ^2.0.4
   print_usb: ^0.0.3

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/home_state.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatelessWidget {
     final screens = Modulos.modulosScreens[modProv.moduloSeleccionado] ?? <Widget>[];
 
     return Stack(
+      alignment: Alignment.topCenter,
       children: [
         Scaffold(
           backgroundColor: AppTheme.backgroundColor,
@@ -65,9 +67,70 @@ class HomeScreen extends StatelessWidget {
         SideMenuLeft(),
         SideMenuRight(height: height + 1),
 
+        UsuarioOverlay(),
+
         // Connection Overlay
         const ConnectionOverlay(),
       ],
+    );
+  }
+}
+
+class UsuarioOverlay extends StatelessWidget {
+  const UsuarioOverlay({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 30),
+      child: Material(
+        color: Colors.transparent,
+        child: IntrinsicWidth(
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: 200
+            ),
+            height: 30,
+            decoration: BoxDecoration(
+              color: AppTheme.secundario1,
+              border: Border(
+                top: BorderSide(
+                  color: AppTheme.secundario1,
+                  width: 5,
+                  strokeAlign: BorderSide.strokeAlignOutside
+                )
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: const Radius.circular(15),
+                bottomRight: const Radius.circular(15)
+              )
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Text(
+                    'Sesión de ', 
+                    textScaler: TextScaler.linear(0.8), 
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white70
+                    )
+                  ),
+                  Text(
+                    Login.usuarioLogeado.nombre,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    )
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

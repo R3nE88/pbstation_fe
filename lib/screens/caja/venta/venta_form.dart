@@ -217,6 +217,7 @@ class _VentaFormState extends State<VentaForm> {
             clienteId: clienteSelected!.id!,
             usuarioId: Login.usuarioLogeado.id!,
             sucursalId: SucursalesServices.sucursalActualID!,
+            cajaId: CajasServices.cajaActualId!,
             pedidoPendiente: !entregaInmediata, 
             fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
             detalles: detallesVenta,
@@ -252,17 +253,19 @@ class _VentaFormState extends State<VentaForm> {
 
     VentasEnviadas venta = VentasEnviadas(
       clienteId: clienteSelected!.id!, 
-      usuarioId: Login.usuarioLogeado.id!, 
+      usuarioId: Login.usuarioLogeado.id!,
+      usuario: Login.usuarioLogeado.nombre, 
       sucursalId: SucursalesServices.sucursalActualID!,
       pedidoPendiente: !entregaInmediata, 
       fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(),
       detalles: detallesVenta,
-
       comentariosVenta: comentarioController.text, 
       subTotal: formatearEntrada(subtotalController.text), 
       descuento: formatearEntrada(totalDescuentoController.text), 
       iva: formatearEntrada(ivaController.text), 
       total: formatearEntrada(totalController.text),
+      fechaEnvio: DateTime.now().toString(),
+      compu: Configuracion.nombrePC
     );
 
     final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
@@ -270,6 +273,8 @@ class _VentaFormState extends State<VentaForm> {
 
     if(!mounted) return;
     Navigator.pop(context);
+
+    Loading.mostrarMensaje(context, '¡Enviado a Caja!');
 
     widget.rebuild(widget.index);
 
@@ -393,7 +398,9 @@ class _VentaFormState extends State<VentaForm> {
       setState(() {
         canFocus = true;
       });
-    },);
+      //limpiar screen
+      widget.rebuild(widget.index);
+    });
 
   }
 

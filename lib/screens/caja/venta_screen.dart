@@ -1,8 +1,13 @@
+import 'package:decimal/decimal.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/venta_form.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -33,6 +38,7 @@ class _VentaScreenState extends State<VentaScreen> {
   @override
   Widget build(BuildContext context) {
     final suc = Provider.of<SucursalesServices>(context, listen: false);
+    Provider.of<CajasServices>(context); //para escuchar listening
 
     void agregarPestania() {
       if (VentasStates.pestanias >= maximoPestanias) { return; }
@@ -66,85 +72,299 @@ class _VentaScreenState extends State<VentaScreen> {
       indexResta = 0;
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-    
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+    if (Configuracion.esCaja && CajasServices.cajaActual==null){
+      return abrirCaja();
+    }
 
-              SizedBox( //Pestañas
-                height: 36,
-                width: 500,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: VentasStates.pestanias,
-                  itemBuilder: (context, index) {
-                    if (index == VentasStates.pestanias - 1) {
-                      return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
+    return body(agregarPestania, selectedPestania, rebuildAndClean, context, rebuild, suc);
+  }
+
+  Widget abrirCaja() {
+    final formKey = GlobalKey<FormState>();
+    TextEditingController fondotxt = TextEditingController();
+    
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
+      child: Center(
+        child: Container(
+          height: 230,
+          width: 400,
+          decoration: BoxDecoration(
+            color: AppTheme.containerColor1,
+            borderRadius: BorderRadius.circular(15)
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'No hay caja abierta, es necesario abrir antes de continuar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textScaler: TextScaler.linear(1.1),
+                  ),
+                  Column(
+                    children: [
+                      Text('¿Con cuánto efectivo empieza la caja?'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                        child: TextFormField(
+                          controller: fondotxt,
+                          textAlign: TextAlign.center,
+                          inputFormatters: [ PesosInputFormatter() ],
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 11,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            labelText: 'Fondo (MXN)',
+                            labelStyle: AppTheme.labelStyle,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Ingrese el fondo';
+                            }
+                            return null;
+                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                        ),
+                      )
+                    ],
+                  ),
+                  const SizedBox(),
+                  ElevatedButton(
+                    onPressed: () async{
+                      if (formKey.currentState!.validate()){
+                        Loading.displaySpinLoading(context);
+                        final cajaSvc = Provider.of<CajasServices>(context, listen: false);
+
+                        Cajas nuevaCaja = Cajas(
+                          usuarioId: Login.usuarioLogeado.id!, 
+                          sucursalId: SucursalesServices.sucursalActualID!, 
+                          fechaApertura: DateTime.now().toString(), 
+                          efectivoApertura: Decimal.parse(fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')), 
+                          estado: "abierta", 
+                          ventasIds: [], 
+                          movimientoCaja: []
+                        );
+
+                        await cajaSvc.createCaja(nuevaCaja);
+                        Navigator.pop(context);
+                      }
+                    }, 
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Abrir Caja  '),
+                        Icon(Icons.point_of_sale)
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget body(void Function() agregarPestania, void Function(int index) selectedPestania, void Function(dynamic index) rebuildAndClean, BuildContext context, void Function() rebuild, SucursalesServices suc) {
+    return Padding(
+    padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+  
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+
+            SizedBox( //Pestañas
+              height: 36,
+              width: 500,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: VentasStates.pestanias,
+                itemBuilder: (context, index) {
+                  if (index == VentasStates.pestanias - 1) {
+                    return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
+                  }
+                  return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuildAndClean, index: index);
+                },
+              ),
+            ),
+
+            Configuracion.esCaja 
+            ? ventaRecibida(context, rebuild) 
+            : const SizedBox()
+
+          ],
+        ),
+        suc.sucursalActual!=null ? KeyedSubtree(
+          key: ValueKey<int>(VentasStates.indexSelected),
+          child: VentaForm(
+            key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
+            index: VentasStates.indexSelected, 
+            rebuild: rebuildAndClean,
+          ),
+        ) 
+        : 
+        const AdvertenciaSucursal(),
+      ],
+    ),
+  );
+  }
+
+  VentasRecibidasButton ventaRecibida(BuildContext context, void Function() rebuild) {
+    return VentasRecibidasButton(
+      onPressed: () async{
+        final ventasRecibida = Provider.of<VentasEnviadasServices>(context, listen: false);
+        int? seleccion;
+        bool continuar = true;
+
+        //Elegir venta
+        if (ventasRecibida.ventas.length > 1){
+          seleccion = await showDialog(
+            context: context, 
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: AppTheme.containerColor1,
+                title: Center(child: Text('Seleccione una venta'),),
+                content: SizedBox(
+                  height: 250, 
+                  width: 550,
+                  child: ListView.builder(
+                    itemCount: ventasRecibida.ventas.length,
+                    itemBuilder: (context, index) {
+
+                      //fecha
+                      DateTime dt = DateTime.parse(ventasRecibida.ventas[index].fechaEnvio);
+                      final DateFormat formatter = DateFormat('hh:mm:ss a');
+                      final String formatted = formatter.format(dt);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: ElevatedButton(
+                          autofocus: index==0,
+                          style: AppTheme.botonSecundarioStyle,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                children: [
+                                  Text('Enviado Desde:', textScaler: TextScaler.linear(0.8)),
+                                  Text(ventasRecibida.ventas[index].compu),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
+                                  Text(
+                                    ventasRecibida.ventas[index].usuario.length > 30 
+                                        ? '${ventasRecibida.ventas[index].usuario.substring(0, 30)}...' 
+                                        : ventasRecibida.ventas[index].usuario,
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text('Hora de Envio:', textScaler: TextScaler.linear(0.8)),
+                                  Text(formatted),
+                                ],
+                              ),
+                            ],
+                          ),
+                          onPressed: (){
+                            Navigator.pop(context, index);
+                          }, 
+                        ),
+                      );
                     }
-                    return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuildAndClean, index: index);
-                  },
+                  ),
+                ),
+              );
+            },
+          ); if (seleccion==null) return;
+        } else { seleccion = 0;}
+
+        //Mostrar aviso de que se remplazara todo
+        if (!context.mounted) return;
+        await showDialog( //TODO: Agregar opcion en ajustes para mostrar esta advertencia siempre, o no, solo en caja
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              backgroundColor: AppTheme.containerColor1,
+              content: SizedBox(
+                width: 350,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.",
+                      textScaler: TextScaler.linear(1.1),
+                      style: TextStyle(color: Colors.white), 
+                      textAlign: TextAlign.center
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: ElevatedButton(
+                        style: AppTheme.botonSecundarioStyle,
+                        autofocus: true,
+                        onPressed: (){
+                          Navigator.pop(context, 'continuar');
+                        }, 
+                        child: Text('Continuar'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            );
+          },
+        ).then((value) {
+          if (value == null) {
+            if (kDebugMode) {
+              print("Diálogo cancelado");
+            }
+            continuar = false;
+            return; // Cancela la operación
+          }
+        });
 
-              Configuracion.esCaja 
-              ? VentasRecibidasButton(
-                onPressed: (){
-                  //TODO: si es solo una y no hay datos en la pagina actual. Leer directamente,
-                  //Si hay 2 o mas mostrar una lista de mas viejo a mas nuevo, y elegir cual leer (con nombre de empleado y cliente)
-                  //si hay datos en la pagina actual, y se elige una venta recibida, advertir que se remplazara la pagina actual.
-                 
-                 //Cargar Datos
-                  int index = VentasStates.indexSelected;
-                  VentasStates.tabs[index].clear();
-                  final ventasRecibida = Provider.of<VentasEnviadasServices>(context, listen: false);
-                  VentasEnviadas venta = ventasRecibida.ventas[0];
-                  final clientesS = Provider.of<ClientesServices>(context, listen: false);
-                  final productosS = Provider.of<ProductosServices>(context, listen: false);
+        if (continuar){
+          //Cargar Datos
+          VentasEnviadas venta = ventasRecibida.ventas[seleccion!];
+          int index = VentasStates.indexSelected;
+          VentasStates.tabs[index].clear();
+          final clientesS = Provider.of<ClientesServices>(context, listen: false);
+          final productosS = Provider.of<ProductosServices>(context, listen: false);
 
-                  //Pasar los Datos a VentaForm
-                  VentasStates.tabs[index].clienteSelected = clientesS.clientes.firstWhere((element) => element.id == venta.clienteId);
-                  VentasStates.tabs[index].entregaInmediata = !venta.pedidoPendiente;
-                  VentasStates.tabs[index].fechaEntrega = DateTime.tryParse(venta.fechaEntrega??'');
-                  for (var detalle in venta.detalles) {
-                    VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
-                  }
-                  VentasStates.tabs[index].detallesVenta = venta.detalles;
-                  VentasStates.tabs[index].comentariosController.text = venta.comentariosVenta;
-                  VentasStates.tabs[index].subtotalController.text = Formatos.pesos.format(venta.subTotal.toDouble());
-                  VentasStates.tabs[index].totalDescuentoController.text = Formatos.pesos.format(venta.descuento.toDouble());
-                  VentasStates.tabs[index].totalIvaController.text = Formatos.pesos.format(venta.iva.toDouble());
-                  VentasStates.tabs[index].totalController.text = Formatos.pesos.format(venta.total.toDouble());
+          //Pasar los Datos a VentaForm
+          VentasStates.tabs[index].clienteSelected = clientesS.clientes.firstWhere((element) => element.id == venta.clienteId);
+          VentasStates.tabs[index].entregaInmediata = !venta.pedidoPendiente;
+          VentasStates.tabs[index].fechaEntrega = DateTime.tryParse(venta.fechaEntrega??'');
+          for (var detalle in venta.detalles) {
+            VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
+          }
+          VentasStates.tabs[index].detallesVenta = venta.detalles;
+          VentasStates.tabs[index].comentariosController.text = venta.comentariosVenta;
+          VentasStates.tabs[index].subtotalController.text = Formatos.pesos.format(venta.subTotal.toDouble());
+          VentasStates.tabs[index].totalDescuentoController.text = Formatos.pesos.format(venta.descuento.toDouble());
+          VentasStates.tabs[index].totalIvaController.text = Formatos.pesos.format(venta.iva.toDouble());
+          VentasStates.tabs[index].totalController.text = Formatos.pesos.format(venta.total.toDouble());
 
-                  //Eliminar VentaRecibida
-                  //ventasRecibida.eliminarRecibida(venta.id!, venta.sucursalId);
+          //Eliminar VentaRecibida
+          ventasRecibida.eliminarRecibida(venta.id!, venta.sucursalId);
 
-                  //Volver a Renderizar para mostrar Cambios
-                  rebuild();          
-                  print(VentasStates.indexSelected);
-                }
-              ) : const SizedBox()
-
-            ],
-          ),
-          suc.sucursalActual!=null ? KeyedSubtree(
-            key: ValueKey<int>(VentasStates.indexSelected),
-            child: VentaForm(
-              key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
-              index: VentasStates.indexSelected, 
-              rebuild: rebuildAndClean,
-            ),
-          ) 
-          : 
-          const AdvertenciaSucursal(),
-        ],
-      ),
+          //Volver a Renderizar para mostrar Cambios
+          rebuild();    
+        }  
+      }
     );
   }
 }
