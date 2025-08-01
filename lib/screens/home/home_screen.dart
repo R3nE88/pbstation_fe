@@ -8,12 +8,52 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-  
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    final modProv = context.read<ModulosProvider>();
+    _pageController = PageController(initialPage: modProv.subModuloSeleccionado);
+
+    // Asegúrate de que el PageController salte a la página correcta después de construir el widget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(modProv.subModuloSeleccionado);
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final modProv = context.watch<ModulosProvider>();
+
+    // Asegúrate de que el PageController salte a la página correcta si cambia el submódulo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(modProv.subModuloSeleccionado);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!HomeState.init){
+    if (!HomeState.init) {
       HomeState.init = true;
       const size = Size(1024, 720);
       appWindow.minSize = size;
@@ -38,25 +78,31 @@ class HomeScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
                   child: screens.isNotEmpty
-                  ? IndexedStack(
-                    index: modProv.subModuloSeleccionado,
-                    children: screens, // List<Widget>
-                  )
-                  : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
-                          textScaler: TextScaler.linear(1.5),
-                          style: TextStyle(
-                            color: AppTheme.colorContraste.withAlpha(150),
+                      ? PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            modProv.seleccionarSubModulo(index); // Actualiza el índice seleccionado
+                          },
+                          itemCount: screens.length,
+                          itemBuilder: (context, index) {
+                            return screens[index];
+                          },
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
+                                textScaler: TextScaler.linear(1.5),
+                                style: TextStyle(
+                                  color: AppTheme.colorContraste.withAlpha(150),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],
