@@ -8,7 +8,7 @@ class Modulos{
 
   static bool deshabilitar(String value){ //Escribir que modulos se deshabilitan para el usuario sin permisos
     if (Login.usuarioLogeado.rol == "admin") return false;
-    if (value == 'usuarios' || value == 'sucursales' || value == 'caja'){
+    if (value == 'usuarios' || value == 'sucursales' || value == 'historial\nde ventas'){
       return true;
     }
     return false;
@@ -17,8 +17,8 @@ class Modulos{
   static const Map<String, List<String>> modulos = {
     'caja': [
       'venta',
-      'caja', //Solo administrador
-      'historial\nde ventas' 
+      'caja', 
+      'historial\nde ventas' //Solo administrador
     ],
     'catalogo': [
       'productos y\nservicios',

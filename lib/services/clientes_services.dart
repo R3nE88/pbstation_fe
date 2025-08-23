@@ -160,30 +160,13 @@ class ClientesServices extends ChangeNotifier{
 
   Future<String> updateCliente(Clientes cliente, String id) async {
     isLoading = true;
-
+    cliente.id = id;
     try {
       final url = Uri.parse(_baseUrl);
-
-      final body = json.encode({
-          "id": id,
-          "nombre": cliente.nombre,
-          "correo": cliente.correo,
-          "telefono": cliente.telefono,
-          "razon_social": cliente.razonSocial,
-          "rfc": cliente.rfc,
-          "codigo_postal": cliente.codigoPostal,
-          "direccion": cliente.direccion,
-          "regimen_fiscal": cliente.regimenFiscal,
-          "no_ext": cliente.noExt,
-          "no_int": cliente.noInt,
-          "colonia": cliente.colonia,
-          "localidad": cliente.localidad
-        });
-
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
-        body: body,
+        body: cliente.id,
       );
 
       if (resp.statusCode == 200) {

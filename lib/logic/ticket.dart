@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -40,7 +39,9 @@ class Ticket {
 
       bytes += generator.image(img!);
     } catch (e) {
-      print(e);
+      if (kDebugMode) {
+        print(e);
+      }
     }
     return bytes;
   }
@@ -90,6 +91,7 @@ class Ticket {
       PosColumn(text: 'Cant', width: 2, styles: PosStyles(bold: true)),
       PosColumn(text: 'Precio', width: 4, styles: PosStyles(bold: true)),
     ]);
+    if(!context.mounted) return[];
     final productos = Provider.of<ProductosServices>(context, listen: false);
     for (var i = 0; i < venta.detalles.length; i++) {
       Productos? producto = productos.obtenerProductoPorId(venta.detalles[i].productoId);
@@ -146,10 +148,9 @@ class Ticket {
         );
         if (connected) {
           List<int> bytes = await generateReceiptBytes(context, venta, folio);
-          bool success = await PrintUsb.printBytes(bytes: bytes, device: device);
+          await PrintUsb.printBytes(bytes: bytes, device: device);
           // Check success...
           //await PrintUsb.close();
-
         }
       }
   }

@@ -204,8 +204,8 @@ class FilaSucursales extends StatelessWidget {
     final partes = sucursal.localidad.split(',');
     String ciudad = partes[0].trim();
     String estado = partes[1].trim();
-    String Pais = partes[2].trim();
-    String localidad = '$ciudad, ${estado.substring(0, 3)}, ${Pais.substring(0, 3)}';
+    String pais = partes[2].trim();
+    String localidad = '$ciudad, ${estado.substring(0, 3)}, ${pais.substring(0, 3)}';
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;

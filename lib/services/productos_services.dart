@@ -24,14 +24,17 @@ class ProductosServices extends ChangeNotifier{
   Productos? obtenerProductoPorId(String id) {
     return _productosPorId[id];
   }
-  String descripcionConCantidad(String productoId, int cantidad) {
-    final producto = _productosPorId[productoId];
+  String descripcionConCantidad(DetallesVenta detalles) {
+    final producto = _productosPorId[detalles.productoId];
     final descripcion = producto?.descripcion ?? 'Desconocido';
-    return '$descripcion: $cantidad';
+    if (producto!.requiereMedida){
+      return '${detalles.cantidad} $descripcion(${detalles.ancho}x${detalles.alto})';
+    }
+    return '${detalles.cantidad} $descripcion';
   }
   String obtenerDetallesComoTexto(List<DetallesVenta> detalles) {
     return detalles.map((detalle) {
-      return descripcionConCantidad(detalle.productoId, detalle.cantidad);
+      return descripcionConCantidad(detalle);
     }).join(' - ');
   }
 
@@ -167,26 +170,14 @@ class ProductosServices extends ChangeNotifier{
   Future<String> updateProducto(Productos producto, String id) async {
     isLoading = true;
 
+    producto.id = id;
+
     try {
       final url = Uri.parse(_baseUrl);
-
-      final body = json.encode({
-          "id": id,
-          "codigo": producto.codigo,
-          "descripcion": producto.descripcion,
-          "tipo": producto.tipo,
-          "categoria": producto.categoria,
-          "precio": producto.precio,
-          "inventariable": producto.inventariable,
-          "imprimible": producto.imprimible,
-          "valor_impresion": producto.valorImpresion,
-          "requiere_medida": producto.requiereMedida,
-        });
-
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
-        body: body,
+        body: producto.toJson(),
       );
 
       if (resp.statusCode == 200) {

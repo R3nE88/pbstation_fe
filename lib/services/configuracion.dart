@@ -66,4 +66,8 @@ class Configuracion extends ChangeNotifier{
       }
     }
   }
+
+  Future<void> actualizarDolar() async{
+    
+  }
 }

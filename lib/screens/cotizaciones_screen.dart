@@ -24,8 +24,6 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
   void initState() {
     super.initState();
     
-    print('object');
-
     final cotizacionesServices = Provider.of<CotizacionesServices>(context, listen: false);
     cotizacionesServices.loadCotizaciones();
     final clienteServices = Provider.of<ClientesServices>(context, listen: false);

@@ -10,6 +10,7 @@ class CajasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
+  List<MovimientoCajas> movimientos = [];
   bool init = false;
   bool loaded = false;
   bool isLoading = false;
@@ -37,12 +38,35 @@ class CajasServices extends ChangeNotifier{
       final body = json.decode(resp.body);
       cajaActual = Cajas.fromMap(body as Map<String, dynamic>);
       cajaActual!.id = (body as Map)["id"]?.toString();
+      await loadMovimientos();
     } catch (e) {
       isLoading = false;
       return null;
     }
     isLoading = false;
     return cajaActual;
+  }
+
+  Future<void> loadMovimientos() async{
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$cajaActualId/movimientos');
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
+      final body = json.decode(resp.body) as List<dynamic>; // <-- Lista
+      movimientos = body.map((item) {
+        final mov = MovimientoCajas.fromMap(item as Map<String, dynamic>);
+        mov.id = item["id"]?.toString();
+        return mov;
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+      isLoading = false;
+    }
+    isLoading = false;
   }
 
   Future<void> createCaja(Cajas caja) async {
@@ -80,6 +104,72 @@ class CajasServices extends ChangeNotifier{
       notifyListeners();
     }
   }
+
+  Future<void> agregarMovimiento(MovimientoCajas movimiento) async {
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$cajaActualId/movimientos');
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: movimiento.toJson(),   
+      );
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final nuevo = MovimientoCajas.fromMap(data);
+        nuevo.id = data['id']?.toString();
+
+        movimientos.add(nuevo);
+        notifyListeners();
+
+        if (kDebugMode) {
+          print('movimiento creado y agregado a caja!');
+        }
+      } else {
+        debugPrint('Error al crear movimiento: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('Exception en agregarMovimiento: $e');
+      return;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /*Future<List<MovimientoCajas>> loadMovimientos() async{
+    return [];
+  }*/
+
+  /*Future<void> actualizarCaja(Cajas caja) async{
+    isLoading = true;
+    try {
+      final url = Uri.parse(_baseUrl);
+      final resp = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: caja.toJson(),
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Cajas.fromMap(data);
+        updated.id = data['id']?.toString();
+
+        cajaActual = updated;
+
+        notifyListeners();
+      } else {
+        debugPrint('Error al actualizar caja: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('Exception en updateCaja: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }*/
 
   void eliminarCajaActualSoloDePrueba() async{
     cajaActual = null;

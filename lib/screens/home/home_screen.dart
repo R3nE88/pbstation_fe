@@ -24,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final modProv = context.read<ModulosProvider>();
     _pageController = PageController(initialPage: modProv.subModuloSeleccionado);
 
-    // Asegúrate de que el PageController salte a la página correcta después de construir el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController.hasClients) {
         _pageController.jumpToPage(modProv.subModuloSeleccionado);
@@ -37,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.didChangeDependencies();
     final modProv = context.watch<ModulosProvider>();
 
-    // Asegúrate de que el PageController salte a la página correcta si cambia el submódulo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController.hasClients) {
         _pageController.jumpToPage(modProv.subModuloSeleccionado);
@@ -80,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: screens.isNotEmpty
                       ? PageView.builder(
                           controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
                           onPageChanged: (index) {
                             modProv.seleccionarSubModulo(index); // Actualiza el índice seleccionado
                           },
@@ -156,6 +155,8 @@ class UsuarioOverlay extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     'Sesión de ', 

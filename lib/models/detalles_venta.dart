@@ -43,7 +43,7 @@ class DetallesVenta {
     descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
     iva: Decimal.parse(json["iva"].toString()),
     subtotal: Decimal.parse(json["subtotal"].toString()),
-    cotizacionPrecio: Decimal.tryParse(json["cotizacion_precio"].toString()), //IMPORTATNE SI PUEDE SER NULL USAR tryparse]
+    cotizacionPrecio: json["cotizacion_precio"]!=null ? Decimal.tryParse(json["cotizacion_precio"].toString()) : null, //IMPORTATNE SI PUEDE SER NULL USAR tryparse]
   );
 
   Map<String, dynamic> toMap() => {

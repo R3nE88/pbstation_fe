@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
@@ -151,6 +150,7 @@ class _VentaScreenState extends State<VentaScreen> {
                         );
 
                         await cajaSvc.createCaja(nuevaCaja);
+                        if(!mounted) { return; }
                         Navigator.pop(context);
                       }
                     }, 
@@ -338,9 +338,10 @@ class _VentaScreenState extends State<VentaScreen> {
 
         if (continuar){
           //Cargar Datos
-          VentasEnviadas venta = ventasRecibida.ventas[seleccion!];
+          VentasEnviadas venta = ventasRecibida.ventas[seleccion];
           int index = VentasStates.indexSelected;
           VentasStates.tabs[index].clear();
+          if(!context.mounted) return;
           final clientesS = Provider.of<ClientesServices>(context, listen: false);
           final productosS = Provider.of<ProductosServices>(context, listen: false);
 

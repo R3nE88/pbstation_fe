@@ -717,6 +717,8 @@ class VentaRealizadaDialog extends StatelessWidget {
       ),
       actions: [
         ElevatedButton(
+          autofocus: true,
+          style: AppTheme.botonSecundarioStyle,
           focusNode: boton,
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))

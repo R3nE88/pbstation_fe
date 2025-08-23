@@ -24,6 +24,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   decimal: ^3.2.4
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:decimal/decimal.dart';
+import 'package:pbstation_frontend/models/models.dart';
 
 class Cajas {
   Cajas({
@@ -31,7 +32,7 @@ class Cajas {
   Decimal? diferencia;
   String estado;
   List<String> ventasIds;
-  List<String> movimientoCaja;
+  List<MovimientoCajas> movimientoCaja;
   String? observaciones;
 
 
@@ -51,7 +52,9 @@ class Cajas {
     diferencia : json["diferencia"]!=null ? Decimal.parse(json["diferencia"]) : null,
     estado: json["estado"],
     ventasIds: List<String>.from(json["ventas_ids"] ?? []),
-    movimientoCaja: List<String>.from(json["movimiento_caja"] ?? []),
+    movimientoCaja: List<MovimientoCajas>.from(
+      json["movimiento_caja"].map((x) => MovimientoCajas.fromMap(x as Map<String, dynamic>)),
+    ),
     observaciones: json["observaciones"],
   );
 
@@ -68,7 +71,7 @@ class Cajas {
     "diferencia": diferencia,
     "estado": estado,
     "ventas_ids": ventasIds,
-    "movimiento_caja": movimientoCaja,
+    "movimiento_caja": movimientoCaja.map((d) => d.toMap()).toList(),
     "observaciones": observaciones
   };
 }

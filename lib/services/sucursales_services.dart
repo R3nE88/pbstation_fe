@@ -36,7 +36,6 @@ class SucursalesServices extends ChangeNotifier{
   } //Aqui termina  para mapear y buscar sucursales//
 
   Future<void> obtenerSucursalId() async {
-    print('obtrener Sucursal Id');
     if (init==true) return;
     try {
       final directory = await getApplicationSupportDirectory();
@@ -57,7 +56,7 @@ class SucursalesServices extends ChangeNotifier{
         loadSucursales();
       } else {
         if (kDebugMode) {
-          print('⚠️ El campo \"sucursal\" no existe en el JSON.');
+          print('⚠️ El campo "sucursal" no existe en el JSON.');
         }
       }
     } catch (e) {
@@ -70,7 +69,9 @@ class SucursalesServices extends ChangeNotifier{
   Future<void> establecerSucursal(Sucursales sucursal) async{
     final directory = await getApplicationSupportDirectory();
     final file = File('${directory.path}/config.json');
-    print('Ruta del archivo: ${file.path}');
+    if (kDebugMode) {
+      print('Ruta del archivo: ${file.path}');
+    }
 
     Map<String, dynamic> config = {};
 
@@ -79,7 +80,9 @@ class SucursalesServices extends ChangeNotifier{
       try {
         config = jsonDecode(contenido);
       } catch (e) {
-        print('⚠️ Error al decodificar JSON, usando mapa vacío: $e');
+        if (kDebugMode) {
+          print('⚠️ Error al decodificar JSON, usando mapa vacío: $e');
+        }
       }
     }
 
@@ -90,8 +93,9 @@ class SucursalesServices extends ChangeNotifier{
     final jsonActualizado = const JsonEncoder.withIndent('  ').convert(config);
     await file.writeAsString(jsonActualizado);
 
-    print('✅ Sucursal establecida como: ${sucursal.id}');
-    print(sucursales.length);
+    if (kDebugMode) {
+      print('✅ Sucursal establecida como: ${sucursal.id}');
+    }
 
     sucursalActual = sucursales.firstWhere((element) => element.id == sucursal.id);
     sucursalActualID = sucursalActual!.id;
@@ -203,23 +207,14 @@ class SucursalesServices extends ChangeNotifier{
   Future<String> updateSucursal(Sucursales sucursal, String id) async {
     isLoading = true;
 
+    sucursal.id = id;
+
     try {
       final url = Uri.parse(_baseUrl);
-
-      final body = json.encode({
-          "id": id,
-          "nombre": sucursal.nombre,
-          "correo": sucursal.correo,
-          "telefono": sucursal.telefono,
-          "direccion": sucursal.direccion,
-          "localidad": sucursal.localidad,
-          "activo": sucursal.activo,
-        });
-
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
-        body: body,
+        body: sucursal.toJson(),
       );
 
       if (resp.statusCode == 200) {

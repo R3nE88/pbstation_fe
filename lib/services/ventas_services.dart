@@ -13,7 +13,9 @@ class VentasServices extends ChangeNotifier{
 
   Future<void> loadVentasDeCaja(String cajaId) async { 
     isLoading = true;
-    
+
+    await Future.delayed(Duration(seconds: 1));
+
     try {
       final url = Uri.parse('${_baseUrl}caja/$cajaId');
       final resp = await http.get(

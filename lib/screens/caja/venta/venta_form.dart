@@ -1154,7 +1154,15 @@ class _VentaFormState extends State<VentaForm> {
                     ],
                   ),
                       
-                  const SizedBox(height: 30),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 2, right: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('Precio del dolar: ${Formatos.pesos.format(Configuracion.dolar.toDouble())}'),
+                      ],
+                    ),
+                  ),
                       
                   Expanded(
                     child: Column(

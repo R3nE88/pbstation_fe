@@ -157,7 +157,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     return FocusScope(
       canRequestFocus: !onlyRead,
       child: AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
+        backgroundColor: AppTheme.containerColor2,
         title: Text(titulo),
         content: SizedBox(
           width: 600,

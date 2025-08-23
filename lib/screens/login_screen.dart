@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
-import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io' show WebSocket;
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/services/services.dart';
 
@@ -35,6 +37,8 @@ class WebSocketService with ChangeNotifier {
 
   WebSocketService._internal();
 
+  // Asegúrate que Constantes.baseUrl incluya host:port y que la ruta quede correcta.
+  // Ejemplo: Constantes.baseUrl = '://mi-servidor:8000/' -> _socketUrl = 'ws://mi-servidor:8000/ws'
   final String _socketUrl = 'ws:${Constantes.baseUrl}ws';
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
@@ -79,43 +83,56 @@ class WebSocketService with ChangeNotifier {
   }
 
   /// Abre la conexión WebSocket y comienza a escuchar.
-/// Abre la conexión WebSocket y comienza a escuchar.
-void conectar() {
-  try {
-    _channel = WebSocketChannel.connect(Uri.parse(_socketUrl));
-    isConnected = false; // No marcar como conectado inmediatamente
-    notifyListeners();
+  Future<void> conectar({Duration timeout = const Duration(seconds: 5)}) async {
+    try {
+      // Limpieza previa
+      _subscription?.cancel();
+      _subscription = null;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
 
-    _subscription = _channel!.stream.listen(
-      _onMessage,
-      onDone: () {
-        if (kDebugMode) print('WebSocket cerrado por el servidor.');
-        _onDisconnected();
-      },
-      onError: (error, stackTrace) {
-        if (kDebugMode) print('Error en WebSocket: $error');
-        _onDisconnected();
-      },
-    );
+      // Aseguramos estado inicial
+      _channel = null;
+      isConnected = false;
+      notifyListeners();
 
-    if (kDebugMode) print('Intentando conectar WebSocket...');
+      if (kDebugMode) print('Intentando conectar WebSocket a $_socketUrl ...');
 
-    // Validar conexión después de un breve retraso
-    Future.delayed(Duration(seconds: 2), () {
-      if (_channel != null && _channel!.sink != null) {
-        isConnected = true;
-        notifyListeners();
-        if (kDebugMode) print('WebSocket conectado');
-      } else {
-        if (kDebugMode) print('No se pudo establecer la conexión WebSocket.');
-        _onDisconnected();
+      // Esperamos al handshake. Timeout para evitar espera infinita.
+      final socket = await WebSocket.connect(_socketUrl).timeout(timeout);
+
+      // Si llegamos aquí, el handshake tuvo éxito: convertimos a IOWebSocketChannel
+      _channel = IOWebSocketChannel(socket);
+
+      // Listener: recibe mensajes y detecta cierre/errores.
+      _subscription = _channel!.stream.listen(
+        _onMessage,
+        onDone: () {
+          if (kDebugMode) print('WebSocket cerrado por el servidor (onDone).');
+          _onDisconnected();
+        },
+        onError: (error, stackTrace) {
+          if (kDebugMode) print('Error en WebSocket (onError): $error');
+          _onDisconnected();
+        },
+        cancelOnError: true,
+      );
+
+      // Ya confirmado handshake, marcamos conectado
+      isConnected = true;
+      notifyListeners();
+      if (kDebugMode) print('WebSocket conectado (handshake ok).');
+    } on TimeoutException catch (te) {
+      if (kDebugMode) print('Timeout al conectar WebSocket: $te');
+      _onDisconnected();
+    } catch (e, st) {
+      if (kDebugMode) {
+        print('Error al conectar WebSocket (catch): $e');
+        print(st);
       }
-    });
-  } catch (e) {
-    if (kDebugMode) print('Error al conectar WebSocket: $e');
-    _onDisconnected();
+      _onDisconnected();
+    }
   }
-}
 
   /// Procesa mensajes entrantes usando el mapa de handlers.
   void _onMessage(dynamic raw) {
@@ -129,7 +146,11 @@ void conectar() {
 
     final handler = _handlers[cmd];
     if (handler != null) {
-      handler(arg);
+      try {
+        handler(arg);
+      } catch (e) {
+        if (kDebugMode) print('Error en handler $cmd: $e');
+      }
     } else if (kDebugMode) {
       print('Comando no reconocido: $cmd');
     }
@@ -138,25 +159,44 @@ void conectar() {
   /// Maneja la desconexión y programa reconectar.
   void _onDisconnected() {
     if (kDebugMode) print('WebSocket desconectado');
+    // Aseguramos cerrar recursos
+    _subscription?.cancel();
+    _subscription = null;
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
+    _channel = null;
+
     isConnected = false;
     notifyListeners();
-    _subscription?.cancel();
+
     _scheduleReconnect();
   }
 
   /// Cierra la conexión y cancela reconexión.
   void desconectar() {
     _subscription?.cancel();
-    _channel?.sink.close();
+    _subscription = null;
+    try {
+      _channel?.sink.close();
+    } catch (_) {}
+    _channel = null;
     _reconnectTimer?.cancel();
+    _reconnectTimer = null;
     isConnected = false;
     notifyListeners();
   }
 
   /// Envía mensaje si está conectado.
   void enviar(String mensaje) {
-    if (isConnected) {
-      _channel?.sink.add(mensaje);
+    if (isConnected && _channel != null) {
+      try {
+        _channel!.sink.add(mensaje);
+      } catch (e) {
+        if (kDebugMode) print('Error al enviar mensaje: $e');
+        // Forzar reconexión si ocurre error al enviar
+        _onDisconnected();
+      }
     } else if (kDebugMode) {
       print('No está conectado; mensaje no enviado');
     }
@@ -166,12 +206,19 @@ void conectar() {
   void _scheduleReconnect() {
     if (_reconnectTimer?.isActive ?? false) return;
     const delay = 5;
+    if (kDebugMode) print('Reintentando conexión en $delay s');
     _reconnectTimer = Timer(Duration(seconds: delay), () {
-      if (kDebugMode) print('Reintentando conexión en \$delay s');
       conectar();
     });
   }
 
   /// Indica si la app debe bloquearse.
   bool isAppBlocked() => !isConnected;
+
+  /// Opcional: cuando el servicio ya no se use.
+  void disposeService() {
+    desconectar();
+    // no llames super.dispose() porque no es StatefullWidget, pero si lo usas como provider,
+    // podrías llamar notifyListeners() si hace falta.
+  }
 }
