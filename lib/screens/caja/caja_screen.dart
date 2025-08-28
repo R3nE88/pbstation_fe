@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/screens/caja/movimiento_caja_dialog.dart';
+import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/cerrar_dialog.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -18,11 +21,11 @@ class CajaScreen extends StatefulWidget {
 
 class _CajaScreenState extends State<CajaScreen> {
   bool init = false;
-  Cajas caja = CajasServices.cajaActual!;
+  Cajas? caja;
   Usuarios? usuario;
   late DateTime fechaApertura;
   late String hora;
-
+  //bool cajaNotFound=false;
   String? _opcionSeleccionada = 'Venta Total';
   final List<String> _opciones = ['Venta Total'];
 
@@ -30,25 +33,28 @@ class _CajaScreenState extends State<CajaScreen> {
 
   Future<void> obtenerUsuarioDeCaja() async {
     final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-    usuario = await usuarioSvc.searchUsuario(caja.usuarioId);
+    usuario = await usuarioSvc.searchUsuario(caja!.usuarioId);
     if (mounted) setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
-    obtenerUsuarioDeCaja();
-    fechaApertura = DateTime.parse(caja.fechaApertura);
-    hora = DateFormat('hh:mm a').format(fechaApertura);
 
-    // Pre-cargar datos
-    Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja(caja.id!);
-    Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
-
-    if (CajasServices.cajaActualId != null) {
-      Provider.of<CajasServices>(context, listen: false)
-          .loadCaja(CajasServices.cajaActualId!);
+    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando') {
+      datosIniciales();
     }
+  }
+
+  void datosIniciales(){
+    caja = CajasServices.cajaActual;
+    obtenerUsuarioDeCaja();
+    fechaApertura = DateTime.parse(caja!.fechaApertura);
+    hora = DateFormat('hh:mm a').format(fechaApertura);
+    Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja(caja!.id!);
+    Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
+    Provider.of<CajasServices>(context, listen: false)
+        .loadCaja(CajasServices.cajaActualId!);
   }
 
   // ============ UI ============
@@ -57,8 +63,8 @@ class _CajaScreenState extends State<CajaScreen> {
   Widget build(BuildContext context) {
     final cajaSvc = Provider.of<CajasServices>(context);
 
-    if (CajasServices.cajaActual == null) {
-      return const _CajaBloqueada();
+    if (Configuracion.esCaja && CajasServices.cajaActual==null){
+      return AbrirCaja(metodo: datosIniciales);
     }
 
     return Consumer2<VentasServices, UsuariosServices>(
@@ -98,7 +104,7 @@ class _CajaScreenState extends State<CajaScreen> {
       },
     );
   }
-
+  
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
@@ -114,7 +120,7 @@ class _CajaScreenState extends State<CajaScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text('CAJA: ', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
-        Text(caja.folio!, style: AppTheme.subtituloPrimario, textScaler: const TextScaler.linear(1.3)),
+        Text(caja!.folio!, style: AppTheme.subtituloPrimario, textScaler: const TextScaler.linear(1.3)),
         const Spacer(),
         Row(
           children: [
@@ -125,12 +131,30 @@ class _CajaScreenState extends State<CajaScreen> {
                 context: context,
                 builder: (_) => const MovimientoCajaDialog(),
               ),
+              cerrar: false,
+              disabled: false,
+            ),
+            const SizedBox(width: 15),
+            _CajaBoton(
+              label: 'Realizar Corte',
+              icon: Icons.price_check,
+              onTap: () => showDialog(
+                context: context,
+                builder: (_) => const CorteDialog(),
+              ),
+              cerrar: false,
+              disabled: !Configuracion.esCaja,
             ),
             const SizedBox(width: 15),
             _CajaBoton(
               label: 'Cerrar Caja',
               icon: Icons.point_of_sale,
-              onTap: () {},
+              onTap: () => showDialog(
+                context: context,
+                builder: (_) => const CerrarDialog(),
+              ),
+              cerrar: true, 
+              disabled: !Configuracion.esCaja,
             ),
           ],
         ),
@@ -142,7 +166,7 @@ class _CajaScreenState extends State<CajaScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _TarjetaUsuario(usuario: usuario, fecha: fechaApertura, hora: hora, fondo: caja.efectivoApertura.toDouble()),
+        _TarjetaUsuario(usuario: usuario, fecha: fechaApertura, hora: hora, fondo: caja!.efectivoApertura.toDouble()),
         const SizedBox(width: 20),
         _TarjetaTotalVentas(
           opcionSeleccionada: _opcionSeleccionada!,
@@ -221,18 +245,35 @@ class _CajaBoton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final bool cerrar;
+  final bool disabled;
 
-  const _CajaBoton({required this.label, required this.icon, required this.onTap});
+  const _CajaBoton({required this.label, required this.icon, required this.onTap, required this.cerrar, required this.disabled});
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onTap,
-      child: Row(
-        children: [
-          Icon(icon, size: 21),
-          Text(' $label'),
-        ],
+    return Tooltip(
+      message: disabled ? 'Necesitas estar en la Caja' : '',
+      waitDuration: Durations.short4,
+      child: ElevatedButton(
+        style: cerrar 
+        ? ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 255, 211, 196),
+          disabledBackgroundColor: Colors.grey,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8), // Custom radius
+          ),
+        ) 
+        : ElevatedButton.styleFrom(
+          disabledBackgroundColor: Colors.grey
+        ),
+        onPressed: !disabled ? onTap : null,
+        child: Row(
+          children: [
+            Icon(icon, size: 21),
+            Text(' $label'),
+          ],
+        ),
       ),
     );
   }
@@ -297,33 +338,45 @@ class _TarjetaTotalVentas extends StatelessWidget {
           final esAdmin = Login.usuarioLogeado.rol == "admin";
 
           return Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.tablaColorHeader,
-                  borderRadius: BorderRadius.circular(15)
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      _textoTitulo(esAdmin, usr),
-                      style: AppTheme.subtituloPrimario,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(DateFormat("EEEE, d 'de' MMMM, y", 'es_ES').format(DateTime.now()), style: AppTheme.tituloClaro),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.tablaColorHeader,
+                      borderRadius: BorderRadius.circular(15)
                     ),
-                    Text(Formatos.pesos.format(total.toDouble()), textScaler: const TextScaler.linear(1.3)),
-                  ],
-                ),
-              ),
+                    child: Row(
+                      children: [
+                        Text(
+                          _textoTitulo(esAdmin, usr),
+                          style: AppTheme.subtituloPrimario,
+                        ),
+                        Text(Formatos.pesos.format(total.toDouble()), textScaler: const TextScaler.linear(1.3)),
+                      ],
+                    ),
+                  ),
+                ],
+              ), const SizedBox(width: 20),
               
               const Spacer(),
               if (esAdmin)
-                Text('Filtrar: '),
-                _DropdownUsuarios(
-                  opcionSeleccionada: opcionSeleccionada,
-                  opciones: ['Venta Total', ...usr.usuarios.map((u) => u.id!)],
-                  usr: usr,
-                  onFiltroCambio: onFiltroCambio,
-                ),
+              Row(
+                children: [
+                  Text('Filtrar: '),
+                  _DropdownUsuarios(
+                    opcionSeleccionada: opcionSeleccionada,
+                    opciones: ['Venta Total', ...usr.usuarios.map((u) => u.id!)],
+                    usr: usr,
+                    onFiltroCambio: onFiltroCambio,
+                  ),
+                ],
+              )
             ],
           );
         },

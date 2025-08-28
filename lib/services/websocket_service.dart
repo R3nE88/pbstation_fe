@@ -20,6 +20,7 @@ class WebSocketService with ChangeNotifier {
     SucursalesServices sucursalesServices,
     CotizacionesServices cotizacionesServices,
     Configuracion configuracion,
+    ImpresorasServices impresoraService
   ) {
     // Guardamos servicios en la única instancia
     _instance._productoSvc     = productosService;
@@ -29,6 +30,7 @@ class WebSocketService with ChangeNotifier {
     _instance._sucursalSvc     = sucursalesServices;
     _instance._cotizacionesSvc = cotizacionesServices;
     _instance._config          = configuracion;
+    _instance._impresoraSvc    = impresoraService;
 
     // Configuramos handlers según los servicios
     _instance._setupHandlers();
@@ -55,6 +57,7 @@ class WebSocketService with ChangeNotifier {
   late SucursalesServices _sucursalSvc;
   late CotizacionesServices _cotizacionesSvc;
   late Configuracion _config;
+  late ImpresorasServices _impresoraSvc;
 
   // Map de comandos a handlers
   final Map<String, void Function(String)> _handlers = {};
@@ -74,6 +77,9 @@ class WebSocketService with ChangeNotifier {
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
         'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
+        'post-impresora':    (id) => _impresoraSvc.loadImpresoras(),
+        'put-impresora':     (id) => _impresoraSvc.loadImpresoras(),
+        'delete-impresora':  (id) => _impresoraSvc.loadImpresoras(),
         'ventaenviada': (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();

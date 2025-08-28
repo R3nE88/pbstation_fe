@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/screens/impresora/impresoras_screen.dart';
 export 'package:pbstation_frontend/screens/catalogo/sucursales_screen.dart';
 export 'package:pbstation_frontend/screens/catalogo/clientes_screen.dart';
 export 'package:pbstation_frontend/screens/caja/caja_screen.dart';

@@ -3,20 +3,16 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/movimiento_cajas.dart';
-import 'package:pbstation_frontend/screens/caja/forms/movimiento_caja_form.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
 
-class MovimientoCajaDialog extends StatefulWidget {
+class MovimientoCajaDialog extends StatelessWidget {
   const MovimientoCajaDialog({super.key});
 
-  @override
-  State<MovimientoCajaDialog> createState() => _MovimientoCajaDialogState();
-}
-
-class _MovimientoCajaDialogState extends State<MovimientoCajaDialog> {
   final titulo = 'Movimientos';
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(

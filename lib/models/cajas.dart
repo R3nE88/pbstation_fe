@@ -17,7 +17,8 @@ class Cajas {
     required this.estado,
     required this.ventasIds,
     required this.movimientoCaja,
-    this.observaciones
+    this.observaciones,
+    this.contadores,
   });
 
   String? id; 
@@ -34,6 +35,7 @@ class Cajas {
   List<String> ventasIds;
   List<MovimientoCajas> movimientoCaja;
   String? observaciones;
+  Map<String, Map<String, int>>? contadores;
 
 
 
@@ -56,6 +58,13 @@ class Cajas {
       json["movimiento_caja"].map((x) => MovimientoCajas.fromMap(x as Map<String, dynamic>)),
     ),
     observaciones: json["observaciones"],
+    contadores: (json["contadores"] as Map<String, dynamic>?)
+    ?.map<String, Map<String, int>>(
+      (k, v) => MapEntry(
+        k,
+        Map<String, int>.from(v as Map),
+      ),
+    ),
   );
 
   Map<String, dynamic> toMap() => {
@@ -72,6 +81,7 @@ class Cajas {
     "estado": estado,
     "ventas_ids": ventasIds,
     "movimiento_caja": movimientoCaja.map((d) => d.toMap()).toList(),
-    "observaciones": observaciones
+    "observaciones": observaciones,
+    "contadores": contadores
   };
 }

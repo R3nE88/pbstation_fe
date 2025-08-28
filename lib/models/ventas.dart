@@ -21,7 +21,13 @@ class Ventas {
     required this.descuento,
     required this.iva,
     required this.total,
-    this.recibido,
+    this.tipoTarjeta,
+    this.referenciaTarj,
+    this.referenciaTrans,
+    this.recibidoEfect,
+    this.recibidoTarj,
+    this.recibidoTrans,
+    this.recibidoTotal,
     this.abonado,
     this.cambio,
     this.liquidado
@@ -43,10 +49,19 @@ class Ventas {
   Decimal descuento; //Total del descuento $
   Decimal iva; //Total de impuestos $
   Decimal total; //Total total
-  Decimal? recibido; 
-  Decimal? abonado;
-  Decimal? cambio;
-  bool? liquidado;
+
+  String? tipoTarjeta; //debito o credito
+  String? referenciaTarj; //ref
+  String? referenciaTrans; //ref
+  Decimal? recibidoEfect;
+  Decimal? recibidoTarj;
+  Decimal? recibidoTrans;
+  Decimal? recibidoTotal; //Suma de recibidos
+
+  Decimal? abonado; //cuanto se pago
+  Decimal? cambio; //cuanto sobro
+  bool? liquidado; //si liquido o no
+
   
 
 
@@ -71,9 +86,15 @@ class Ventas {
     descuento: Decimal.parse(json["descuento"]),
     iva: Decimal.parse(json["iva"]),
     total: Decimal.parse(json["total"]),
-    recibido: Decimal.parse(json["recibido"]),
-    abonado: Decimal.parse(json["abonado"]),
-    cambio: Decimal.parse(json["cambio"]),
+    tipoTarjeta: json["tipo_tarjeta"],
+    referenciaTarj: json["referencia_tarj"],
+    referenciaTrans: json["referencia_trans"],
+    recibidoEfect: json["recibido_efect"]!=null ? Decimal.parse(json["recibido_efect"]) : null, 
+    recibidoTarj: json["recibido_tarj"]!=null ? Decimal.tryParse(json["recibido_tarj"]): null, 
+    recibidoTrans: json["recibido_trans"]!=null ? Decimal.tryParse(json["recibido_trans"]): null, 
+    recibidoTotal: json["recibido_total"]!=null ?  Decimal.tryParse(json["recibido_total"]): null, 
+    abonado: json["abonado"]!=null ? Decimal.tryParse(json["abonado"]): null, 
+    cambio: json["cambio"]!=null ? Decimal.tryParse(json["cambio"]): null, 
     liquidado: json["liquidado"],
   );
 
@@ -94,7 +115,13 @@ class Ventas {
     "descuento": descuento,
     "iva": iva,
     "total": total,
-    "recibido": recibido,
+    "tipo_tarjeta":tipoTarjeta,
+    "referencia_tarj":referenciaTarj,
+    "referencia_trans":referenciaTrans,
+    "recibido_efect":recibidoEfect,
+    "recibido_tarj": recibidoTarj,
+    "recibido_trans": recibidoTrans,
+    "recibido_total": recibidoTotal,
     "abonado": abonado,
     "cambio": cambio,
     "liquidado":liquidado,

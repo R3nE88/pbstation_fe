@@ -20,7 +20,7 @@ class CajasServices extends ChangeNotifier{
     //obtener Caja
     final prefs = await SharedPreferences.getInstance();
     cajaActualId = prefs.getString('caja_id');
-    if (cajaActualId!=null){
+    if (cajaActualId!=null && cajaActualId!='buscando'){
       loadCaja(cajaActualId!);
     }
     
@@ -40,6 +40,7 @@ class CajasServices extends ChangeNotifier{
       cajaActual!.id = (body as Map)["id"]?.toString();
       await loadMovimientos();
     } catch (e) {
+      cajaActualId = 'buscando';
       isLoading = false;
       return null;
     }

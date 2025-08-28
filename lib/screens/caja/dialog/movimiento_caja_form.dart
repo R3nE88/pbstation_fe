@@ -7,22 +7,17 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:provider/provider.dart';
 
-class MovimientoCajaForm extends StatefulWidget {
+class MovimientoCajaForm extends StatelessWidget {
   const MovimientoCajaForm({super.key, required this.isRetiro});
 
   final bool isRetiro;
 
-  @override
-  State<MovimientoCajaForm> createState() => _MovimientoCajaFormState();
-}
 
-class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
-  final formKey = GlobalKey<FormState>();
-  final TextEditingController montoCtrl = TextEditingController();
-  final TextEditingController motivoCtrl = TextEditingController();
-  
   @override
   Widget build(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final TextEditingController montoCtrl = TextEditingController();
+    final TextEditingController motivoCtrl = TextEditingController();
 
     void submit() async{
       if (formKey.currentState!.validate()){
@@ -32,7 +27,7 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
           monto:  double.parse(montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
           motivo: motivoCtrl.text, 
           fecha: DateTime.now().toString(), 
-          tipo: widget.isRetiro ? 'retiro' : 'entrada', 
+          tipo: isRetiro ? 'retiro' : 'entrada', 
         );
         final cajaSvc = Provider.of<CajasServices>(context, listen: false);
         await cajaSvc.agregarMovimiento(movimiento);
@@ -45,7 +40,7 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       title: Text(
-        widget.isRetiro ?
+        isRetiro ?
         "Retirar Efectivo" : "Agregar Efectivo"
       ),
       content: SizedBox(

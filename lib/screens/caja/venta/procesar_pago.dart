@@ -55,6 +55,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final FocusNode focusCambio = FocusNode();
   final FocusNode focusRealizarPago = FocusNode();
   //Controllers
+  final formKey = GlobalKey<FormState>();
   final TextEditingController efectivoCtrl = TextEditingController();
   final TextEditingController dolarCtrl = TextEditingController();
   final TextEditingController tarjetaImpCtrl = TextEditingController();
@@ -84,6 +85,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       entrada += transferenciaImporte;
     }
     return entrada;
+  }
+
+  double calcularImporteEfectivo(){
+    return efectivoImporte + CalculosDinero().conversionADolar(dolarImporte);
   }
 
   void calcularAbono(){
@@ -158,6 +163,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     dropdownItemsTipo = Constantes.tarjeta.entries
         .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
         .toList();
+    tipoTarjetaSeleccionado = dropdownItemsTipo.first.value;
 
     abonarCtrl.text = 'MX\$0.00';
     cambioCtrl.text = Formatos.pesos.format(0);
@@ -185,272 +191,293 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                 children: [
                   Expanded(
                     flex: 6,
-                    child: Column( 
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 350),
-            
-                        ExpandableCard(
-                          onChanged: (value) async{
-                            setState(() {efectivo = value;});
-                            if (value) { 
-                              await Future.delayed(const Duration(milliseconds: milliseconds));
-                              focusEfectivo.requestFocus(); 
-                              if ( efectivoCtrl.text.isNotEmpty ){ calcularAbono(); }
-                              if ( dolarCtrl.text.isNotEmpty ){ calcularAbono(); }
-                            } else {
-                              calcularAbono();
-                            }
-                          },
-                          title: 'Efectivo',
-                          initiallyExpanded: true,
-                          expandedContent: Padding(
-                            padding: const EdgeInsets.only(
-                              top: 3, bottom: 15, left: 12, right: 12
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                TextFormField(
-                                  controller: efectivoCtrl,
-                                  inputFormatters: [ PesosInputFormatter() ],
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 10,
-                                  autofocus: true,
-                                  focusNode: focusEfectivo,
-                                  canRequestFocus: efectivo,
-                                  decoration: InputDecoration(
-                                    labelText: 'Importe (MXN)',
-                                    labelStyle: AppTheme.labelStyle,
+                    child: Form(
+                      key: formKey,
+                      child: Column( 
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 350),
+                                  
+                          ExpandableCard(
+                            onChanged: (value) async{
+                              setState(() {efectivo = value;});
+                              if (value) { 
+                                await Future.delayed(const Duration(milliseconds: milliseconds));
+                                focusEfectivo.requestFocus(); 
+                                if ( efectivoCtrl.text.isNotEmpty ){ calcularAbono(); }
+                                if ( dolarCtrl.text.isNotEmpty ){ calcularAbono(); }
+                              } else {
+                                calcularAbono();
+                              }
+                            },
+                            title: 'Efectivo',
+                            initiallyExpanded: true,
+                            expandedContent: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 3, bottom: 15, left: 12, right: 12
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  TextFormField(
+                                    controller: efectivoCtrl,
+                                    inputFormatters: [ PesosInputFormatter() ],
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 10,
+                                    autofocus: true,
+                                    focusNode: focusEfectivo,
+                                    canRequestFocus: efectivo,
+                                    decoration: InputDecoration(
+                                      labelText: 'Importe (MXN)',
+                                      labelStyle: AppTheme.labelStyle,
+                                    ),
+                                    onChanged: (value) {
+                                      efectivoImporte = formatearEntrada(value);
+                                      calcularAbono();
+                                    },
+                                    onTap: () {
+                                      Future.delayed(Duration.zero, () {
+                                        efectivoCtrl.selection = TextSelection(
+                                          baseOffset: 0,
+                                          extentOffset: efectivoCtrl.text.length,
+                                        );
+                                      });
+                                    },
+                                  ), const SizedBox(height: 10),
+                      
+                                  TextFormField(
+                                    controller: dolarCtrl,
+                                    inputFormatters: [ DolaresInputFormatter()],
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 10,
+                                    autofocus: true,
+                                    focusNode: focusDolar,
+                                    canRequestFocus: efectivo,
+                                    decoration: InputDecoration(
+                                      labelText: 'Importe (US)',
+                                      labelStyle: AppTheme.labelStyle,
+                                    ),
+                                    onChanged: (value) {
+                                      dolarImporte = formatearEntrada(value);
+                                      calcularAbono();
+                                    },
+                                    onTap: () {
+                                      Future.delayed(Duration.zero, () {
+                                        dolarCtrl.selection = TextSelection(
+                                          baseOffset: 0,
+                                          extentOffset: dolarCtrl.text.length,
+                                        );
+                                      });
+                                    },
                                   ),
-                                  onChanged: (value) {
-                                    efectivoImporte = formatearEntrada(value);
-                                    calcularAbono();
-                                  },
-                                  onTap: () {
-                                    Future.delayed(Duration.zero, () {
-                                      efectivoCtrl.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset: efectivoCtrl.text.length,
-                                      );
-                                    });
-                                  },
-                                ), const SizedBox(height: 10),
-
-                                TextFormField(
-                                  controller: dolarCtrl,
-                                  inputFormatters: [ DolaresInputFormatter()],
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 10,
-                                  autofocus: true,
-                                  focusNode: focusDolar,
-                                  canRequestFocus: efectivo,
-                                  decoration: InputDecoration(
-                                    labelText: 'Importe (US)',
-                                    labelStyle: AppTheme.labelStyle,
-                                  ),
-                                  onChanged: (value) {
-                                    dolarImporte = formatearEntrada(value);
-                                    calcularAbono();
-                                  },
-                                  onTap: () {
-                                    Future.delayed(Duration.zero, () {
-                                      dolarCtrl.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset: dolarCtrl.text.length,
-                                      );
-                                    });
-                                  },
-                                ),
-
-                                
-                              ],
+                      
+                                  
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                    
-                        ExpandableCard(
-                          onChanged: (value) async{
-                            setState(() {tarjeta = value;});
-                            if (value) { 
-                              await Future.delayed(const Duration(milliseconds: milliseconds));
-                              focusTarjetaImporte.requestFocus(); 
-                              if ( tarjetaImpCtrl.text.isNotEmpty ){ calcularAbono(); }
-                            } else {
-                              calcularAbono();
-                              dropMenuFocusTarjeta = false;
-                            }
-                          },
-                          title: 'Tarjeta',
-                          initiallyExpanded: false,
-                          expandedContent: Padding(
-                            padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextFormField(
-                                  controller: tarjetaImpCtrl,
-                                  focusNode: focusTarjetaImporte,
-                                  canRequestFocus: tarjeta,
-                                  inputFormatters: [ PesosInputFormatter() ],
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 10,
-                                  decoration: InputDecoration(
-                                    labelText: 'Importe',
-                                    labelStyle: AppTheme.labelStyle,
+                          const SizedBox(height: 10),
+                      
+                          ExpandableCard(
+                            onChanged: (value) async{
+                              setState(() {tarjeta = value;});
+                              if (value) { 
+                                await Future.delayed(const Duration(milliseconds: milliseconds));
+                                focusTarjetaImporte.requestFocus(); 
+                                if ( tarjetaImpCtrl.text.isNotEmpty ){ calcularAbono(); }
+                              } else {
+                                calcularAbono();
+                                dropMenuFocusTarjeta = false;
+                              }
+                            },
+                            title: 'Tarjeta',
+                            initiallyExpanded: false,
+                            expandedContent: Padding(
+                              padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: tarjetaImpCtrl,
+                                    focusNode: focusTarjetaImporte,
+                                    canRequestFocus: tarjeta,
+                                    inputFormatters: [ PesosInputFormatter() ],
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 10,
+                                    decoration: InputDecoration(
+                                      labelText: 'Importe',
+                                      labelStyle: AppTheme.labelStyle,
+                                    ),
+                                    onChanged: (value) {
+                                      tarjetaImporte = formatearEntrada(value);
+                                      calcularAbono();
+                                    },
+                                    onTap: () {
+                                      Future.delayed(Duration.zero, () {
+                                        tarjetaImpCtrl.selection = TextSelection(
+                                          baseOffset: 0,
+                                          extentOffset: tarjetaImpCtrl.text.length,
+                                        );
+                                      });
+                                    },
                                   ),
-                                  onChanged: (value) {
-                                    tarjetaImporte = formatearEntrada(value);
-                                    calcularAbono();
-                                  },
-                                  onTap: () {
-                                    Future.delayed(Duration.zero, () {
-                                      tarjetaImpCtrl.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset: tarjetaImpCtrl.text.length,
-                                      );
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: tarjetaRefCtrl,
-                                        focusNode: focusReferenciaTarjeta,
-                                        canRequestFocus: tarjeta,
-                                        inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
-                                        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                        maxLength: 30,
-                                        decoration: InputDecoration(
-                                          labelText: 'Referencia',
-                                          labelStyle: AppTheme.labelStyle,
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: tarjetaRefCtrl,
+                                          focusNode: focusReferenciaTarjeta,
+                                          canRequestFocus: tarjeta,
+                                          inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
+                                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                          maxLength: 30,
+                                          decoration: InputDecoration(
+                                            labelText: 'Referencia',
+                                            labelStyle: AppTheme.labelStyle,
+                                          ),
+                                          onTap: () {
+                                            Future.delayed(Duration.zero, () {
+                                              tarjetaRefCtrl.selection = TextSelection(
+                                                baseOffset: 0,
+                                                extentOffset: tarjetaRefCtrl.text.length,
+                                              );
+                                            });
+                                          },
+                                          validator: (value) {
+                                            if (tarjeta){
+                                              if (value == null || value.isEmpty) {
+                                                return 'Por favor ingrese la referencia';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                          autovalidateMode: AutovalidateMode.onUserInteraction,
                                         ),
-                                        onTap: () {
-                                          Future.delayed(Duration.zero, () {
-                                            tarjetaRefCtrl.selection = TextSelection(
-                                              baseOffset: 0,
-                                              extentOffset: tarjetaRefCtrl.text.length,
-                                            );
+                                      ),
+                                      const SizedBox(width: 10),
+                                      
+                                      Focus(
+                                        focusNode: focusDropDownMenuTarjeta,
+                                        canRequestFocus: false,
+                                        onFocusChange: (value) {
+                                          setState(() {
+                                            dropMenuFocusTarjeta = value;
                                           });
                                         },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    
-                                    Focus(
-                                      focusNode: focusDropDownMenuTarjeta,
-                                      canRequestFocus: false,
-                                      onFocusChange: (value) {
-                                        setState(() {
-                                          dropMenuFocusTarjeta = value;
-                                        });
-                                      },
-                                      child: Stack(
-                                        children: [
-                                          Container(
-                                            height: 50, width: 160,
-                                            decoration: BoxDecoration(
-                                              color: tarjeta ? Colors.transparent : Colors.white10,
-                                              borderRadius: BorderRadius.circular(30),
-                                              border: Border.all(color: Colors.white, width: dropMenuFocusTarjeta ? 2 : 1)
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              height: 50, width: 160,
+                                              decoration: BoxDecoration(
+                                                color: tarjeta ? Colors.transparent : Colors.white10,
+                                                borderRadius: BorderRadius.circular(30),
+                                                border: Border.all(color: Colors.white, width: dropMenuFocusTarjeta ? 2 : 1)
+                                              ),
                                             ),
-                                          ),
-                                          tarjeta ? CustomDropDown<String>(
-                                            isReadOnly: !tarjeta,
-                                            value: tipoTarjetaSeleccionado,
-                                            hintText: 'Tipo de Tarjeta',
-                                            empty: tipoEmpty,
-                                            items: dropdownItemsTipo,
-                                            onChanged: (val) => setState(() {
-                                              tipoEmpty = false;
-                                              tipoTarjetaSeleccionado = val!;
-                                            }),
-                                          ) : SizedBox(),
-                                        ],
+                                            tarjeta ? CustomDropDown<String>(
+                                              isReadOnly: !tarjeta,
+                                              value: tipoTarjetaSeleccionado,
+                                              hintText: 'Tipo de Tarjeta',
+                                              empty: tipoEmpty,
+                                              items: dropdownItemsTipo,
+                                              onChanged: (val) => setState(() {
+                                                tipoEmpty = false;
+                                                tipoTarjetaSeleccionado = val!;
+                                              }),
+                                            ) : SizedBox(),
+                                          ],
+                                        ),
                                       ),
+                                  
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                      
+                          ExpandableCard(
+                            onChanged: (value) async {
+                              setState(() {transferencia = value;});
+                              if (value) { 
+                                await Future.delayed(const Duration(milliseconds: milliseconds));
+                                focusTransferenciaImporte.requestFocus(); 
+                                if ( transImpCtrl.text.isNotEmpty ){ calcularAbono(); }
+                              } else {
+                                calcularAbono();
+                              }
+                            },
+                            title: 'Transferencia',
+                            initiallyExpanded: false,
+                            expandedContent: Padding(
+                              padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: transImpCtrl,
+                                    focusNode: focusTransferenciaImporte,
+                                    canRequestFocus: transferencia,
+                                    inputFormatters: [ PesosInputFormatter() ],
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 30,
+                                    decoration: InputDecoration(
+                                      labelText: 'Importe',
+                                      labelStyle: AppTheme.labelStyle,
                                     ),
-            
-                                  ],
-                                ),
-                              ],
+                                    onChanged: (value) {
+                                      transferenciaImporte = formatearEntrada(value);
+                                      calcularAbono();
+                                    },
+                                    onTap: () {
+                                      Future.delayed(Duration.zero, () {
+                                        transImpCtrl.selection = TextSelection(
+                                          baseOffset: 0,
+                                          extentOffset: transImpCtrl.text.length,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  TextFormField(
+                                    controller: transRefCtrl,
+                                    focusNode: focusReferenciaTransferencia,
+                                    canRequestFocus: transferencia,
+                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 10,
+                                    decoration: InputDecoration(
+                                      labelText: 'Referencia',
+                                      labelStyle: AppTheme.labelStyle,
+                                    ),
+                                    onTap: () {
+                                      Future.delayed(Duration.zero, () {
+                                        transRefCtrl.selection = TextSelection(
+                                          baseOffset: 0,
+                                          extentOffset: transRefCtrl.text.length,
+                                        );
+                                      });
+                                    },
+                                    validator: (value) {
+                                      if (transferencia){
+                                        if (value == null || value.isEmpty) {
+                                          return 'Por favor ingrese la referencia';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                    
-                        ExpandableCard(
-                          onChanged: (value) async {
-                            setState(() {transferencia = value;});
-                            if (value) { 
-                              await Future.delayed(const Duration(milliseconds: milliseconds));
-                              focusTransferenciaImporte.requestFocus(); 
-                              if ( transImpCtrl.text.isNotEmpty ){ calcularAbono(); }
-                            } else {
-                              calcularAbono();
-                            }
-                          },
-                          title: 'Transferencia',
-                          initiallyExpanded: false,
-                          expandedContent: Padding(
-                            padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextFormField(
-                                  controller: transImpCtrl,
-                                  focusNode: focusTransferenciaImporte,
-                                  canRequestFocus: transferencia,
-                                  inputFormatters: [ PesosInputFormatter() ],
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 30,
-                                  decoration: InputDecoration(
-                                    labelText: 'Importe',
-                                    labelStyle: AppTheme.labelStyle,
-                                  ),
-                                  onChanged: (value) {
-                                    transferenciaImporte = formatearEntrada(value);
-                                    calcularAbono();
-                                  },
-                                  onTap: () {
-                                    Future.delayed(Duration.zero, () {
-                                      transImpCtrl.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset: transImpCtrl.text.length,
-                                      );
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                TextFormField(
-                                  controller: transRefCtrl,
-                                  focusNode: focusReferenciaTransferencia,
-                                  canRequestFocus: transferencia,
-                                  inputFormatters: [ DecimalInputFormatter() ],
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 10,
-                                  decoration: InputDecoration(
-                                    labelText: 'Referencia',
-                                    labelStyle: AppTheme.labelStyle,
-                                  ),
-                                  onTap: () {
-                                    Future.delayed(Duration.zero, () {
-                                      transRefCtrl.selection = TextSelection(
-                                        baseOffset: 0,
-                                        extentOffset: transRefCtrl.text.length,
-                                      );
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-            
-                        const SizedBox(height: 56),
-                      ],
+                                  
+                          const SizedBox(height: 56),
+                        ],
+                      ),
                     ),
                   ), 
             
@@ -564,6 +591,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                         ElevatedButton(
                           focusNode: focusRealizarPago,
                           onPressed: () async{
+                            if (!formKey.currentState!.validate()){
+                              return;
+                            }
 
                             //tipo de pago
                             String tipoDePago = '';
@@ -609,6 +639,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             
                             if (!context.mounted) return;
                             final ventasServices = Provider.of<VentasServices>(context, listen: false);
+                            double importeEfectivo = calcularImporteEfectivo();
                             Ventas nuevaVenta = Ventas(
                               clienteId: widget.venta.clienteId,
                               usuarioId: widget.venta.usuarioId,
@@ -624,7 +655,13 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               descuento: widget.venta.descuento,
                               iva: widget.venta.iva,
                               total: widget.venta.total,
-                              recibido: Decimal.parse(calcularImporte().toString()),
+                              tipoTarjeta: tarjeta ? tipoTarjetaSeleccionado : null,
+                              referenciaTarj: tarjetaRefCtrl.text,
+                              referenciaTrans: transRefCtrl.text,
+                              recibidoEfect:importeEfectivo!=0 ? Decimal.parse(importeEfectivo.toString()) : null,
+                              recibidoTarj:tarjetaImporte!=0 ? Decimal.parse(tarjetaImporte.toString()) : null,
+                              recibidoTrans:transferenciaImporte!=0 ? Decimal.parse(transferenciaImporte.toString()) : null,
+                              recibidoTotal: Decimal.parse(calcularImporte().toString()),
                               abonado: Decimal.parse(formatearEntrada(abonarCtrl.text).toString()),
                               cambio: Decimal.parse(formatearEntrada(cambioCtrl.text).toString()),    
                               liquidado: formatearEntrada(abonarCtrl.text) - widget.venta.total.toDouble() == 0
@@ -706,7 +743,7 @@ class VentaRealizadaDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', venta.recibido!.toDouble(), AppTheme.inputDecorationSeccess),
+          formField('Recibido:', venta.recibidoTotal!.toDouble(), AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
           formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),

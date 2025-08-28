@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
 import 'package:pbstation_frontend/screens/caja/venta/venta_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -22,6 +23,7 @@ class VentaScreen extends StatefulWidget {
 class _VentaScreenState extends State<VentaScreen> {
   int indexResta = 0;
   final int maximoPestanias = 4;
+  bool cajaNotFound=false;
 
   @override
   void initState() {
@@ -29,6 +31,7 @@ class _VentaScreenState extends State<VentaScreen> {
     final clientesServices = Provider.of<ClientesServices>(context, listen: false);
     final productosServices = Provider.of<ProductosServices>(context, listen: false);
     final ventasEnviadasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+    if (CajasServices.cajaActualId == 'buscando'){ cajaNotFound=true; }
     clientesServices.loadClientes();
     productosServices.loadProductos();
     ventasEnviadasServices.ventasRecibidas();
@@ -72,104 +75,12 @@ class _VentaScreenState extends State<VentaScreen> {
     }
 
     if (Configuracion.esCaja && CajasServices.cajaActual==null){
-      return abrirCaja();
+      return AbrirCaja();
     }
 
     return body(agregarPestania, selectedPestania, rebuildAndClean, context, rebuild, suc);
   }
 
-  Widget abrirCaja() {
-    final formKey = GlobalKey<FormState>();
-    TextEditingController fondotxt = TextEditingController();
-    
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
-      child: Center(
-        child: Container(
-          height: 230,
-          width: 400,
-          decoration: BoxDecoration(
-            color: AppTheme.containerColor1,
-            borderRadius: BorderRadius.circular(15)
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'No hay caja abierta, es necesario abrir antes de continuar.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                    textScaler: TextScaler.linear(1.1),
-                  ),
-                  Column(
-                    children: [
-                      Text('¿Con cuánto efectivo empieza la caja?'),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                        child: TextFormField(
-                          controller: fondotxt,
-                          textAlign: TextAlign.center,
-                          inputFormatters: [ PesosInputFormatter() ],
-                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                          maxLength: 11,
-                          autofocus: true,
-                          decoration: InputDecoration(
-                            labelText: 'Fondo (MXN)',
-                            labelStyle: AppTheme.labelStyle,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Ingrese el fondo';
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(),
-                  ElevatedButton(
-                    onPressed: () async{
-                      if (formKey.currentState!.validate()){
-                        Loading.displaySpinLoading(context);
-                        final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-
-                        Cajas nuevaCaja = Cajas(
-                          usuarioId: Login.usuarioLogeado.id!, 
-                          sucursalId: SucursalesServices.sucursalActualID!, 
-                          fechaApertura: DateTime.now().toString(), 
-                          efectivoApertura: Decimal.parse(fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')), 
-                          estado: "abierta", 
-                          ventasIds: [], 
-                          movimientoCaja: []
-                        );
-
-                        await cajaSvc.createCaja(nuevaCaja);
-                        if(!mounted) { return; }
-                        Navigator.pop(context);
-                      }
-                    }, 
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Abrir Caja  '),
-                        Icon(Icons.point_of_sale)
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget body(void Function() agregarPestania, void Function(int index) selectedPestania, void Function(dynamic index) rebuildAndClean, BuildContext context, void Function() rebuild, SucursalesServices suc) {
     return Padding(

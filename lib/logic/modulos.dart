@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/login.dart';
 
 class Modulos{
@@ -7,10 +8,17 @@ class Modulos{
   static int subModuloSelected = 0;
 
   static bool deshabilitar(String value){ //Escribir que modulos se deshabilitan para el usuario sin permisos
-    if (Login.usuarioLogeado.rol == "admin") return false;
-    if (value == 'usuarios' || value == 'sucursales' || value == 'historial\nde ventas'){
-      return true;
+    if (Login.usuarioLogeado.rol != "admin") {
+      if (value == 'usuarios' || value == 'sucursales' || value == 'historial\nde ventas'){
+        return true;
+      }
     }
+    if (!Configuracion.esCaja){
+      if (value == 'caja'){
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -18,7 +26,7 @@ class Modulos{
     'caja': [
       'venta',
       'caja', 
-      'historial\nde ventas' //Solo administrador
+      'historial\nde cajas' //Solo administrador
     ],
     'catalogo': [
       'productos y\nservicios',
@@ -104,7 +112,7 @@ class Modulos{
       SizedBox(), //Falta
     ],
     'impresoras' : [
-      SizedBox(), //Falta
+      ImpresorasScreen()
     ],
     'pedidos' : [
       SizedBox(), //Falta

@@ -1,3 +1,5 @@
+export 'package:pbstation_frontend/models/contadores.dart';
+export 'package:pbstation_frontend/models/impresoras.dart';
 export 'package:pbstation_frontend/models/cajas.dart';
 export 'package:pbstation_frontend/models/movimiento_cajas.dart';
 export 'package:pbstation_frontend/models/ventas_enviadas.dart';

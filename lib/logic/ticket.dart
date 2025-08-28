@@ -87,8 +87,8 @@ class Ticket {
     // Body: Itemized purchase list (using columns)
     bytes += generator.hr(); // horizontal rule
     bytes += generator.row([
-      PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
       PosColumn(text: 'Cant', width: 2, styles: PosStyles(bold: true)),
+      PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
       PosColumn(text: 'Precio', width: 4, styles: PosStyles(bold: true)),
     ]);
     if(!context.mounted) return[];
@@ -96,8 +96,10 @@ class Ticket {
     for (var i = 0; i < venta.detalles.length; i++) {
       Productos? producto = productos.obtenerProductoPorId(venta.detalles[i].productoId);
       bytes += generator.row([
-        PosColumn(text: producto?.descripcion ?? ' - ', width: 6),
         PosColumn(text: venta.detalles[i].cantidad.toString(), width: 2),
+        PosColumn(text: 
+        !producto!.requiereMedida? producto.descripcion : '${producto.descripcion}(${venta.detalles[i].ancho}x${venta.detalles[i].alto})', 
+        width: 6),
         PosColumn(text: Formatos.moneda.format(venta.detalles[i].subtotal.toDouble()), width: 4),
       ]);
     }
@@ -106,7 +108,7 @@ class Ticket {
     // Total
     bytes += generator.text('Total: ${Formatos.pesos.format(venta.total.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.recibido?.toDouble() ?? 0)}',
+    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.recibidoTotal?.toDouble() ?? 0)}',
         styles: PosStyles(align: PosAlign.right, bold: true));
     bytes += generator.text('Su Cambio: ${Formatos.pesos.format(venta.cambio?.toDouble() ?? 0)}',
         styles: PosStyles(align: PosAlign.right, bold: true));

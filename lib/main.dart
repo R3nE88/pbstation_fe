@@ -8,9 +8,12 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
+  await initializeDateFormatting('es_ES');
 
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
@@ -18,6 +21,7 @@ void main() async {
   final ventasEnvServices = VentasEnviadasServices();
   final sucursalesServices = SucursalesServices();
   final cotizacionesServices = CotizacionesServices();
+  final impresoraServices = ImpresorasServices();
   final configuracion = Configuracion();
   final websocketService = WebSocketService(
     productosService, 
@@ -27,6 +31,7 @@ void main() async {
     sucursalesServices,
     cotizacionesServices,
     configuracion, 
+    impresoraServices,
   );
 
   runApp(
@@ -39,6 +44,7 @@ void main() async {
         ChangeNotifierProvider.value(value: sucursalesServices),
         ChangeNotifierProvider.value(value: cotizacionesServices),
         ChangeNotifierProvider.value(value: configuracion),
+        ChangeNotifierProvider.value(value: impresoraServices),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => CajasServices()),
