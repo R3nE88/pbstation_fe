@@ -2,13 +2,14 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
+import 'package:pbstation_frontend/widgets/caja/voucher_carousel.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'dart:async';
 
-enum StepStage { contadores, fondo, esperandoRetiro, conteoPesos, conteoDolares  }
+enum StepStage { contadores, fondo, esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
 
 class CorteDialog extends StatefulWidget {
   const CorteDialog({super.key});
@@ -54,9 +55,12 @@ class _CorteDialogState extends State<CorteDialog> {
     {'value': 0.10, 'kind': 'dime'},
     {'value': 0.05, 'kind': 'nickel'},
     {'value': 0.01, 'kind': 'penny'},
-
   ];
 
+  //Esto es para que funcione el autoFocus del dolar
+  List<FocusNode> denominacionesDolarFocus = []; 
+
+  //Para calcular el total
   double efectivoPesos = 0;
   double efectivoDolares = 0;
   double efectivoDolaresAPeso = 0;
@@ -72,6 +76,11 @@ class _CorteDialogState extends State<CorteDialog> {
 
   FocusNode primerFocusDlls = FocusNode();
 
+  // Voucher controllers
+  List<TextEditingController> voucherControllers = [];
+
+  final FocusNode _voucherButtonFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +90,10 @@ class _CorteDialogState extends State<CorteDialog> {
     }
     for (var _ in denominacionesDlls) {
       denomControllersDlls.add(TextEditingController());
+    }
+
+    for (var i = 0; i < denominacionesDlls.length; i++) {
+      denominacionesDolarFocus.add(FocusNode());
     }
 
     //Segundos para mostrar mensaje
@@ -123,6 +136,13 @@ class _CorteDialogState extends State<CorteDialog> {
       c.dispose();
     }
     proximoFondoCtrl.dispose();
+
+    for (var i = 0; i < denominacionesDolarFocus.length; i++) {
+      denominacionesDolarFocus[i].dispose();
+    }
+
+    _voucherButtonFocus.dispose();
+
     super.dispose();
   }
 
@@ -149,8 +169,6 @@ class _CorteDialogState extends State<CorteDialog> {
     }
     return total;
   }
-
-  String money(double v) => v.toStringAsFixed(2);
 
   void _nextStage() async {
     switch (stage) {
@@ -189,10 +207,15 @@ class _CorteDialogState extends State<CorteDialog> {
         break;
       case StepStage.conteoPesos:
         setState(() => stage = StepStage.conteoDolares);
-        primerFocusDlls.requestFocus();
+        denominacionesDolarFocus.first.requestFocus();
         break;
       case StepStage.conteoDolares:
-        
+      setState(() => stage = StepStage.voucher);
+        break;
+      case StepStage.voucher:
+      setState(() => stage = StepStage.terminado);
+        break;
+      case StepStage.terminado:
         break;
     }
   }
@@ -352,7 +375,7 @@ class _CorteDialogState extends State<CorteDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total contado: MXN\$${money(efectivoPesos)}', style: AppTheme.labelStyle),
+              Text('Total contado: ${Formatos.pesos.format(efectivoPesos)}', style: AppTheme.labelStyle),
               ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
             ],
           ),
@@ -388,8 +411,8 @@ class _CorteDialogState extends State<CorteDialog> {
                 width: 240,
                 child: TextFormField(
                   controller: ctrl,
-                  autofocus: i==0,
-                  focusNode:  i==0 ? primerFocusDlls : FocusNode(),
+                  //focusNode:  i==0 ? primerFocusDlls : FocusNode(),
+                  focusNode: denominacionesDolarFocus[i],
                   decoration: InputDecoration(labelText: label),
                   inputFormatters: [NumericFormatter()],
                   keyboardType: TextInputType.number,
@@ -408,12 +431,47 @@ class _CorteDialogState extends State<CorteDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total contado: US\$${money(efectivoDolares)} (MXN\$$efectivoDolaresAPeso)', style: AppTheme.labelStyle),
+              Text('Total contado: ${Formatos.dolares.format(efectivoDolares)} (${Formatos.pesos.format(efectivoDolaresAPeso)}', style: AppTheme.labelStyle),
               ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  void _handleVoucherControllers(List<TextEditingController> controllers) {
+    setState(() {
+      voucherControllers = controllers;
+    });
+  }
+
+  Widget buildVoucherStep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VoucherBoard(
+          onControllersChanged: _handleVoucherControllers,
+          callback: () {
+            for (var controller in voucherControllers) {
+              print("Voucher: ${controller.text}");
+            }
+            _nextStage();
+          },
+          focusButton: _voucherButtonFocus,
+        ),
+      ],
+    );
+  }
+
+  Widget buildReporteFinal(){
+    return SizedBox(
+      width: 520,
+      child: Column(
+        children: [
+
+        ],
+      )
     );
   }
 
@@ -434,7 +492,7 @@ class _CorteDialogState extends State<CorteDialog> {
         content = _buildContadores(impresoraSvc);
         break;
       case StepStage.fondo:
-        title = 'Fondo siguiente';
+        title = 'Siguiente Fondo';
         content = _buildFondoStep();
         break;
       case StepStage.esperandoRetiro:
@@ -449,12 +507,42 @@ class _CorteDialogState extends State<CorteDialog> {
         title = 'Conteo de Efectivo (DLLS)';
         content = _buildConteoDolaresStep();
         break;
+      case StepStage.voucher:
+        title = 'Conteo de Voucher';
+        content = buildVoucherStep();
+        break;
+      case StepStage.terminado:
+        title = 'Reporte de corte';
+        content = buildReporteFinal();
+        break;
     }
 
     return AlertDialog(
       elevation: 2,
       backgroundColor: AppTheme.containerColor2,
-      title: title.isNotEmpty ? Text(title) : null,
+      title: title.isNotEmpty ? 
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title),
+          stage == StepStage.voucher ? 
+          Transform.translate(
+            offset: Offset(0, -10),
+            child: Tooltip(
+              mouseCursor: SystemMouseCursors.click,
+            message: 
+'''Enter -> Siguiente
+TAB -> desender
+---------------------------
+Ademas puedes navegar
+con las flechas.''',
+            waitDuration: Durations.short1,
+              child: Icon(Icons.help_outline, color: AppTheme.letraClara,)
+            )
+          ) : const SizedBox()
+        ],
+      ) 
+      : null,
       content: content,
     );
   }
