@@ -15,7 +15,7 @@ class CalculosDinero {
     Decimal totalSinIva = subtotal-descuentoAplicado;
 
     Decimal iva = totalSinIva * leerIva().round(scale: 2);
-    Decimal total = (totalSinIva + iva).round(scale: 0); 
+    Decimal total = (totalSinIva + iva).round(scale: 1); 
 
     return {
       'descuento' : descuentoAplicado,
@@ -32,7 +32,7 @@ class CalculosDinero {
     Decimal totalSinIva = totalMedida-descuentoAplicado;
 
     Decimal iva = totalSinIva * leerIva().round(scale: 2);
-    Decimal total = (totalSinIva + iva).round(scale: 0); 
+    Decimal total = (totalSinIva + iva).round(scale: 1); 
 
     return {
       'descuento' : descuentoAplicado,

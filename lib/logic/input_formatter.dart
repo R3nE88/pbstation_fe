@@ -6,7 +6,7 @@ class Formatos{
   static final decimal = NumberFormat.currency(decimalDigits: 2, locale: 'es_MX', symbol: '');
   static final moneda = NumberFormat.currency(decimalDigits: 2, locale: 'es_MX', symbol: '\$');
   static final pesos = NumberFormat.currency(decimalDigits: 2, locale: 'es_MX', symbol: 'MX\$');
-  static final dolares = NumberFormat.currency(decimalDigits: 2, locale: 'es_MX', symbol: 'MX\$');
+  static final dolares = NumberFormat.currency(decimalDigits: 2, locale: 'en_US', symbol: 'US\$');
 }
 
 class MoneyInputFormatter extends TextInputFormatter { //Formatear dinero con $ y , 

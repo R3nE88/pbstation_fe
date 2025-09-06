@@ -22,7 +22,7 @@ class MovimientoCajaForm extends StatelessWidget {
     void submit() async{
       if (formKey.currentState!.validate()){
         Loading.displaySpinLoading(context);  
-        MovimientoCajas movimiento = MovimientoCajas(
+        MovimientosCajas movimiento = MovimientosCajas(
           usuarioId: Login.usuarioLogeado.id!, 
           monto:  double.parse(montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
           motivo: motivoCtrl.text, 

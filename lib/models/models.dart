@@ -1,7 +1,9 @@
+export 'package:pbstation_frontend/models/cortes.dart';
+export 'package:pbstation_frontend/models/ventas_por_producto.dart';
 export 'package:pbstation_frontend/models/contadores.dart';
 export 'package:pbstation_frontend/models/impresoras.dart';
 export 'package:pbstation_frontend/models/cajas.dart';
-export 'package:pbstation_frontend/models/movimiento_cajas.dart';
+export 'package:pbstation_frontend/models/movimientos_cajas.dart';
 export 'package:pbstation_frontend/models/ventas_enviadas.dart';
 export 'package:pbstation_frontend/models/cotizaciones.dart';
 export 'package:pbstation_frontend/models/sucursales.dart';

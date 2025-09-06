@@ -28,6 +28,13 @@ class ProcesarPago extends StatefulWidget {
 }
 
 class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMixin {
+  //para actualizar contador
+  List<Map<String, dynamic>> notificarContadoresTmp = [];
+  List<Map<String, dynamic>> notificarContadores = [];
+  Impresoras? _opcionSeleccionada;
+  final List<Impresoras> _opciones = [];
+  bool _opcionesInited=false;
+
   bool tipoEmpty = false;
   String? tipoTarjetaSeleccionado;
   late final List<DropdownMenuItem<String>> dropdownItemsTipo;
@@ -87,9 +94,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     return entrada;
   }
 
-  double calcularImporteEfectivo(){
+  /*double calcularImporteEfectivo(){
     return efectivoImporte + CalculosDinero().conversionADolar(dolarImporte);
-  }
+  }*/
 
   void calcularAbono(){
     double total = widget.venta.total.toDouble();
@@ -160,6 +167,17 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    for (var detalle in widget.venta.detalles) {
+      Productos producto = Provider.of<ProductosServices>(context, listen: false).productos.firstWhere((element) => element.id == detalle.productoId);
+      if (producto.imprimible){
+        notificarContadoresTmp.add({"valor_impresion":producto.valorImpresion, "cantidad":detalle.cantidad, "producto": producto.descripcion});
+      }
+    }
+
+    if (notificarContadoresTmp.isNotEmpty){
+      Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras();
+    }
+
     dropdownItemsTipo = Constantes.tarjeta.entries
         .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
         .toList();
@@ -175,6 +193,68 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   Widget build(BuildContext context) {
     const int milliseconds = 300;
 
+    //Para notificar contadores
+    if (Provider.of<ImpresorasServices>(context).isLoading){
+      return AlertDialog(content: Text('Cargando'));
+    } else if (!_opcionesInited) {
+      _opciones
+      ..clear()
+      //..add('Seleccionar impresora')
+      ..addAll(Provider.of<ImpresorasServices>(context, listen: false)
+        .impresoras
+        .map((impresora) => impresora) 
+      );
+      _opcionSeleccionada = _opciones.first;
+      _opcionesInited=true;
+      setState(() {});
+    }
+    if (notificarContadoresTmp.isNotEmpty){
+      return AlertDialog(
+        backgroundColor: AppTheme.containerColor2,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('¿Con que impresora Imprimio el siguiente Articulo?'),
+            Text("${notificarContadoresTmp[0]["cantidad"]} x ${notificarContadoresTmp[0]["producto"]}"),
+            Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.tablaColorHeader,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<Impresoras>(
+                  value: _opcionSeleccionada, //TODO: poner impresora por defecto
+                  items: _opciones.map((impresora) { //TODO Me quede agregando la actualizacion de contadores a la hora de cobrar
+                    return DropdownMenuItem<Impresoras>(
+                      value: impresora,
+                      child: Text(impresora.modelo),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() => _opcionSeleccionada = val),
+                  dropdownColor: AppTheme.containerColor2,
+                  style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
+                  iconEnabledColor: Colors.white,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: (){
+                setState(() {
+                  notificarContadores.add(notificarContadoresTmp.first);
+                  notificarContadores.last.addAll({"impresora":"id_xd"});
+                  notificarContadoresTmp.removeAt(0);
+                });
+              }, 
+              child: Text('Siguiente')
+            )
+          ],
+        ),
+      );
+    }
+
+    //Procesar pago 
     return AlertDialog(
       backgroundColor: AppTheme.containerColor2,
       title: const Text('Procesar Pago'),
@@ -596,11 +676,11 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             }
 
                             //tipo de pago
-                            String tipoDePago = '';
+                            /*String tipoDePago = '';
                             if (efectivo) { tipoDePago += ',efectivo'; } 
                             if (tarjeta) {  tipoDePago += ',tarjeta'; } 
                             if (transferencia) { tipoDePago += ',transferencia'; } 
-                            tipoDePago = tipoDePago.replaceFirst(',', '');
+                            tipoDePago = tipoDePago.replaceFirst(',', '');*/
 
                             bool continuar = true; //Adevertencia de adeudo
                             if (porPagar==true){
@@ -639,17 +719,37 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             
                             if (!context.mounted) return;
                             final ventasServices = Provider.of<VentasServices>(context, listen: false);
-                            double importeEfectivo = calcularImporteEfectivo();
+                            
+                            bool liquidado = formatearEntrada(abonarCtrl.text) - widget.venta.total.toDouble() == 0;
+                            //double importeEfectivo = calcularImporteEfectivo();
+                            Decimal abonadoMx = Decimal.parse("0");
+                            Decimal abonadoUs = Decimal.parse("0");
+                            Decimal abonadoTarj = Decimal.parse("0");
+                            Decimal abonadoTrans = Decimal.parse("0");
+                            if (liquidado == false){
+                              abonadoMx = Decimal.parse(efectivoImporte.toString());
+                              abonadoUs = Decimal.parse(dolarImporte.toString());
+                              abonadoTarj = Decimal.parse(tarjetaImporte.toString());
+                              abonadoTrans = Decimal.parse(transferenciaImporte.toString());
+                            } else {
+                              abonadoUs = Decimal.parse(dolarImporte.toString());
+                              abonadoTarj = Decimal.parse(tarjetaImporte.toString());
+                              abonadoTrans = Decimal.parse(transferenciaImporte.toString());
+                              abonadoMx = Decimal.parse(efectivoImporte.toString());
+                              abonadoMx = abonadoMx - Decimal.parse(cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+                            }
+
+
                             Ventas nuevaVenta = Ventas(
                               clienteId: widget.venta.clienteId,
                               usuarioId: widget.venta.usuarioId,
                               sucursalId: widget.venta.sucursalId,
-                              cajaId: CajasServices.cajaActualId!,
+                              //cajaId: CajasServices.cajaActualId!,
                               pedidoPendiente: widget.venta.pedidoPendiente,
                               fechaEntrega: widget.venta.fechaEntrega,
                               detalles: widget.venta.detalles,
                               fechaVenta: DateTime.now().toString(),
-                              tipoPago: tipoDePago,
+                              //tipoPago: tipoDePago,
                               comentariosVenta: widget.venta.comentariosVenta,
                               subTotal: widget.venta.subTotal,
                               descuento: widget.venta.descuento,
@@ -658,13 +758,17 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               tipoTarjeta: tarjeta ? tipoTarjetaSeleccionado : null,
                               referenciaTarj: tarjetaRefCtrl.text,
                               referenciaTrans: transRefCtrl.text,
-                              recibidoEfect:importeEfectivo!=0 ? Decimal.parse(importeEfectivo.toString()) : null,
+                              recibidoMxn:efectivoImporte!=0 ? Decimal.parse(efectivoImporte.toString()) : null,
+                              recibidoUs:dolarImporte!=0 ? Decimal.parse(dolarImporte.toString()) : null,
                               recibidoTarj:tarjetaImporte!=0 ? Decimal.parse(tarjetaImporte.toString()) : null,
                               recibidoTrans:transferenciaImporte!=0 ? Decimal.parse(transferenciaImporte.toString()) : null,
-                              recibidoTotal: Decimal.parse(calcularImporte().toString()),
-                              abonado: Decimal.parse(formatearEntrada(abonarCtrl.text).toString()),
+                              abonadoMxn: abonadoMx,
+                              abonadoUs: abonadoUs,
+                              abonadoTarj: abonadoTarj,
+                              abonadoTrans: abonadoTrans,
+                              abonadoTotal: Decimal.parse(formatearEntrada(abonarCtrl.text).toString()),
                               cambio: Decimal.parse(formatearEntrada(cambioCtrl.text).toString()),    
-                              liquidado: formatearEntrada(abonarCtrl.text) - widget.venta.total.toDouble() == 0
+                              liquidado: liquidado
                             );
                             
                             String folio = await ventasServices.createVenta(nuevaVenta);  
@@ -678,7 +782,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             ).then((value) {
                               //Resetear pantalla de venta principal
                               widget.rebuild(widget.index);
-                            },);
+                            });
 
                             if (!context.mounted) return;
                             Navigator.pop(context);
@@ -743,7 +847,7 @@ class VentaRealizadaDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', venta.recibidoTotal!.toDouble(), AppTheme.inputDecorationSeccess),
+          formField('Recibido:', venta.abonadoTotal!.toDouble(), AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
           formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),

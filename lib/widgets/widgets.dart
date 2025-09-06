@@ -7,7 +7,7 @@ export 'package:pbstation_frontend/screens/home/side_menu_right.dart';
 export 'package:pbstation_frontend/widgets/custom_dropdown.dart';
 export 'package:pbstation_frontend/widgets/loading.dart';
 export 'package:pbstation_frontend/widgets/custom_error_dialog.dart';
-export 'package:pbstation_frontend/widgets/separador_con_texto.dart';
+export 'package:pbstation_frontend/widgets/separador.dart';
 export 'package:pbstation_frontend/widgets/feedback_button.dart';
 export 'package:pbstation_frontend/widgets/diagonal_border.dart';
 export 'package:pbstation_frontend/widgets/background.dart';

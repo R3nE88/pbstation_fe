@@ -166,7 +166,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SeparadorConTexto(texto: 'General'), 
+                const Separador(texto: 'General'), 
                 Row(
                   children: [
                     SizedBox(
@@ -294,7 +294,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                const SeparadorConTexto(texto: 'Caracteristicas'), 
+                const Separador(texto: 'Caracteristicas'), 
                 IgnorePointer(
                   ignoring: onlyRead,
                   child: Row(

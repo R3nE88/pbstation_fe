@@ -204,4 +204,20 @@ class ImpresorasServices extends ChangeNotifier{
       notifyListeners();
     }
   }
+
+  Future<void> actualzarContadorActual(String impresoraId, int contador) async{
+    isLoading = true;
+    try {
+      final url = Uri.parse('${_baseUrlContador}actual/$impresoraId/$contador');
+      final resp = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+      );
+    } catch (e) {
+      debugPrint('Exception en actualzarContadorActual: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 }

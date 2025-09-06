@@ -185,7 +185,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SeparadorConTexto(texto: 'General'),
+                const Separador(texto: 'General'),
                 Row(
                   children: [
                     Expanded(
@@ -219,7 +219,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     validator: (value) => validateRequiredField(value, 'el correo electronico'),
                   ),
                 ), const SizedBox(height: 15),
-                const SeparadorConTexto(texto: 'Datos para Facturacion'),
+                const Separador(texto: 'Datos para Facturacion'),
                 Row(
                   children: [
                     Expanded(
@@ -263,7 +263,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     : const SizedBox()
                   ], 
                 ), const SizedBox(height: 15),
-                const SeparadorConTexto(texto: 'Direccion'),
+                const Separador(texto: 'Direccion'),
                 Row(
                   children: [
                     Expanded(

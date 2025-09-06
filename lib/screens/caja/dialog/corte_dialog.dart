@@ -1,8 +1,11 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
-import 'package:pbstation_frontend/widgets/caja/voucher_carousel.dart';
+import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/widgets/caja/voucher_board.dart';
+import 'package:pbstation_frontend/widgets/separador.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -77,13 +80,29 @@ class _CorteDialogState extends State<CorteDialog> {
   FocusNode primerFocusDlls = FocusNode();
 
   // Voucher controllers
-  List<TextEditingController> voucherControllers = [];
+  List<TextEditingController> debitoControllers = [];
+  List<TextEditingController> creditoControllers = [];
+  List<TextEditingController> transferenciaControllers = [];
 
   final FocusNode _voucherButtonFocus = FocusNode();
+
+  DateTime fechaApertura = DateTime.parse(CajasServices.cajaActual!.fechaApertura);
+  late String fechaAperturaFormatted;
+  DateTime fechaCorte = DateTime.now();
+  late String fechaCorteFormatted;
+
+  int reporteFinalPage = 1;
+
 
   @override
   void initState() {
     super.initState();
+    //formatear fecha
+    fechaAperturaFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaApertura);
+    fechaCorteFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaCorte);
+  
+    Provider.of<VentasServices>(context, listen: false).loadVentasDeCortePorProducto(CajasServices.corteActualId!);
+
     // inicializa controladores de denominación (debe coincidir con denominaciones.length)
     for (var _ in denominacionesMxn) {
       denomControllersMxn.add(TextEditingController());
@@ -216,6 +235,11 @@ class _CorteDialogState extends State<CorteDialog> {
       setState(() => stage = StepStage.terminado);
         break;
       case StepStage.terminado:
+        if(reporteFinalPage==2){
+          setState(() {
+            //reporteFinalPage=2;
+          });
+        }
         break;
     }
   }
@@ -440,9 +464,11 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  void _handleVoucherControllers(List<TextEditingController> controllers) {
+  void _handleVoucherControllers(List<TextEditingController> debitoCtrl, List<TextEditingController> creditoCtrl, List<TextEditingController> transferenciaCtrl,) {
     setState(() {
-      voucherControllers = controllers;
+      debitoControllers = debitoCtrl;
+      creditoControllers = creditoCtrl;
+      transferenciaControllers = transferenciaCtrl;
     });
   }
 
@@ -453,7 +479,16 @@ class _CorteDialogState extends State<CorteDialog> {
         VoucherBoard(
           onControllersChanged: _handleVoucherControllers,
           callback: () {
-            for (var controller in voucherControllers) {
+            print("Debito");
+            for (var controller in debitoControllers) {
+              print("Voucher: ${controller.text}");
+            }
+            print("credito");
+            for (var controller in creditoControllers) {
+              print("Voucher: ${controller.text}");
+            }
+            print("transferencias");
+            for (var controller in transferenciaControllers) {
               print("Voucher: ${controller.text}");
             }
             _nextStage();
@@ -464,15 +499,119 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  Widget buildReporteFinal(){
+  Widget buildReporteFinal(int page){
     return SizedBox(
-      width: 520,
+      width: 1000,
+      height: 616,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+      
+          //Header de corte
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text('#Corte: '),
+                  Text('TODO:', style: AppTheme.tituloClaro),
+                ],
+              ),
+              Row(
+                children: [
+                  Text('Tipo de cambio: '),
+                  Text(Formatos.pesos.format(Configuracion.dolar), style: AppTheme.tituloClaro),
+                ],
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text('Caja Abierta: '),
+                  Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                  Text(' por '),
+                  Text('Rene Ayala', style: AppTheme.tituloClaro),
+                ],
+              ),
+              Row(
+                children: [
+                  Text('Primer Corte: '),
+                  Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                  Text(' por '),
+                  Text('Rene Ayala', style: AppTheme.tituloClaro),
+                ],
+              ),
+            ],
+          ), const SizedBox(height: 15),
 
+          page==1 ?Expanded(
+            child: Row(
+              children: [
+                ReporteFinalVenta(),
+                const SizedBox(width: 10),
+                ReporteFinalDescuentosYVendedores(
+                  callback: (){
+                    reporteFinalPage=2;
+                    _nextStage();
+                  },
+                ),
+              ],
+            )
+          ) : Expanded(
+            child: Row(
+              children: [
+                ReporteFinalMovimientos(
+                  proximoFondo: proximoFondoCtrl.text.isNotEmpty ? Decimal.parse(proximoFondoCtrl.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0"), 
+                  contadoPesos: Decimal.parse(efectivoPesos.toString()), 
+                  contadoDolares: Decimal.parse(efectivoDolares.toString()), 
+                  contadoDebito: contarVouchers(debitoControllers), 
+                  contadoCredito: contarVouchers(creditoControllers), 
+                  contadoTransf: contarVouchers(transferenciaControllers), 
+                ),
+                const SizedBox(width: 10),
+                ReporteFinalDesgloseDinero(desglosePesos: mapearDesglose(true), desgloseDolares: mapearDesglose(false)),
+              ],
+            )
+          ),
         ],
       )
     );
+  }
+
+  Map<double, int> mapearDesglose(bool pesos){
+    if (pesos){
+      Map<double, int> map = {};
+      for (var i = 0; i < denominacionesMxn.length; i++) {
+        if (denomControllersMxn[i].text.isNotEmpty){
+          double denominacion = denominacionesMxn[i]["value"] as double;
+          int cantidad = int.parse(denomControllersMxn[i].text);
+          map.addAll({denominacion:cantidad});
+        }
+      }
+      return map;
+    } else {
+    Map<double, int> map = {};
+    for (var i = 0; i < denominacionesDlls.length; i++) {
+      if (denomControllersDlls[i].text.isNotEmpty){
+        double denominacion = denominacionesDlls[i]["value"] as double;
+        int cantidad = int.parse(denomControllersDlls[i].text);
+        map.addAll({denominacion:cantidad});
+      }
+    }
+    return map;
+    }
+  }
+
+  Decimal contarVouchers(List<TextEditingController> lista){
+    Decimal total = Decimal.parse("0");
+    for (var item in lista) {
+      total += item.text.isNotEmpty ? Decimal.parse(item.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0");
+    }
+    return total;
   }
 
   @override
@@ -512,8 +651,8 @@ class _CorteDialogState extends State<CorteDialog> {
         content = buildVoucherStep();
         break;
       case StepStage.terminado:
-        title = 'Reporte de corte';
-        content = buildReporteFinal();
+        title = '';
+        content = buildReporteFinal(reporteFinalPage);
         break;
     }
 
@@ -530,13 +669,13 @@ class _CorteDialogState extends State<CorteDialog> {
             offset: Offset(0, -10),
             child: Tooltip(
               mouseCursor: SystemMouseCursors.click,
-            message: 
-'''Enter -> Siguiente
-TAB -> desender
+              message: 
+'''TAB -> Siguiente
+Enter -> Descender
 ---------------------------
 Ademas puedes navegar
 con las flechas.''',
-            waitDuration: Durations.short1,
+              waitDuration: Durations.short1,
               child: Icon(Icons.help_outline, color: AppTheme.letraClara,)
             )
           ) : const SizedBox()
@@ -544,6 +683,567 @@ con las flechas.''',
       ) 
       : null,
       content: content,
+    );
+  }
+}
+
+
+class ReporteFinalVenta extends StatelessWidget {
+  const ReporteFinalVenta({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final productos = Provider.of<ProductosServices>(context, listen: false);
+    
+    return Expanded(
+      flex: 10,
+      child: Consumer<VentasServices>(
+        builder: (context, value, child) {
+          Decimal subtotal = Decimal.parse('0');
+          for (var venta in value.ventasPorProducto) {
+            subtotal += venta.subTotal;
+          }
+          Decimal iva = Decimal.parse('0');
+          for (var venta in value.ventasPorProducto) {
+            iva += venta.iva;
+          }
+          Decimal total = Decimal.parse('0');
+          for (var venta in value.ventasPorProducto) {
+            total += venta.total;
+          }
+          
+          return Column(
+            children: [
+              Separador(
+                texto: 'Ventas por Articulos',
+              ),
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(flex: 3 , child: Center(child: Text('Cant'))),
+                      Expanded(flex: 10, child: Center(child: Text('Articulos'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Iva'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Total'))),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: AppTheme.tablaColor1,
+                  child: ListView.builder(
+                    itemCount: value.ventasPorProducto.length,
+                    itemBuilder: (context, index) {
+                      Productos? producto = productos.obtenerProductoPorId(value.ventasPorProducto[index].productoId);
+                      
+                      return FilaProductos(
+                        cantidad: value.ventasPorProducto[index].cantidad, 
+                        articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
+                        iva: Decimal.parse(value.ventasPorProducto[index].iva.toString()), 
+                        subtotal: Decimal.parse(value.ventasPorProducto[index].subTotal.toString()), 
+                        total: Decimal.parse(value.ventasPorProducto[index].total.toString()), 
+                        color: index+1
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(flex: 13, child: Center(child: Text('Total:'))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      )
+    );
+  }
+}
+
+class ReporteFinalDescuentosYVendedores extends StatelessWidget {
+  const ReporteFinalDescuentosYVendedores({
+    super.key, required this.callback,
+  });
+  final Function callback;
+
+  @override
+  Widget build(BuildContext context) {
+    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
+    final List<Ventas> ventasConDescuentos = [];    
+    final Map<String, List<Ventas>> ventasPorUsuario = {};
+    
+    for (var venta in ventaSvc.ventasDeCaja) {
+      //Descuento
+      if (venta.descuento > Decimal.parse("0")){
+        ventasConDescuentos.add(venta);
+      }
+
+      // Agrupar por usuario_id
+      final usuarioId = venta.usuarioId; 
+      ventasPorUsuario.putIfAbsent(usuarioId, () => []);
+      ventasPorUsuario[usuarioId]!.add(venta);
+    }
+
+    final usuariosQueVendieron = ventasPorUsuario.keys.toList();
+    
+    return Expanded(
+      flex: 10,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Separador(texto: "Ventas con Descuentos"),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 6,  child: Center(child: Text('Folio'))),
+                  Expanded(flex: 10, child: Center(child: Text('Vendedor'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Se Descuento'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Se Cobro'))),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 8, 
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: ventasConDescuentos.length,
+                itemBuilder: (context, index) {
+                  return FilaDescuentos(venta: ventasConDescuentos[index], color: index+1);
+                },
+              ),
+            )
+          ),
+          const SizedBox(height: 10),
+          Separador(texto: "Ventas por Vendedor"),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 3, child: Center(child: Text('Vendedor'))),
+                  Expanded(flex: 1, child: Center(child: Text('Ventas'))),
+                  Expanded(flex: 2, child: Center(child: Text('Total'))),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: usuariosQueVendieron.length,
+                itemBuilder: (context, index) {
+                  final usuarioId = usuariosQueVendieron[index];
+                  final ventasDeEsteUsuario = ventasPorUsuario[usuarioId]!;
+
+                  return FilaPorVendedor(
+                    usuarioId: usuarioId,
+                    ventas: ventasDeEsteUsuario, 
+                    color: index+1);
+                },
+              ),
+            )
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton(onPressed: (){
+            callback();
+          }, child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Siguiente'),
+            ],
+          ))
+        ],
+      ),
+    );
+  }
+}
+
+class ReporteFinalMovimientos extends StatelessWidget {
+  const ReporteFinalMovimientos({
+    super.key, 
+    required this.proximoFondo, 
+    required this.contadoPesos, 
+    required this.contadoDolares, 
+    required this.contadoDebito, 
+    required this.contadoCredito, 
+    required this.contadoTransf,
+  });
+
+  final Decimal proximoFondo;
+  final Decimal contadoPesos;
+  final Decimal contadoDolares;
+  final Decimal contadoDebito;
+  final Decimal contadoCredito;
+  final Decimal contadoTransf;
+
+  @override
+  Widget build(BuildContext context) {
+    //Calcular Movimientos
+    final ventas = Provider.of<VentasServices>(context, listen: false);
+    Cortes corte = CajasServices.corteActual!;
+    Decimal fondo = corte.fondoInicial;
+    Decimal entrada = Decimal.parse("0");
+    Decimal salida = Decimal.parse("0");
+
+    for (var movimiento in corte.movimientoCaja) {
+      if (movimiento.tipo=="entrada"){
+        entrada += Decimal.parse(movimiento.monto.toString());
+      } else if (movimiento.tipo=="retiro"){
+        salida += Decimal.parse(movimiento.monto.toString());
+      }
+    } 
+
+    Decimal abonadoMxn = Decimal.parse("0");
+    Decimal abonadoUs = Decimal.parse("0");
+    Decimal abonadoTarjD = Decimal.parse("0");
+    Decimal abonadoTarjC = Decimal.parse("0");
+    Decimal abonadoTrans = Decimal.parse("0");
+    for (var venta in ventas.ventasDeCaja) {
+      if (venta.abonadoMxn!=null){
+        abonadoMxn += venta.abonadoMxn!;
+      }
+      if (venta.abonadoUs!=null){
+        abonadoUs += venta.abonadoUs!;
+      }
+      if (venta.abonadoTarj!=null){
+        if (venta.tipoTarjeta == "debito"){
+          abonadoTarjD += venta.abonadoTarj!;
+        } else if(venta.tipoTarjeta == "credito"){
+          abonadoTarjC += venta.abonadoTarj!;
+        }
+      }
+      if (venta.abonadoTrans!=null){
+        abonadoTrans += venta.abonadoTrans!;
+      }
+    }
+    Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    Decimal total = fondo - proximoFondo + entrada - salida + abonadoMxn + abonadoUsCnv + abonadoTarjD + abonadoTarjC + abonadoTrans;
+
+    //Contado
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(contadoDolares.toDouble()).toString());
+    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
+
+    //diferencia
+    Decimal diferencia = total - totalContado;
+
+    return Expanded(
+      flex: 2,
+      child: Column(
+        children: [
+          Separador(texto: 'Movimientos De Caja'),
+          Fila(texto: 'Fondo', precio: "+${Formatos.pesos.format(fondo.toDouble())}", color: 2),
+          Fila(texto: 'Proximo Fondo', precio: "-${Formatos.pesos.format(proximoFondo.toDouble())}", color: 1),
+          Fila(texto: 'Entrada de dinero', precio: "+${Formatos.pesos.format(entrada.toDouble())}", color: 2),
+          Fila(texto: 'Salida de dinero', precio: "-${Formatos.pesos.format(salida.toDouble())}", color: 1),
+          Fila(texto: 'Efectivo (MX)', precio: "+${Formatos.pesos.format(abonadoMxn.toDouble())}", color: 2),
+          Fila(texto: 'Efectivo (US)', precio: "+${Formatos.pesos.format(abonadoUsCnv.toDouble())}", dolar: Formatos.dolares.format(abonadoUs.toDouble()), color: 1),
+          Fila(texto: 'Tarjeta de Debito', precio: "+${Formatos.pesos.format(abonadoTarjD.toDouble())}", color: 2),
+          Fila(texto: 'Tarjeta de Credito', precio: "+${Formatos.pesos.format(abonadoTarjC.toDouble())}", color: 1),
+          Fila(texto: 'Transferencia', precio: "+${Formatos.pesos.format(abonadoTrans.toDouble())}", color: 2),
+          Fila(texto: 'Total', precio: Formatos.pesos.format(total.toDouble()), color: 0),
+          const SizedBox(height: 15),
+          Separador(texto: 'Dinero Entregado'),
+          Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
+          Fila(texto: 'Efectivo (US)', precio: "+${Formatos.pesos.format(contadoUsCnv.toDouble())}", dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
+          Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
+          Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
+          Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
+          Fila(texto: 'Total', precio: Formatos.pesos.format(totalContado.toDouble()), color: 0),
+          const SizedBox(height: 15),
+          Separador(texto: 'Diferencia'),
+          Fila(texto: 'Movimientos de Caja', precio: Formatos.pesos.format(total.toDouble()), color: 1),
+          Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
+          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse("0") ? "Faltante: ${Formatos.pesos.format(diferencia.toDouble())}" : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
+        ],
+      )
+    );
+  }
+}
+
+class ReporteFinalDesgloseDinero extends StatelessWidget {
+  const ReporteFinalDesgloseDinero({
+    super.key, 
+    required this.desglosePesos, 
+    required this.desgloseDolares,
+  });
+
+  final Map<double, int> desglosePesos;
+  final Map<double, int> desgloseDolares;
+
+  @override
+  Widget build(BuildContext context) {
+    final entriesPesos = desglosePesos.entries.toList();
+    final entriesDlls = desgloseDolares.entries.toList();
+
+    return Expanded(
+      flex: 3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Separador(texto: 'Desglose Dinero Entregado', reducido: true),
+          Row(
+            children: [
+              Expanded(child: Fila(texto: 'Pesos', precio: '', color: 0)),
+              const SizedBox(width: 10),
+              Expanded(child: Fila(texto: 'Dolares', precio: '', color: 0)),
+            ],
+          ),
+          Expanded(
+            flex: 4,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    color: AppTheme.tablaColor1,
+                    child: ListView.builder(
+                      itemCount: entriesPesos.length,
+                      itemBuilder: (context, index) {
+                        return FilaDesglose(denominacion: entriesPesos[index].key, cantidad: entriesPesos[index].value, color: index+1);
+                      },
+                    ),
+                  )
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    color: AppTheme.tablaColor1,
+                    child: ListView.builder(
+                      itemCount: entriesDlls.length,
+                      itemBuilder: (context, index) {
+                        return FilaDesglose(denominacion: entriesDlls[index].key, cantidad: entriesDlls[index].value, color: index+1);
+                      },
+                    ),
+                  )
+                ),
+              ],
+            ),
+          ), const SizedBox(height: 10),
+          
+          Separador(texto: 'Contadores'),
+          Expanded(
+            flex: 3,
+            child: Container(
+              color: Colors.red
+            )
+          ),
+
+          const SizedBox(height: 15),
+          ElevatedButton(
+            onPressed: (){}, 
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Finalizar'),
+              ],
+            )
+          )
+        ],
+      )
+    );
+  }
+}
+
+class FilaProductos extends StatelessWidget {
+  const FilaProductos({
+    super.key, 
+    required this.cantidad, 
+    required this.articulo, 
+    required this.subtotal, 
+    required this.iva, 
+    required this.total,
+    required this.color,   
+  });
+
+  final int cantidad;
+  final String articulo;
+  final Decimal subtotal;
+  final Decimal iva;
+  final Decimal total;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 3, child: Center(child: Text(Formatos.numero.format(cantidad), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 10, child: Center(child: Text(articulo, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaDescuentos extends StatelessWidget {
+  const FilaDescuentos({
+    super.key, 
+    required this.color, required this.venta,   
+  });
+
+  final Ventas venta;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 6,  child: Center(child: Text(venta.folio!, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 10, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.total.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaPorVendedor extends StatelessWidget {
+  const FilaPorVendedor({
+    super.key, 
+    required this.usuarioId,
+    required this.ventas,    
+    required this.color, 
+  });
+
+  final String usuarioId;
+  final List<Ventas> ventas;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+
+    Decimal total = Decimal.parse("0");
+    for (var venta in ventas) {
+      total += venta.total;
+    }
+
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 3, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 1, child: Center(child: Text(ventas.length.toString(), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 2,child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class Fila extends StatelessWidget {
+  const Fila({
+    super.key, required this.texto, required this.precio, required this.color, this.dolar
+  });
+
+  final String texto;
+  final String precio;
+  final String? dolar;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
+        child: dolar==null ? Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+            Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+          ],
+        ) : Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+            Row(
+              children: [
+                Text("(${dolar!})", style: color==0 ?  AppTheme.tituloClaro : TextStyle(color: AppTheme.letraClara.withAlpha(220)), textScaler: TextScaler.linear(0.9)),
+                Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+              ],
+            ),
+            
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaDesglose extends StatelessWidget {
+  const FilaDesglose({
+    super.key, required this.denominacion, required this.cantidad, required this.color,
+  });
+
+  final double denominacion;
+  final int cantidad;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    double total = denominacion * cantidad;
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 2, child: Center(child: Text('${denominacion}x', style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 1, child: Center(child: Text(cantidad.toString(), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+            Expanded(flex: 3, child: Center(child: Text(Formatos.pesos.format(total), style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
     );
   }
 }

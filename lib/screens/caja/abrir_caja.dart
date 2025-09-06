@@ -194,35 +194,56 @@ class _AbrirCajaState extends State<AbrirCaja> {
                 
                     ElevatedButton(
                       onPressed: () async{
-                        Loading.displaySpinLoading(context);
-                        final cajaSvc = Provider.of<CajasServices>(context, listen: false);
+// Mostrar loading y guardar el context del dialog
+late BuildContext dialogContext;
+showDialog(
+  context: context,
+  barrierDismissible: false,
+  builder: (ctx) {
+    dialogContext = ctx;
+    return const Center(child: CircularProgressIndicator());
+  },
+);
 
-                        // Generar contadores actuales { "impresoraId": valor }
-                        final contadoresMap = Map.fromIterables(
-                          impresoraSvc.impresoras.map((e) => e.id!),
-                          controllers.map((c) => int.tryParse(c.text.replaceAll(',', '').trim()) ?? 0),
-                        );
+try {
+  final cajaSvc = Provider.of<CajasServices>(context, listen: false);
 
-                        // Crear estructura de bloques de contadores
-                        final contadores = {
-                          "0001": contadoresMap  // primer bloque
-                        };
-                
-                        Cajas nuevaCaja = Cajas(
-                          usuarioId: Login.usuarioLogeado.id!, 
-                          sucursalId: SucursalesServices.sucursalActualID!, 
-                          fechaApertura: DateTime.now().toString(), 
-                          efectivoApertura: Decimal.parse(fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')), 
-                          estado: "abierta", 
-                          ventasIds: [], 
-                          movimientoCaja: [],
-                          contadores: contadores,
-                        );
-                
-                        await cajaSvc.createCaja(nuevaCaja);
-                        if(widget.metodo!=null) widget.metodo!();
-                        if(!context.mounted) { return; }
-                        Navigator.pop(context);
+  final contadoresMap = Map.fromIterables(
+    impresoraSvc.impresoras.map((impresora) => impresora.id!),
+    controllers.map((ctrl) => int.tryParse(ctrl.text.replaceAll(',', '').trim()) ?? 0),
+  );
+
+  Cajas nuevaCaja = Cajas(
+    usuarioId: Login.usuarioLogeado.id!,
+    sucursalId: SucursalesServices.sucursalActualID!,
+    fechaApertura: DateTime.now().toString(),
+    estado: "abierta",
+    //ventasIds: [],
+    cortesIds: [],
+    tipoCambio: Configuracion.dolar,
+  );
+
+  Cortes primerCorte = Cortes(
+    usuarioId: Login.usuarioLogeado.id!,
+    sucursalId: SucursalesServices.sucursalActualID!,
+    fondoInicial: Decimal.parse(fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
+    contadoresIniciales: contadoresMap,
+    movimientoCaja: [],
+    ventasIds: [],
+  );
+
+  await cajaSvc.createCaja(nuevaCaja);
+  await cajaSvc.createCorte(primerCorte);
+
+  if(widget.metodo!=null) widget.metodo!();
+
+} catch (e) {
+  debugPrint('Error al crear corte: $e');
+} finally {
+  // Cerrar el loading usando el context del dialog
+  Navigator.pop(dialogContext);
+}
+
                         
                       }, 
                       child: Row(

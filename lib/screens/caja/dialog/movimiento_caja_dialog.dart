@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
-import 'package:pbstation_frontend/models/movimiento_cajas.dart';
+import 'package:pbstation_frontend/models/movimientos_cajas.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -114,7 +114,7 @@ class MovimientoCajaDialog extends StatelessWidget {
 class FilaMovimintos extends StatelessWidget {
   const FilaMovimintos({super.key, required this.movimiento, required this.index});
 
-  final MovimientoCajas movimiento;
+  final MovimientosCajas movimiento;
   final int index;
 
   @override

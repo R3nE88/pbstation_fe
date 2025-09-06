@@ -10,7 +10,9 @@ class CajasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
-  List<MovimientoCajas> movimientos = [];
+  static Cortes? corteActual;
+  static String? corteActualId;
+  List<MovimientosCajas> movimientos = [];
   bool init = false;
   bool loaded = false;
   bool isLoading = false;
@@ -38,6 +40,7 @@ class CajasServices extends ChangeNotifier{
       final body = json.decode(resp.body);
       cajaActual = Cajas.fromMap(body as Map<String, dynamic>);
       cajaActual!.id = (body as Map)["id"]?.toString();
+      await loadUltimoCorte();
       await loadMovimientos();
     } catch (e) {
       cajaActualId = 'buscando';
@@ -48,16 +51,33 @@ class CajasServices extends ChangeNotifier{
     return cajaActual;
   }
 
+  Future<void> loadUltimoCorte() async{
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$cajaActualId/cortes/ultimo');
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
+      final body = json.decode(resp.body);
+      corteActual = Cortes.fromMap(body as Map<String, dynamic>);
+      corteActual!.id = (body as Map)["id"]?.toString();
+      corteActualId = corteActual!.id;
+    } catch (e) {
+      isLoading = false;
+    }
+    isLoading = false;
+  }
+
   Future<void> loadMovimientos() async{
     isLoading = true;
     try {
-      final url = Uri.parse('$_baseUrl$cajaActualId/movimientos');
+      final url = Uri.parse('$_baseUrl$corteActualId/movimientos');
       final resp = await http.get(
         url, headers: {"tkn": Env.tkn}
       );
       final body = json.decode(resp.body) as List<dynamic>; // <-- Lista
       movimientos = body.map((item) {
-        final mov = MovimientoCajas.fromMap(item as Map<String, dynamic>);
+        final mov = MovimientosCajas.fromMap(item as Map<String, dynamic>);
         mov.id = item["id"]?.toString();
         return mov;
       }).toList();
@@ -106,10 +126,47 @@ class CajasServices extends ChangeNotifier{
     }
   }
 
-  Future<void> agregarMovimiento(MovimientoCajas movimiento) async {
+  Future<void> createCorte(Cortes corte) async {
     isLoading = true;
     try {
-      final url = Uri.parse('$_baseUrl$cajaActualId/movimientos');
+      final url = Uri.parse('$_baseUrl$cajaActualId/cortes');
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: corte.toJson(),   
+      );
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final nuevo = Cortes.fromMap(data);
+        nuevo.id = data['id']?.toString();
+
+        //Guardar como caja actual la recien creada.
+        corteActual = nuevo;
+        corteActualId = cajaActual!.id;
+        cajaActual!.cortesIds.add(corteActualId!);
+        /*final prefs = await SharedPreferences.getInstance();
+        prefs.setString('caja_id', cajaActualId!);*/
+
+        if (kDebugMode) {
+          print('corte creado!');
+        }
+      } else {
+        debugPrint('Error al crear corte: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('Exception en createCorte: $e');
+      return;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> agregarMovimiento(MovimientosCajas movimiento) async {
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$corteActualId/movimientos');
       final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
@@ -118,10 +175,11 @@ class CajasServices extends ChangeNotifier{
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final nuevo = MovimientoCajas.fromMap(data);
+        final nuevo = MovimientosCajas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
         movimientos.add(nuevo);
+        corteActual!.movimientoCaja.add(nuevo);
         notifyListeners();
 
         if (kDebugMode) {

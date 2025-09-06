@@ -146,7 +146,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SeparadorConTexto(texto: 'General'),
+                const Separador(texto: 'General'),
                 Row(
                   children: [
                     Expanded(

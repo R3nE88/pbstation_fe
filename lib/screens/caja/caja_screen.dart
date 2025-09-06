@@ -22,6 +22,7 @@ class CajaScreen extends StatefulWidget {
 class _CajaScreenState extends State<CajaScreen> {
   bool init = false;
   Cajas? caja;
+  Cortes? corte;
   Usuarios? usuario;
   late DateTime fechaApertura;
   late String hora;
@@ -48,6 +49,7 @@ class _CajaScreenState extends State<CajaScreen> {
 
   void datosIniciales(){
     caja = CajasServices.cajaActual;
+    corte = CajasServices.corteActual;
     obtenerUsuarioDeCaja();
     fechaApertura = DateTime.parse(caja!.fechaApertura);
     hora = DateFormat('hh:mm a').format(fechaApertura);
@@ -166,7 +168,7 @@ class _CajaScreenState extends State<CajaScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _TarjetaUsuario(usuario: usuario, fecha: fechaApertura, hora: hora, fondo: caja!.efectivoApertura.toDouble()),
+        _TarjetaUsuario(usuario: usuario, fecha: fechaApertura, hora: hora, fondo: corte!.fondoInicial.toDouble()),
         const SizedBox(width: 20),
         _TarjetaTotalVentas(
           opcionSeleccionada: _opcionSeleccionada!,
@@ -211,17 +213,6 @@ class _CajaScreenState extends State<CajaScreen> {
 
 // ============ SUBWIDGETS ============
 
-class _CajaBloqueada extends StatelessWidget {
-  const _CajaBloqueada();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(80),
-      child: ColoredBox(color: Colors.red),
-    );
-  }
-}
 
 class _CargandoDatos extends StatelessWidget {
   const _CargandoDatos();
@@ -464,13 +455,16 @@ class _TablaHeader extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Expanded(child: Text('Folio', textAlign: TextAlign.center)),
-          Expanded(child: Text('Vendedor', textAlign: TextAlign.center)),
-          Expanded(child: Text('Cliente', textAlign: TextAlign.center)),
-          Expanded(flex: 2, child: Text('Detalles', textAlign: TextAlign.center)),
-          Expanded(child: Text('Abonado', textAlign: TextAlign.center)),
-          Expanded(child: Text('Total', textAlign: TextAlign.center)),
-          Expanded(child: Text('Fecha y Hora', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Detalles', textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text('Descuento', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('IVA', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Abonado', textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -520,20 +514,23 @@ class FilaVentas extends StatelessWidget {
     final vendedorNombre = usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId);
     final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
     final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
-    final fecha = DateFormat('dd/MM/yyyy - hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+    final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
 
     return Container(
       padding: const EdgeInsets.all(8),
       color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
       child: Row(
         children: [
-          Expanded(child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 2, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(child: Text(Formatos.pesos.format(venta.abonado?.toDouble() ?? 0), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
         ],
       ),
     );

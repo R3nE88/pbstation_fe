@@ -108,7 +108,7 @@ class Ticket {
     // Total
     bytes += generator.text('Total: ${Formatos.pesos.format(venta.total.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.recibidoTotal?.toDouble() ?? 0)}',
+    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.abonadoTotal?.toDouble() ?? 0)}',
         styles: PosStyles(align: PosAlign.right, bold: true));
     bytes += generator.text('Su Cambio: ${Formatos.pesos.format(venta.cambio?.toDouble() ?? 0)}',
         styles: PosStyles(align: PosAlign.right, bold: true));

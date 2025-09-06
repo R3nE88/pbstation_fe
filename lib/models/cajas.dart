@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:decimal/decimal.dart';
-import 'package:pbstation_frontend/models/models.dart';
 
 class Cajas {
   Cajas({
@@ -10,15 +9,12 @@ class Cajas {
     required this.sucursalId,
     required this.fechaApertura,
     this.fechaCierre,
-    required this.efectivoApertura,
-    this.efectivoCierre,
-    this.totalTeorico,
-    this.diferencia,
+    //required this.fondoInicial,
+    this.ventaTotal,
     required this.estado,
-    required this.ventasIds,
-    required this.movimientoCaja,
-    this.observaciones,
-    this.contadores,
+    //required this.ventasIds,
+    required this.cortesIds,
+    required this.tipoCambio,
   });
 
   String? id; 
@@ -27,15 +23,12 @@ class Cajas {
   String sucursalId;
   String fechaApertura;
   String? fechaCierre;
-  Decimal efectivoApertura;
-  Decimal? efectivoCierre;
-  Decimal? totalTeorico;
-  Decimal? diferencia;
+  //Decimal fondoInicial;
+  Decimal? ventaTotal;
   String estado;
-  List<String> ventasIds;
-  List<MovimientoCajas> movimientoCaja;
-  String? observaciones;
-  Map<String, Map<String, int>>? contadores;
+  //List<String> ventasIds;
+  List<String> cortesIds;
+  double tipoCambio;
 
 
 
@@ -48,23 +41,12 @@ class Cajas {
     sucursalId: json["sucursal_id"],
     fechaApertura: json["fecha_apertura"],
     fechaCierre: json["fecha_cierre"],
-    efectivoApertura: Decimal.parse(json["efectivo_apertura"]),
-    efectivoCierre : json["efectivo_cierre"]!=null ? Decimal.parse(json["efectivo_cierre"]) : null,
-    totalTeorico : json["efectivo_cierre"]!=null ? Decimal.parse(json["efectivo_cierre"]) : null,
-    diferencia : json["diferencia"]!=null ? Decimal.parse(json["diferencia"]) : null,
+    //fondoInicial: Decimal.parse(json["fondo_inicial"]),
+    ventaTotal: json["venta_total"],
     estado: json["estado"],
-    ventasIds: List<String>.from(json["ventas_ids"] ?? []),
-    movimientoCaja: List<MovimientoCajas>.from(
-      json["movimiento_caja"].map((x) => MovimientoCajas.fromMap(x as Map<String, dynamic>)),
-    ),
-    observaciones: json["observaciones"],
-    contadores: (json["contadores"] as Map<String, dynamic>?)
-    ?.map<String, Map<String, int>>(
-      (k, v) => MapEntry(
-        k,
-        Map<String, int>.from(v as Map),
-      ),
-    ),
+    //ventasIds: List<String>.from(json["ventas_ids"] ?? []),
+    cortesIds: List<String>.from(json["cortes_ids"] ?? []),
+    tipoCambio: json["tipo_cambio"],
   );
 
   Map<String, dynamic> toMap() => {
@@ -74,14 +56,11 @@ class Cajas {
     "sucursal_id": sucursalId,
     "fecha_apertura": fechaApertura,
     "fecha_cierre": fechaCierre,
-    "efectivo_apertura": efectivoApertura,
-    "efectivo_cierre": efectivoCierre,
-    "total_teorico": totalTeorico,
-    "diferencia": diferencia,
+    //"fondo_inicial": fondoInicial,
+    "venta_total": ventaTotal,
     "estado": estado,
-    "ventas_ids": ventasIds,
-    "movimiento_caja": movimientoCaja.map((d) => d.toMap()).toList(),
-    "observaciones": observaciones,
-    "contadores": contadores
+    //"ventas_ids": ventasIds,
+    "cortes_ids": cortesIds,
+    "tipo_cambio": tipoCambio
   };
 }

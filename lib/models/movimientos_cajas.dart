@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-class MovimientoCajas {
-  MovimientoCajas({
+class MovimientosCajas {
+  MovimientosCajas({
     this.id,
     required this.usuarioId,
     required this.tipo,
@@ -17,10 +17,10 @@ class MovimientoCajas {
   String motivo;
   String fecha;
 
-  factory MovimientoCajas.fromJson(String str) => MovimientoCajas.fromMap(json.decode(str));
+  factory MovimientosCajas.fromJson(String str) => MovimientosCajas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
-  factory MovimientoCajas.fromMap(Map<String, dynamic> json) => MovimientoCajas(
+  factory MovimientosCajas.fromMap(Map<String, dynamic> json) => MovimientosCajas(
     usuarioId: json["usuario_id"],
     tipo: json["tipo"],
     monto: json["monto"],
