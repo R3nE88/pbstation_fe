@@ -29,11 +29,12 @@ class ProcesarPago extends StatefulWidget {
 
 class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMixin {
   //para actualizar contador
-  List<Map<String, dynamic>> notificarContadoresTmp = [];
+  List<Map<String, dynamic>> articuloImprimible = [];
   List<Map<String, dynamic>> notificarContadores = [];
   Impresoras? _opcionSeleccionada;
   final List<Impresoras> _opciones = [];
   bool _opcionesInited=false;
+  bool contadoresNotificados = false;
 
   bool tipoEmpty = false;
   String? tipoTarjetaSeleccionado;
@@ -73,6 +74,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final TextEditingController cambioCtrl = TextEditingController();
   final TextEditingController adeudoCtrl = TextEditingController(); //Total
   final TextEditingController saldoCtrl = TextEditingController(); //PorPagar
+
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
 
   //Metodos
   double formatearEntrada(String entrada){
@@ -170,12 +174,14 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     for (var detalle in widget.venta.detalles) {
       Productos producto = Provider.of<ProductosServices>(context, listen: false).productos.firstWhere((element) => element.id == detalle.productoId);
       if (producto.imprimible){
-        notificarContadoresTmp.add({"valor_impresion":producto.valorImpresion, "cantidad":detalle.cantidad, "producto": producto.descripcion});
+        articuloImprimible.add({"valor_impresion":producto.valorImpresion, "cantidad":detalle.cantidad, "producto": producto.descripcion});
       }
     }
 
-    if (notificarContadoresTmp.isNotEmpty){
-      Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras();
+    if (articuloImprimible.isNotEmpty){
+      Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(false);
+    } else {
+      contadoresNotificados=true;
     }
 
     dropdownItemsTipo = Constantes.tarjeta.entries
@@ -187,64 +193,84 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     cambioCtrl.text = Formatos.pesos.format(0);
     adeudoCtrl.text = Formatos.pesos.format(widget.venta.total.toDouble());
     saldoCtrl.text = Formatos.pesos.format(widget.venta.total.toDouble());
+
+     _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     const int milliseconds = 300;
+    final impresoraSvc = Provider.of<ImpresorasServices>(context);
 
     //Para notificar contadores
-    if (Provider.of<ImpresorasServices>(context).isLoading){
+    if (impresoraSvc.isLoading){
       return AlertDialog(content: Text('Cargando'));
     } else if (!_opcionesInited) {
       _opciones
-      ..clear()
-      //..add('Seleccionar impresora')
-      ..addAll(Provider.of<ImpresorasServices>(context, listen: false)
-        .impresoras
-        .map((impresora) => impresora) 
-      );
-      _opcionSeleccionada = _opciones.first;
-      _opcionesInited=true;
+        ..clear()
+        //..add('Seleccionar impresora')
+        ..addAll(Provider.of<ImpresorasServices>(context, listen: false)
+          .impresoras
+          .map((impresora) => impresora) 
+        );
+        _opcionSeleccionada = _opciones.first;
+        _opcionesInited=true;
       setState(() {});
     }
-    if (notificarContadoresTmp.isNotEmpty){
+    if (articuloImprimible.isNotEmpty){
       return AlertDialog(
         backgroundColor: AppTheme.containerColor2,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('¿Con que impresora Imprimio el siguiente Articulo?'),
-            Text("${notificarContadoresTmp[0]["cantidad"]} x ${notificarContadoresTmp[0]["producto"]}"),
+            Text('¿Con qué impresora se imprimió el siguiente articulo?', style: AppTheme.tituloPrimario),
+            const SizedBox(height: 10),
+            Text("${articuloImprimible[0]["cantidad"]} x ${articuloImprimible[0]["producto"]}"),
+            const SizedBox(height: 10),
             Container(
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.tablaColorHeader,
+                color: _isFocused ? AppTheme.containerColor1 : AppTheme.tablaColorHeader,
                 borderRadius: BorderRadius.circular(25),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<Impresoras>(
-                  value: _opcionSeleccionada, //TODO: poner impresora por defecto
-                  items: _opciones.map((impresora) { //TODO Me quede agregando la actualizacion de contadores a la hora de cobrar
+                  autofocus: true,
+                  focusNode: _focusNode,
+                  value: _opcionSeleccionada,
+                  items: _opciones.map((impresora) {
                     return DropdownMenuItem<Impresoras>(
                       value: impresora,
                       child: Text(impresora.modelo),
                     );
                   }).toList(),
                   onChanged: (val) => setState(() => _opcionSeleccionada = val),
-                  dropdownColor: AppTheme.containerColor2,
+                  dropdownColor: AppTheme.containerColor1,
                   style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
                   iconEnabledColor: Colors.white,
                 ),
               ),
             ),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: (){
+                if (_opcionSeleccionada==null) return;
+                int cantidad = articuloImprimible[0]["cantidad"] * articuloImprimible[0]["valor_impresion"];
                 setState(() {
-                  notificarContadores.add(notificarContadoresTmp.first);
-                  notificarContadores.last.addAll({"impresora":"id_xd"});
-                  notificarContadoresTmp.removeAt(0);
+                  notificarContadores.add(articuloImprimible.first);
+                  notificarContadores.last.addAll({"impresora":_opcionSeleccionada!.id, "cantidad": cantidad});
+                  articuloImprimible.removeAt(0);
                 });
               }, 
               child: Text('Siguiente')
@@ -252,7 +278,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           ],
         ),
       );
-    }
+    } /*else if (!contadoresNotificados) {
+      contadoresNotificados=true;
+      impresoraSvc.notificarContadoresControl(notificarContadores);
+    }*/
 
     //Procesar pago 
     return AlertDialog(
@@ -527,7 +556,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     canRequestFocus: transferencia,
                                     inputFormatters: [ DecimalInputFormatter() ],
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                    maxLength: 10,
+                                    //maxLength: 10,
                                     decoration: InputDecoration(
                                       labelText: 'Referencia',
                                       labelStyle: AppTheme.labelStyle,
@@ -696,20 +725,31 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
+                                      const Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
+                                      const SizedBox(height: 20),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          ElevatedButton(
+                                            focusNode: boton,
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Regresar')
+                                          ),
+                                          ElevatedButton(
+                                            //focusNode: boton,
+                                            onPressed: () {
+                                              continuar = true;
+                                              //TODO: agregar adeudo al cliente
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Continuar')
+                                          ),
+                                        ],
+                                      )
                                     ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      focusNode: boton,
-                                      onPressed: () {
-                                        continuar = true;
-                                        //TODO: agregar adeudo al cliente
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('Continuar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
-                                    )
-                                  ],
                                 );
                               });
                             } //Termina la advertencia
@@ -772,6 +812,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             );
                             
                             String folio = await ventasServices.createVenta(nuevaVenta);  
+                            await impresoraSvc.sumarContadores(notificarContadores);
 
                             if (!context.mounted) return;
                             Navigator.pop(context, true);

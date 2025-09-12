@@ -172,7 +172,7 @@ class ImpresoraForm extends StatelessWidget {
                         Contadores contador = Contadores( //Crear contador
                           impresoraId: impresoraId, 
                           cantidad: int.parse(contadorCtrl.text.replaceAll(",", "")), 
-                          fecha: DateTime.now().toString()
+                          //fecha: DateTime.now().toString()
                         );
                         await impresoraSvc.createContador(contador);
 
@@ -193,7 +193,7 @@ class ImpresoraForm extends StatelessWidget {
                         if (!context.mounted) return;
                         Navigator.pop(context);
                         Navigator.pop(context);
-                        Provider.of<ImpresorasServices>(context, listen: false).loadUltimoContador(impresora.id!);
+                        //Provider.of<ImpresorasServices>(context, listen: false).loadUltimoContador(impresora.id!);
                       }
                     }, 
                     child: Row(

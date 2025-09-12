@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
@@ -140,7 +141,8 @@ class _ProductosScreenState extends State<ProductosScreen> {
                   Expanded(flex: 2, child: Text('Descripcion', textAlign: TextAlign.center)),
                   Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
                   Expanded(child: Text('Categoria', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Precio/Unidad', textAlign: TextAlign.center)),
+                  //Expanded(child: Text('Precio sin Iva', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Precio con Iva', textAlign: TextAlign.center)),
                 ],
               ),
             ),
@@ -297,6 +299,9 @@ class FilaProducto extends StatelessWidget {
       }
     }
 
+    final Decimal ivaPorcentaje = Configuracion.iva.toDecimal();
+    final Decimal factorIVA = Decimal.one + (ivaPorcentaje / Decimal.fromInt(100)).toDecimal();
+    final Decimal precioConIva = producto.precio * factorIVA;
 
     return GestureDetector(
       onSecondaryTapDown: (details) {
@@ -307,11 +312,12 @@ class FilaProducto extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.tituloPrimario, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            //Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),

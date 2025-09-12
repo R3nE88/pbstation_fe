@@ -27,8 +27,8 @@ class _CajaScreenState extends State<CajaScreen> {
   late DateTime fechaApertura;
   late String hora;
   //bool cajaNotFound=false;
-  String? _opcionSeleccionada = 'Venta Total';
-  final List<String> _opciones = ['Venta Total'];
+  String? _opcionSeleccionada = 'Todas las ventas del dia';
+  final List<String> _opciones = ['Todas las ventas del dia', 'Turno actual'];
 
   // ============ LÓGICA ============
 
@@ -42,10 +42,11 @@ class _CajaScreenState extends State<CajaScreen> {
   void initState() {
     super.initState();
 
-    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando') {
+    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActual != null) {
       datosIniciales();
     }
   }
+
 
   void datosIniciales(){
     caja = CajasServices.cajaActual;
@@ -53,7 +54,9 @@ class _CajaScreenState extends State<CajaScreen> {
     obtenerUsuarioDeCaja();
     fechaApertura = DateTime.parse(caja!.fechaApertura);
     hora = DateFormat('hh:mm a').format(fechaApertura);
-    Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja(caja!.id!);
+    Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja(caja!.id!).whenComplete(
+      () => Provider.of<VentasServices>(context, listen: false).loadVentasDeCorte(CajasServices.corteActualId!),
+    );
     Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
     Provider.of<CajasServices>(context, listen: false)
         .loadCaja(CajasServices.cajaActualId!);
@@ -65,7 +68,7 @@ class _CajaScreenState extends State<CajaScreen> {
   Widget build(BuildContext context) {
     final cajaSvc = Provider.of<CajasServices>(context);
 
-    if (Configuracion.esCaja && CajasServices.cajaActual==null){
+    if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
       return AbrirCaja(metodo: datosIniciales);
     }
 
@@ -78,7 +81,8 @@ class _CajaScreenState extends State<CajaScreen> {
         // Actualizar opciones del dropdown
         _opciones
           ..clear()
-          ..add('Venta Total')
+          ..add('Todas las ventas del dia')
+          ..add('Turno actual')
           ..addAll(usr.usuarios.map((u) => u.id!));
 
         return Padding(
@@ -93,7 +97,7 @@ class _CajaScreenState extends State<CajaScreen> {
                   const SizedBox(height: 10),
                   Expanded(
                     child: _buildTable(
-                      _opcionSeleccionada != 'Venta Total'
+                      _opcionSeleccionada != 'Todas las ventas del dia' && _opcionSeleccionada != 'Turno actual'
                           ? _opcionSeleccionada
                           : null,
                     ),
@@ -181,7 +185,7 @@ class _CajaScreenState extends State<CajaScreen> {
   Widget _buildTable([String? filtrarPorUsuario]) {
     return Consumer<VentasServices>(
       builder: (context, servicios, _) {
-        final ventas = _filtrarVentas(servicios.ventasDeCaja, filtrarPorUsuario);
+        final ventas = _filtrarVentas(_opcionSeleccionada=='Turno actual' ? servicios.ventasDeCorteActual : servicios.ventasDeCaja, filtrarPorUsuario);
 
         return Column(
           children: [
@@ -325,7 +329,7 @@ class _TarjetaTotalVentas extends StatelessWidget {
     return Expanded(
       child: Consumer2<VentasServices, UsuariosServices>(
         builder: (context, service, usr, _) {
-          final total = _calcularTotal(service.ventasDeCaja);
+          final total = _calcularTotal(opcionSeleccionada=='Turno actual' ? service.ventasDeCorteActual : service.ventasDeCaja);
           final esAdmin = Login.usuarioLogeado.rol == "admin";
 
           return Row(
@@ -362,7 +366,7 @@ class _TarjetaTotalVentas extends StatelessWidget {
                   Text('Filtrar: '),
                   _DropdownUsuarios(
                     opcionSeleccionada: opcionSeleccionada,
-                    opciones: ['Venta Total', ...usr.usuarios.map((u) => u.id!)],
+                    opciones: ['Todas las ventas del dia', 'Turno actual', ...usr.usuarios.map((u) => u.id!)],
                     usr: usr,
                     onFiltroCambio: onFiltroCambio,
                   ),
@@ -381,7 +385,7 @@ class _TarjetaTotalVentas extends StatelessWidget {
       total = ventas
           .where((v) => v.usuarioId == Login.usuarioLogeado.id)
           .fold(Decimal.zero, (acc, v) => acc + v.total);
-    } else if (opcionSeleccionada == 'Venta Total') {
+    } else if (opcionSeleccionada == 'Todas las ventas del dia' || opcionSeleccionada == 'Turno actual') {
       total = ventas.fold(Decimal.zero, (acc, v) => acc + v.total);
     } else {
       total = ventas
@@ -393,12 +397,13 @@ class _TarjetaTotalVentas extends StatelessWidget {
 
   String _textoTitulo(bool esAdmin, UsuariosServices usr) {
     if (!esAdmin) return 'Mis Ventas del Turno: ';
-    if (opcionSeleccionada == 'Venta Total') return 'Total Vendido: ';
+    if (opcionSeleccionada == 'Todas las ventas del dia') return 'Total Vendido: ';
+    if (opcionSeleccionada == 'Turno actual') return 'Vendido en este turno: ';
     return 'Ventas de ${usr.obtenerNombreUsuarioPorId(opcionSeleccionada)}: ';
   }
 }
 
-class _DropdownUsuarios extends StatelessWidget {
+class _DropdownUsuarios extends StatefulWidget {
   final String opcionSeleccionada;
   final List<String> opciones;
   final UsuariosServices usr;
@@ -412,24 +417,50 @@ class _DropdownUsuarios extends StatelessWidget {
   });
 
   @override
+  State<_DropdownUsuarios> createState() => _DropdownUsuariosState();
+}
+
+class _DropdownUsuariosState extends State<_DropdownUsuarios> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: AppTheme.tablaColorHeader,
+        color: _isFocused ? AppTheme.containerColor2     : AppTheme.tablaColorHeader,
         borderRadius: BorderRadius.circular(25),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: opcionSeleccionada,
-          items: opciones.map((id) {
+          focusNode: _focusNode,
+          value: widget.opcionSeleccionada,
+          items: widget.opciones.map((id) {
             return DropdownMenuItem(
               value: id,
-              child: Text(id == 'Venta Total' ? id : usr.obtenerNombreUsuarioPorId(id)),
+              child: Text((id == 'Todas las ventas del dia' || id == 'Turno actual') ? id : widget.usr.obtenerNombreUsuarioPorId(id)),
             );
           }).toList(),
-          onChanged: onFiltroCambio,
+          onChanged: widget.onFiltroCambio,
           dropdownColor: AppTheme.containerColor2,
           style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
           iconEnabledColor: Colors.white,
@@ -458,10 +489,10 @@ class _TablaHeader extends StatelessWidget {
           Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Detalles', textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text('Descuento', textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('IVA', textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Abonado', textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
@@ -524,10 +555,10 @@ class FilaVentas extends StatelessWidget {
           Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),

@@ -74,7 +74,7 @@ class _VentaScreenState extends State<VentaScreen> {
       indexResta = 0;
     }
 
-    if (Configuracion.esCaja && CajasServices.cajaActual==null){
+    if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
       return AbrirCaja();
     }
 

@@ -59,9 +59,12 @@ class CajasServices extends ChangeNotifier{
         url, headers: {"tkn": Env.tkn}
       );
       final body = json.decode(resp.body);
-      corteActual = Cortes.fromMap(body as Map<String, dynamic>);
-      corteActual!.id = (body as Map)["id"]?.toString();
-      corteActualId = corteActual!.id;
+      //solo obtener corte que no se a finalizado
+      if (Cortes.fromMap(body as Map<String, dynamic>).fechaCorte==null){
+        corteActual = Cortes.fromMap(body);
+        corteActual!.id = (body as Map)["id"]?.toString();
+        corteActualId = corteActual!.id;
+      }
     } catch (e) {
       isLoading = false;
     }
@@ -69,6 +72,7 @@ class CajasServices extends ChangeNotifier{
   }
 
   Future<void> loadMovimientos() async{
+    if (corteActualId==null) return;
     isLoading = true;
     try {
       final url = Uri.parse('$_baseUrl$corteActualId/movimientos');
@@ -143,7 +147,7 @@ class CajasServices extends ChangeNotifier{
 
         //Guardar como caja actual la recien creada.
         corteActual = nuevo;
-        corteActualId = cajaActual!.id;
+        corteActualId = corteActual!.id;
         cajaActual!.cortesIds.add(corteActualId!);
         /*final prefs = await SharedPreferences.getInstance();
         prefs.setString('caja_id', cajaActualId!);*/
@@ -229,6 +233,29 @@ class CajasServices extends ChangeNotifier{
       notifyListeners();
     }
   }*/
+
+  Future<void> actualizarCorte(Cortes corte, String id) async{
+    isLoading = true;
+    corte.id = id;
+    
+    try {
+      final url = Uri.parse('${_baseUrl}cortes');
+      final resp = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: corte.toJson(),
+      );
+
+      if (resp.statusCode != 204) {
+         debugPrint('Error al actualizar corte: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('Exception en updateCaja: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 
   void eliminarCajaActualSoloDePrueba() async{
     cajaActual = null;

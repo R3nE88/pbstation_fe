@@ -8,8 +8,8 @@ class Cortes {
       this.folio,
       required this.usuarioId,
       required this.sucursalId,
-      this.fecha,
-      required this.contadoresIniciales,
+      required this.fechaApertura,
+      this.fechaCorte,
       this.contadoresFinales,
       required this.fondoInicial,
       this.proximoFondo,
@@ -38,8 +38,8 @@ class Cortes {
     String? folio;
     String usuarioId;
     String sucursalId;
-    String? fecha; 
-    Map<String, int> contadoresIniciales;
+    String fechaApertura; 
+    String? fechaCorte; 
     Map<String, int>? contadoresFinales;
     Decimal fondoInicial;
     Decimal? proximoFondo;
@@ -70,8 +70,8 @@ class Cortes {
       folio: json["folio"],
       usuarioId: json["usuario_id"],
       sucursalId: json["sucursal_id"],
-      fecha: json["fecha"],
-      contadoresIniciales: Map<String, int>.from(json["contadores_iniciales"]),
+      fechaApertura: json["fecha_apertura"],
+      fechaCorte: json["fecha_corte"],
       contadoresFinales: json["contadores_finales"] != null ? Map<String, int>.from(json["contadores_finales"]) : null,
       fondoInicial: Decimal.parse(json["fondo_inicial"]),
       proximoFondo: json["proximo_fondo"] != null ? Decimal.parse(json["proximo_fondo"]) : null,
@@ -107,8 +107,8 @@ class Cortes {
       "folio": folio,
       "usuario_id": usuarioId,
       "sucursal_id": sucursalId,
-      "fecha": fecha,
-      "contadores_iniciales": contadoresIniciales,
+      "fecha_apertura": fechaApertura,
+      "fecha_corte": fechaCorte,
       "contadores_finales": contadoresFinales,
       "fondo_inicial": fondoInicial,
       "proximo_fondo": proximoFondo,

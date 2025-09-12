@@ -77,9 +77,9 @@ class WebSocketService with ChangeNotifier {
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
         'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
-        'post-impresora':    (id) => _impresoraSvc.loadImpresoras(),
-        'put-impresora':     (id) => _impresoraSvc.loadImpresoras(),
-        'delete-impresora':  (id) => _impresoraSvc.loadImpresoras(),
+        'post-impresora':    (id) => _impresoraSvc.loadImpresoras(false),
+        'put-impresora':     (id) => _impresoraSvc.loadImpresoras(false),
+        'delete-impresora':  (id) => _impresoraSvc.loadImpresoras(false),
         'ventaenviada': (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();

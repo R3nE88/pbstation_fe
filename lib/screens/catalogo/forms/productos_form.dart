@@ -264,8 +264,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             onChanged: (value) {
                               if (value.isNotEmpty){
                                 String valueForm = value.replaceAll("MX\$", "").replaceAll(",", "");
-                                double result = CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
-                                controllers['precio_iva']!.text = Formatos.pesos.format(result);
+                                if (valueForm!=".") {
+                                  double result = CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
+                                  controllers['precio_iva']!.text = Formatos.pesos.format(result);
+                                }
                               } else {
                                 controllers['precio_iva']!.text = '';
                               }

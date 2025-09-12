@@ -5,13 +5,13 @@ class Contadores {
     this.id,
     required this.impresoraId,
     required this.cantidad,
-    required this.fecha,
+    //required this.fecha,
   });
 
   String? id;
   String impresoraId;
   int cantidad;
-  String fecha;
+  //String fecha;
 
   factory Contadores.fromJson(String str) => Contadores.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -20,7 +20,7 @@ class Contadores {
     id: json["id"]?.toString(),
     impresoraId: json["impresora_id"],
     cantidad: json["cantidad"],
-    fecha: json["fecha"].toString(),
+    //fecha: json["fecha"].toString(),
   );
 
 
@@ -28,6 +28,6 @@ class Contadores {
     "id": id,
     "impresora_id": impresoraId,
     "cantidad": cantidad,
-    "fecha": fecha,
+    //"fecha": fecha,
   };
 }
