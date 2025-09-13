@@ -9,11 +9,12 @@ import 'package:pbstation_frontend/services/services.dart';
 class VentasEnviadasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas_enviadas/';
   List<VentasEnviadas> ventas = [];
-
   bool isLoading = false;
+  bool loaded = false;
 
   Future<List<VentasEnviadas>> ventasRecibidas() async { 
     if (!Configuracion.esCaja) return [];
+    if (loaded) return ventas;
 
     isLoading = true;
 
@@ -37,6 +38,7 @@ class VentasEnviadasServices extends ChangeNotifier{
       return [];
     }
     
+    loaded = true;
     isLoading = false;
     notifyListeners();
     return ventas;

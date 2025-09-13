@@ -61,7 +61,13 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     } else {
       showDialog(
         context: context,
-        builder: (context) => CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+        builder: (context) => Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+            const WindowBar(overlay: true),
+          ],
+        ),
       );
     }
   }

@@ -125,31 +125,37 @@ class _VentaFormState extends State<VentaForm> {
     final DateTime? selectedDate = await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: AppTheme.containerColor1,
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.5,
-            width: MediaQuery.of(context).size.height * 0.5,
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                textTheme: TextTheme(
-                  bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Dialog(
+              backgroundColor: AppTheme.containerColor1,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                width: MediaQuery.of(context).size.height * 0.5,
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    textTheme: TextTheme(
+                      bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
+                    ),
+                    colorScheme: ColorScheme.light(
+                      primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
+                      onSurface: Colors.white, // Color del texto en general
+                    ),
+                  ),
+                  child: CalendarDatePicker(
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 31)),
+                    onDateChanged: (selectedDate) {
+                      Navigator.pop(context, selectedDate);
+                    },
+                  ),
                 ),
-                colorScheme: ColorScheme.light(
-                  primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
-                  onSurface: Colors.white, // Color del texto en general
-                ),
-              ),
-              child: CalendarDatePicker(
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 31)),
-                onDateChanged: (selectedDate) {
-                  Navigator.pop(context, selectedDate);
-                },
               ),
             ),
-          ),
+            const WindowBar(overlay: true),
+          ],
         );
       },
     );
@@ -158,7 +164,13 @@ class _VentaFormState extends State<VentaForm> {
     final TimeOfDay? selectedTime = await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return SeleccionadorDeHora();
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            SeleccionadorDeHora(),
+            const WindowBar(overlay: true),
+          ],
+        );
       },
     );
 
@@ -212,25 +224,31 @@ class _VentaFormState extends State<VentaForm> {
       context: context,
       builder: (_) {
         
-        return ProcesarPago(
-          venta: Ventas(
-            clienteId: clienteSelected!.id!,
-            usuarioId: Login.usuarioLogeado.id!,
-            sucursalId: SucursalesServices.sucursalActualID!,
-            pedidoPendiente: !entregaInmediata, 
-            fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(), 
-            detalles: detallesVenta,
-            comentariosVenta: comentarioController.text, 
-            subTotal: formatearEntrada(subtotalController.text),
-            descuento: formatearEntrada(totalDescuentoController.text),
-            iva: formatearEntrada(totalIvaController.text),
-            total: formatearEntrada(totalController.text), 
-            //abonadoTotal: Decimal.parse("0"),
-            //cambio: Decimal.parse("0"),
-            liquidado: false, 
-          ),
-          rebuild: widget.rebuild, 
-          index: widget.index,
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ProcesarPago(
+              venta: Ventas(
+                clienteId: clienteSelected!.id!,
+                usuarioId: Login.usuarioLogeado.id!,
+                sucursalId: SucursalesServices.sucursalActualID!,
+                pedidoPendiente: !entregaInmediata, 
+                fechaEntrega: entregaInmediata ? null : fechaEntrega?.toIso8601String(), 
+                detalles: detallesVenta,
+                comentariosVenta: comentarioController.text, 
+                subTotal: formatearEntrada(subtotalController.text),
+                descuento: formatearEntrada(totalDescuentoController.text),
+                iva: formatearEntrada(totalIvaController.text),
+                total: formatearEntrada(totalController.text), 
+                //abonadoTotal: Decimal.parse("0"),
+                //cambio: Decimal.parse("0"),
+                liquidado: false, 
+              ),
+              rebuild: widget.rebuild, 
+              index: widget.index,
+            ),
+            const WindowBar(overlay: true),
+          ],
         );
         
       } 
@@ -258,14 +276,14 @@ class _VentaFormState extends State<VentaForm> {
       usuario: Login.usuarioLogeado.nombre, 
       sucursalId: SucursalesServices.sucursalActualID!,
       pedidoPendiente: !entregaInmediata, 
-      fechaEntrega: entregaInmediata ? null : fechaEntrega?.toString(),
+      fechaEntrega: entregaInmediata ? null : fechaEntrega?.toIso8601String(),
       detalles: detallesVenta,
       comentariosVenta: comentarioController.text, 
       subTotal: formatearEntrada(subtotalController.text), 
       descuento: formatearEntrada(totalDescuentoController.text), 
       iva: formatearEntrada(ivaController.text), 
       total: formatearEntrada(totalController.text),
-      fechaEnvio: DateTime.now().toString(),
+      fechaEnvio: DateTime.now().toIso8601String(),
       compu: Configuracion.nombrePC
     );
 
@@ -305,7 +323,7 @@ class _VentaFormState extends State<VentaForm> {
       usuarioId: Login.usuarioLogeado.id!,
       sucursalId: SucursalesServices.sucursalActualID!,
       detalles: detallesVenta, 
-      fechaCotizacion: now.toString(), 
+      fechaCotizacion: now.toIso8601String(), 
       comentariosVenta: comentariosController.text,
       subTotal: formatearEntrada(subtotalController.text),
       descuento: formatearEntrada(totalDescuentoController.text),
@@ -327,71 +345,77 @@ class _VentaFormState extends State<VentaForm> {
       context: context,
       builder: (_) {
         
-        return AlertDialog(
-          backgroundColor: AppTheme.containerColor2,
-          title: Center(child: const Text('  ¡Cotizacion guardada!  ')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "La cotización será válida hasta el último\ndía del mes en curso.", 
-                style: TextStyle(color: Colors.white38),
-                textAlign: TextAlign.center,
-              ), const SizedBox(height: 10),
-              const Text('Vigencia:', textScaler: TextScaler.linear(1.1)),
-              Text(vigencia, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.25)),
-              const SizedBox(height: 10),
-              SelectableText('Folio: $folio', textScaler: TextScaler.linear(1.1)),
-              
-              const SizedBox(height: 25),
-              Column(
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            AlertDialog(
+              backgroundColor: AppTheme.containerColor2,
+              title: Center(child: const Text('  ¡Cotizacion guardada!  ')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton(
-                    onPressed: (){}, 
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(Icons.print, color: Colors.transparent),
-                        Transform.translate(
-                          offset: Offset(0, -1.5),
-                          child: const Text('  Imprimir')
-                        ),
-                        const Icon(Icons.print),
-                      ],
-                    )
+                  Text(
+                    "La cotización será válida hasta el último\ndía del mes en curso.", 
+                    style: TextStyle(color: Colors.white38),
+                    textAlign: TextAlign.center,
                   ), const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: (){}, 
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(Icons.send, color: Colors.transparent),
-                        Transform.translate(
-                          offset: Offset(0, -1.5),
-                          child:  const Text('  Enviar por WhatsApp'),
-                        ),
-                        const Icon(Icons.send),
-                      ],
-                    )
-                  ), const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: (){}, 
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(Icons.email, color: Colors.transparent),
-                        Transform.translate(
-                          offset: Offset(0, -1.5),
-                          child: const Text('  Enviar por Correo'),
-                        ),
-                        const Icon(Icons.email),
-                      ],
-                    )
+                  const Text('Vigencia:', textScaler: TextScaler.linear(1.1)),
+                  Text(vigencia, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.25)),
+                  const SizedBox(height: 10),
+                  SelectableText('Folio: $folio', textScaler: TextScaler.linear(1.1)),
+                  
+                  const SizedBox(height: 25),
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.print, color: Colors.transparent),
+                            Transform.translate(
+                              offset: Offset(0, -1.5),
+                              child: const Text('  Imprimir')
+                            ),
+                            const Icon(Icons.print),
+                          ],
+                        )
+                      ), const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.send, color: Colors.transparent),
+                            Transform.translate(
+                              offset: Offset(0, -1.5),
+                              child:  const Text('  Enviar por WhatsApp'),
+                            ),
+                            const Icon(Icons.send),
+                          ],
+                        )
+                      ), const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.email, color: Colors.transparent),
+                            Transform.translate(
+                              offset: Offset(0, -1.5),
+                              child: const Text('  Enviar por Correo'),
+                            ),
+                            const Icon(Icons.email),
+                          ],
+                        )
+                      )
+                    ],
                   )
                 ],
-              )
-            ],
-          ),
+              ),
+            ),
+            const WindowBar(overlay: true),
+          ],
         );
         
       } 

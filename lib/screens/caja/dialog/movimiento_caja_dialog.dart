@@ -6,6 +6,7 @@ import 'package:pbstation_frontend/models/movimientos_cajas.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class MovimientoCajaDialog extends StatelessWidget {
@@ -27,14 +28,26 @@ class MovimientoCajaDialog extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => const MovimientoCajaForm(isRetiro: false)
+                    builder: (_) => Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        const MovimientoCajaForm(isRetiro: false),
+                        const WindowBar(overlay: true),
+                      ],
+                    )
                 ), 
                 child: Text('+ Entrada de Efectivo', textScaler: const TextScaler.linear(0.9))
               ), const SizedBox(width: 15),
               ElevatedButton(
                 onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => const MovimientoCajaForm(isRetiro: true)
+                    builder: (_) => Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        const MovimientoCajaForm(isRetiro: true),
+                        const WindowBar(overlay: true),
+                      ],
+                    )
                 ), 
                 child: Text('- Retiro de Efectivo', textScaler: const TextScaler.linear(0.9))
               ),

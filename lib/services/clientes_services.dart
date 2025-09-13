@@ -10,8 +10,8 @@ class ClientesServices extends ChangeNotifier{
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
   late Map<String, Clientes> _clientesPorId;
-
   bool isLoading = false;
+  bool loaded = false;
 
 
   //Esto es para mapear y buscar clientes//
@@ -22,6 +22,7 @@ class ClientesServices extends ChangeNotifier{
     };
     notifyListeners();
   }
+
   String obtenerNombreClientePorId(String id) {
     return _clientesPorId[id]?.nombre ?? '¡no se encontró el cliente!';
   } //Aqui termina  para mapear y buscar clientes//
@@ -44,6 +45,7 @@ class ClientesServices extends ChangeNotifier{
 
   //Metodos HTTPs
   Future<List<Clientes>> loadClientes() async { 
+    if (loaded) return clientes;
     isLoading = true;
     try {
       final url = Uri.parse('${_baseUrl}all');
@@ -66,6 +68,7 @@ class ClientesServices extends ChangeNotifier{
       return [];
     }
     
+    loaded = true;
     isLoading = false;
     cargarClientes(clientes);
     return clientes;

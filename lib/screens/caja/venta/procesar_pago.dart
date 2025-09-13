@@ -178,8 +178,15 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       }
     }
 
+    final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
     if (articuloImprimible.isNotEmpty){
-      Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(false);
+      impSvc.loadImpresoras(false).whenComplete(
+        () {
+          if (impSvc.impresoras.isEmpty){
+            
+          }
+        },
+      );
     } else {
       contadoresNotificados=true;
     }
@@ -214,8 +221,8 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
     //Para notificar contadores
     if (impresoraSvc.isLoading){
-      return AlertDialog(content: Text('Cargando'));
-    } else if (!_opcionesInited) {
+      return SimpleLoading();
+    } else if (!_opcionesInited && impresoraSvc.impresoras.isNotEmpty) {
       _opciones
         ..clear()
         //..add('Seleccionar impresora')
@@ -227,7 +234,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
         _opcionesInited=true;
       setState(() {});
     }
-    if (articuloImprimible.isNotEmpty){
+    if (articuloImprimible.isNotEmpty && impresoraSvc.impresoras.isNotEmpty){
       return AlertDialog(
         backgroundColor: AppTheme.containerColor2,
         content: Column(
@@ -719,37 +726,43 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                 String format = Formatos.pesos.format(quedaPorPagar.toDouble());
                                 FocusNode boton = FocusNode();
                                 boton.requestFocus();
-                                return AlertDialog(
-                                  backgroundColor: AppTheme.containerColor1,
-                                  title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: TextScaler.linear(0.85))),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
-                                      const SizedBox(height: 20),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                return Stack(
+                                  alignment: Alignment.topRight,
+                                  children: [
+                                    AlertDialog(
+                                      backgroundColor: AppTheme.containerColor1,
+                                      title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: TextScaler.linear(0.85))),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          ElevatedButton(
-                                            focusNode: boton,
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text('Regresar')
-                                          ),
-                                          ElevatedButton(
-                                            //focusNode: boton,
-                                            onPressed: () {
-                                              continuar = true;
-                                              //TODO: agregar adeudo al cliente
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: const Text('Continuar')
-                                          ),
+                                          const Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
+                                          const SizedBox(height: 20),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              ElevatedButton(
+                                                focusNode: boton,
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: const Text('Regresar')
+                                              ),
+                                              ElevatedButton(
+                                                //focusNode: boton,
+                                                onPressed: () {
+                                                  continuar = true;
+                                                  //TODO: agregar adeudo al cliente
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: const Text('Continuar')
+                                              ),
+                                            ],
+                                          )
                                         ],
-                                      )
-                                    ],
-                                  ),
+                                      ),
+                                    ),
+                                    const WindowBar(overlay: true),
+                                  ],
                                 );
                               });
                             } //Termina la advertencia
@@ -788,7 +801,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               pedidoPendiente: widget.venta.pedidoPendiente,
                               fechaEntrega: widget.venta.fechaEntrega,
                               detalles: widget.venta.detalles,
-                              fechaVenta: DateTime.now().toString(),
+                              fechaVenta: DateTime.now().toIso8601String(),
                               //tipoPago: tipoDePago,
                               comentariosVenta: widget.venta.comentariosVenta,
                               subTotal: widget.venta.subTotal,
@@ -812,14 +825,23 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             );
                             
                             String folio = await ventasServices.createVenta(nuevaVenta);  
-                            await impresoraSvc.sumarContadores(notificarContadores);
+                            
+                            if (notificarContadores.isNotEmpty){
+                              await impresoraSvc.sumarContadores(notificarContadores);
+                            } 
 
                             if (!context.mounted) return;
                             Navigator.pop(context, true);
                             
                             await showDialog(
                               context: context,
-                              builder: (context) => VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(saldoCtrl.text).toDouble())
+                              builder: (context) => Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(saldoCtrl.text).toDouble()),
+                                  const WindowBar(overlay: true),
+                                ],
+                              )
                             ).then((value) {
                               //Resetear pantalla de venta principal
                               widget.rebuild(widget.index);

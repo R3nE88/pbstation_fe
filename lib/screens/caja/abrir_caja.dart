@@ -6,6 +6,7 @@ import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class AbrirCaja extends StatefulWidget {
@@ -229,7 +230,13 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           barrierDismissible: false,
                           builder: (ctx) {
                             dialogContext = ctx;
-                            return const Center(child: CircularProgressIndicator());
+                            return Stack(
+                              alignment: Alignment.topRight,
+                              children: [
+                                const Center(child: CircularProgressIndicator()),
+                                const WindowBar(overlay: true),
+                              ],
+                            );
                           },
                         );
 
@@ -249,7 +256,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                             }
                           }
 
-                          String fa = DateTime.now().toString();
+                          String fa = DateTime.now().toIso8601String();
 
                           late Cajas nuevaCaja;
                           if (CajasServices.cajaActual==null){

@@ -26,7 +26,7 @@ class MovimientoCajaForm extends StatelessWidget {
           usuarioId: Login.usuarioLogeado.id!, 
           monto:  double.parse(montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
           motivo: motivoCtrl.text, 
-          fecha: DateTime.now().toString(), 
+          fecha: DateTime.now().toIso8601String(), 
           tipo: isRetiro ? 'retiro' : 'entrada', 
         );
         final cajaSvc = Provider.of<CajasServices>(context, listen: false);

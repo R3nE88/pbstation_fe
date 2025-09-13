@@ -66,12 +66,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
+        
         Scaffold(
           backgroundColor: AppTheme.backgroundColor,
           body: Column(
             children: [
               // Custom Window Bar
-              WindowBar(),
+              WindowBar(overlay: false),
+              
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
@@ -182,34 +184,3 @@ class UsuarioOverlay extends StatelessWidget {
   }
 }
 
-// WindowBar Widget
-class WindowBar extends StatelessWidget {
-  const WindowBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const double height = 35;
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: AppTheme.secundario1,
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(20)),
-      ),
-      child: WindowTitleBarBox(
-        child: Row(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  //Center(child: Text('                                  Login: {Usuario} ${Login.usuarioLogeado?.nombre ?? 'nA'}   <texto de prueba>', style: TextStyle(color: const Color.fromARGB(129, 255, 255, 255)))),
-                  MoveWindow(),
-                ],
-              )
-            ),
-            WindowButtons(),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -1,3 +1,5 @@
+export 'package:pbstation_frontend/widgets/windows_bar.dart';
+export 'package:pbstation_frontend/widgets/simple_loading.dart';
 export 'package:pbstation_frontend/widgets/ventas_recibidas_button.dart';
 export 'package:pbstation_frontend/widgets/texto_boton.dart';
 export 'package:pbstation_frontend/widgets/expandable_card.dart';

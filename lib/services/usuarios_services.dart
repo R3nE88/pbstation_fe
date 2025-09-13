@@ -10,6 +10,7 @@ class UsuariosServices extends ChangeNotifier{
   List<Usuarios> usuarios = [];
   late Map<String, Usuarios> _usuarioPorId;
   bool isLoading = false;
+  bool loaded = false;
 
   //Esto es para mapear y buscar usuario//
   void cargarUsuarios(List<Usuarios> nuevosUsuarios) {
@@ -48,6 +49,7 @@ class UsuariosServices extends ChangeNotifier{
 
   //Metodos HTTPs
   Future<List<Usuarios>> loadUsuarios() async { 
+    if (loaded) return usuarios;
     isLoading = true;
     try {
       final url = Uri.parse('${_baseUrl}all');
@@ -69,6 +71,7 @@ class UsuariosServices extends ChangeNotifier{
       return [];
     }
     
+    loaded = true;
     isLoading = false;
     cargarUsuarios(usuarios);
     return usuarios;

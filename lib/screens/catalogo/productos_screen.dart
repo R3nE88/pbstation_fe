@@ -97,7 +97,13 @@ class _ProductosScreenState extends State<ProductosScreen> {
             Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => const ProductoFormDialog(),
+                builder: (_) => Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    const ProductoFormDialog(),
+                    const WindowBar(overlay: true),
+                  ],
+                ),
               ),
               child: Row(
                 children: [
@@ -283,14 +289,26 @@ class FilaProducto extends StatelessWidget {
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto, onlyRead: true),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ProductoFormDialog(prodEdit: producto, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ProductoFormDialog(prodEdit: producto),
+                const WindowBar(overlay: true),
+              ],
+            ),
           );
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar

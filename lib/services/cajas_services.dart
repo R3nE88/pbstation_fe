@@ -10,12 +10,15 @@ class CajasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
-  static Cortes? corteActual;
-  static String? corteActualId;
-  List<MovimientosCajas> movimientos = [];
   bool init = false;
   bool loaded = false;
   bool isLoading = false;
+
+  static Cortes? corteActual;
+  static String? corteActualId;
+  List<Cortes> cortesDeCaja = [];
+  bool cortesDeCajaIsLoading = false;
+  List<MovimientosCajas> movimientos = [];
 
   Future<void> initCaja() async{
     init = true;
@@ -69,6 +72,28 @@ class CajasServices extends ChangeNotifier{
       isLoading = false;
     }
     isLoading = false;
+  }
+
+  Future<void> loadCortesDeCaja(String cajaid) async{
+    cortesDeCajaIsLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$cajaActualId/cortes/all');
+      final resp = await http.get(
+        url, headers: {"tkn": Env.tkn}
+      );
+      
+      final List<dynamic> listaJson = json.decode(resp.body);
+      cortesDeCaja = listaJson.map<Cortes>((jsonElem) {
+        final cor = Cortes.fromMap(jsonElem as Map<String, dynamic>);
+        cor.id = (jsonElem as Map)["id"]?.toString();
+        return cor;
+      }).toList(); 
+
+    } catch (e) {
+      cortesDeCajaIsLoading = false;
+    }
+    cortesDeCajaIsLoading = false;
+    notifyListeners();
   }
 
   Future<void> loadMovimientos() async{

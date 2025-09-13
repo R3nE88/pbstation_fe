@@ -7,7 +7,6 @@ import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
 import 'package:pbstation_frontend/screens/caja/venta/venta_form.dart';
-import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -28,13 +27,10 @@ class _VentaScreenState extends State<VentaScreen> {
   @override
   void initState() {
     super.initState();
-    final clientesServices = Provider.of<ClientesServices>(context, listen: false);
-    final productosServices = Provider.of<ProductosServices>(context, listen: false);
-    final ventasEnviadasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+    Provider.of<ClientesServices>(context, listen: false).loadClientes();
+    Provider.of<ProductosServices>(context, listen: false).loadProductos();
+    Provider.of<VentasEnviadasServices>(context, listen: false).ventasRecibidas();
     if (CajasServices.cajaActualId == 'buscando'){ cajaNotFound=true; }
-    clientesServices.loadClientes();
-    productosServices.loadProductos();
-    ventasEnviadasServices.ventasRecibidas();
   }
 
   @override
@@ -78,7 +74,13 @@ class _VentaScreenState extends State<VentaScreen> {
       return AbrirCaja();
     }
 
-    return body(agregarPestania, selectedPestania, rebuildAndClean, context, rebuild, suc);
+    return Consumer3<ClientesServices, ProductosServices, VentasEnviadasServices>(
+      builder: (context, value, value2, value3, child) {
+        if (value.isLoading || value2.isLoading || value3.isLoading){
+          return SimpleLoading();
+        }
+        return body(agregarPestania, selectedPestania, rebuildAndClean, context, rebuild, suc);
+      });
   }
 
 
@@ -143,61 +145,67 @@ class _VentaScreenState extends State<VentaScreen> {
           seleccion = await showDialog(
             context: context, 
             builder: (context) {
-              return AlertDialog(
-                backgroundColor: AppTheme.containerColor1,
-                title: Center(child: Text('Seleccione una venta'),),
-                content: SizedBox(
-                  height: 250, 
-                  width: 550,
-                  child: ListView.builder(
-                    itemCount: ventasRecibida.ventas.length,
-                    itemBuilder: (context, index) {
-
-                      //fecha
-                      DateTime dt = DateTime.parse(ventasRecibida.ventas[index].fechaEnvio);
-                      final DateFormat formatter = DateFormat('hh:mm:ss a');
-                      final String formatted = formatter.format(dt);
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: ElevatedButton(
-                          autofocus: index==0,
-                          style: AppTheme.botonSecundarioStyle,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
+              return Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  AlertDialog(
+                    backgroundColor: AppTheme.containerColor1,
+                    title: Center(child: Text('Seleccione una venta'),),
+                    content: SizedBox(
+                      height: 250, 
+                      width: 550,
+                      child: ListView.builder(
+                        itemCount: ventasRecibida.ventas.length,
+                        itemBuilder: (context, index) {
+                  
+                          //fecha
+                          DateTime dt = DateTime.parse(ventasRecibida.ventas[index].fechaEnvio);
+                          final DateFormat formatter = DateFormat('hh:mm:ss a');
+                          final String formatted = formatter.format(dt);
+                  
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: ElevatedButton(
+                              autofocus: index==0,
+                              style: AppTheme.botonSecundarioStyle,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Enviado Desde:', textScaler: TextScaler.linear(0.8)),
-                                  Text(ventasRecibida.ventas[index].compu),
-                                ],
-                              ),
-                              Column(
-                                children: [
-                                  Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
-                                  Text(
-                                    ventasRecibida.ventas[index].usuario.length > 30 
-                                        ? '${ventasRecibida.ventas[index].usuario.substring(0, 30)}...' 
-                                        : ventasRecibida.ventas[index].usuario,
+                                  Column(
+                                    children: [
+                                      Text('Enviado Desde:', textScaler: TextScaler.linear(0.8)),
+                                      Text(ventasRecibida.ventas[index].compu),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
+                                      Text(
+                                        ventasRecibida.ventas[index].usuario.length > 30 
+                                            ? '${ventasRecibida.ventas[index].usuario.substring(0, 30)}...' 
+                                            : ventasRecibida.ventas[index].usuario,
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text('Hora de Envio:', textScaler: TextScaler.linear(0.8)),
+                                      Text(formatted),
+                                    ],
                                   ),
                                 ],
                               ),
-                              Column(
-                                children: [
-                                  Text('Hora de Envio:', textScaler: TextScaler.linear(0.8)),
-                                  Text(formatted),
-                                ],
-                              ),
-                            ],
-                          ),
-                          onPressed: (){
-                            Navigator.pop(context, index);
-                          }, 
-                        ),
-                      );
-                    }
+                              onPressed: (){
+                                Navigator.pop(context, index);
+                              }, 
+                            ),
+                          );
+                        }
+                      ),
+                    ),
                   ),
-                ),
+                  const WindowBar(overlay: true),
+                ],
               );
             },
           ); if (seleccion==null) return;
@@ -208,33 +216,39 @@ class _VentaScreenState extends State<VentaScreen> {
         await showDialog( //TODO: Agregar opcion en ajustes para mostrar esta advertencia siempre, o no, solo en caja
           context: context,
           builder: (context) {
-            return AlertDialog(
-              backgroundColor: AppTheme.containerColor1,
-              content: SizedBox(
-                width: 350,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.",
-                      textScaler: TextScaler.linear(1.1),
-                      style: TextStyle(color: Colors.white), 
-                      textAlign: TextAlign.center
+            return Stack(
+              alignment: Alignment.topRight,
+              children: [
+                AlertDialog(
+                  backgroundColor: AppTheme.containerColor1,
+                  content: SizedBox(
+                    width: 350,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.",
+                          textScaler: TextScaler.linear(1.1),
+                          style: TextStyle(color: Colors.white), 
+                          textAlign: TextAlign.center
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: ElevatedButton(
+                            style: AppTheme.botonSecundarioStyle,
+                            autofocus: true,
+                            onPressed: (){
+                              Navigator.pop(context, 'continuar');
+                            }, 
+                            child: Text('Continuar'),
+                          ),
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 20),
-                      child: ElevatedButton(
-                        style: AppTheme.botonSecundarioStyle,
-                        autofocus: true,
-                        onPressed: (){
-                          Navigator.pop(context, 'continuar');
-                        }, 
-                        child: Text('Continuar'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const WindowBar(overlay: true),
+              ],
             );
           },
         ).then((value) {
@@ -280,7 +294,6 @@ class _VentaScreenState extends State<VentaScreen> {
     );
   }
 }
-
 class AdvertenciaSucursal extends StatelessWidget {
   const AdvertenciaSucursal({
     super.key,

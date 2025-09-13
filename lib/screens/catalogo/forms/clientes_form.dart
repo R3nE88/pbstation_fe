@@ -55,9 +55,15 @@ class _ClientesFormState extends State<ClientesFormDialog> {
           .any((text) => text.isEmpty)) {
         await showDialog(
           context: context,
-          builder: (context) => CustomErrorDialog(
-            titulo: 'No se permiten datos parciales.',
-            respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.",
+          builder: (context) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              CustomErrorDialog(
+                titulo: 'No se permiten datos parciales.',
+                respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.",
+              ),
+              const WindowBar(overlay: true),
+            ],
           ),
         );
         if (!mounted) return;
@@ -94,7 +100,13 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     } else {
       showDialog(
         context: context,
-        builder: (context) => CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+        builder: (context) => Stack(
+          alignment: Alignment.topRight,
+          children: [
+            CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+            const WindowBar(overlay: true),
+          ],
+        ),
       );
     }
   }

@@ -95,7 +95,13 @@ class _ClientesScreenState extends State<ClientesScreen> {
             Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => const ClientesFormDialog(),
+                builder: (_) => Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    const ClientesFormDialog(),
+                    const WindowBar(overlay: true),
+                  ],
+                ),
               ),
               child: Row(
                 children: [
@@ -283,14 +289,25 @@ class FilaCliente extends StatelessWidget {
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ClientesFormDialog(cliEdit: cliente, onlyRead: true),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ClientesFormDialog(cliEdit: cliente, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => ClientesFormDialog(cliEdit: cliente),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ClientesFormDialog(cliEdit: cliente),
+              ],
+            ),
           );
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar

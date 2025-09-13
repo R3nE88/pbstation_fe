@@ -172,7 +172,6 @@ class ImpresoraForm extends StatelessWidget {
                         Contadores contador = Contadores( //Crear contador
                           impresoraId: impresoraId, 
                           cantidad: int.parse(contadorCtrl.text.replaceAll(",", "")), 
-                          //fecha: DateTime.now().toString()
                         );
                         await impresoraSvc.createContador(contador);
 

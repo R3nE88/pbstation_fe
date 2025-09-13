@@ -10,8 +10,8 @@ class ProductosServices extends ChangeNotifier{
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
   late Map<String, Productos> _productosPorId;
-
   bool isLoading = false;
+  bool loaded = false;
 
 
   void cargarProductos(List<Productos> nuevosProductos) {
@@ -52,6 +52,7 @@ class ProductosServices extends ChangeNotifier{
   }
 
   Future<List<Productos>> loadProductos() async {   
+    if (loaded) return productos;
     isLoading = true;
 
     try {
@@ -75,6 +76,7 @@ class ProductosServices extends ChangeNotifier{
       return [];
     }
     
+    loaded=true;
     isLoading = false;
     cargarProductos(productos);
     return productos;

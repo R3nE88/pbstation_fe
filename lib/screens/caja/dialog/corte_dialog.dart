@@ -12,12 +12,13 @@ import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'dart:async';
 
 enum StepStage { contadores, /*fondo,*/ esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
 
 class CorteDialog extends StatefulWidget {
-  const CorteDialog({super.key});
+  const CorteDialog({super.key, required this.cierre});
+
+  final bool cierre;
 
   @override
   State<CorteDialog> createState() => _CorteDialogState();
@@ -104,8 +105,7 @@ class _CorteDialogState extends State<CorteDialog> {
     fechaCorteFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaCorte);
   
     final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-    ventasSvc.loadVentasDeCortePorProducto(CajasServices.corteActualId!);
-    ventasSvc.loadVentasDeCorte(CajasServices.corteActualId!);
+    ventasSvc.loadVentasDeCorteActual(true);
 
     // inicializa controladores de denominación (debe coincidir con denominaciones.length)
     for (var _ in denominacionesMxn) {
@@ -228,7 +228,7 @@ class _CorteDialogState extends State<CorteDialog> {
       usuarioId: CajasServices.corteActual!.usuarioId, 
       sucursalId: CajasServices.corteActual!.sucursalId, 
       fechaApertura: CajasServices.cajaActual!.fechaApertura,
-      fechaCorte: DateTime.now().toString(),
+      fechaCorte: DateTime.now().toIso8601String(),
       contadoresFinales: convertir(impresoraControllers),
       fondoInicial: CajasServices.corteActual!.fondoInicial, 
       //proximoFondo: proximoFondo,
@@ -620,21 +620,7 @@ class _CorteDialogState extends State<CorteDialog> {
       children: [
         VoucherBoard(
           onControllersChanged: _handleVoucherControllers,
-          callback: () {
-            print("Debito");
-            for (var controller in debitoControllers) {
-              print("Voucher: ${controller.text}");
-            }
-            print("credito");
-            for (var controller in creditoControllers) {
-              print("Voucher: ${controller.text}");
-            }
-            print("transferencias");
-            for (var controller in transferenciaControllers) {
-              print("Voucher: ${controller.text}");
-            }
-            _nextStage();
-          },
+          callback: () => _nextStage(),
           focusButton: _voucherButtonFocus,
         ),
       ],
@@ -643,7 +629,19 @@ class _CorteDialogState extends State<CorteDialog> {
 
   Widget buildReporteFinal(int page){
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final ventaSvc = Provider.of<VentasServices>(context);
+
     if (CajasServices.corteActual==null) return SizedBox();
+
+    if (ventaSvc.ventasDeCorteLoading) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: Colors.white),
+        ],
+      );
+    }
+
     return SizedBox(
       width: 1000,
       height: 616,

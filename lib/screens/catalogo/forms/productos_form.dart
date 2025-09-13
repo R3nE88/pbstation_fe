@@ -78,7 +78,13 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       } else {
         showDialog(
           context: context,
-          builder: (context) => CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+          builder: (context) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+              const WindowBar(overlay: true),
+            ],
+          ),
         );
       }
     }

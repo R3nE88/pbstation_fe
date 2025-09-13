@@ -99,7 +99,13 @@ class _AgregarImpresoraState extends State<AgregarImpresora> {
           child: GestureDetector(
             onTap: () => showDialog(
               context: context, 
-              builder: ( _ ) => ImpresoraForm()
+              builder: ( _ ) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  ImpresoraForm(),
+                  const WindowBar(overlay: true),
+                ],
+              )
             ),
             child: Container(
               decoration: BoxDecoration(
@@ -136,25 +142,29 @@ class ImpresorasCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('build');
-
     void delete()async{
       bool result = await showDialog(
         context: context, 
-        builder: ( _ ) => AlertDialog(
-          backgroundColor: AppTheme.containerColor1,
-          title: Center(child: Text('¿Desea continuar?', textScaler: TextScaler.linear(0.85))),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Si continua se eliminara cualquier registro de esta impresora', textAlign: TextAlign.center),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
-            )
+        builder: ( _ ) => Stack(
+          alignment: Alignment.topRight,
+          children: [
+            AlertDialog(
+              backgroundColor: AppTheme.containerColor1,
+              title: Center(child: Text('¿Desea continuar?', textScaler: TextScaler.linear(0.85))),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Si continua se eliminara cualquier registro de esta impresora', textAlign: TextAlign.center),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+                )
+              ],
+            ),
+            const WindowBar(overlay: true),
           ],
         )
       ) ?? false;
@@ -207,7 +217,13 @@ class ImpresorasCards extends StatelessWidget {
         if (!context.mounted)return;
         showDialog(
           context: context, 
-          builder: ( _ ) => ImpresoraForm(edit: impresora)
+          builder: ( _ ) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              ImpresoraForm(edit: impresora),
+              const WindowBar(overlay: true),
+            ],
+          )
         );
       } else if (seleccion == 'eliminar') {
         // Lógica para eliminar

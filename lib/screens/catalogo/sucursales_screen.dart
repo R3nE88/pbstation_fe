@@ -99,7 +99,13 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
         ElevatedButton(
           onPressed: () => showDialog(
             context: context,
-            builder: (_) => const SucursalesFormDialog(),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                const SucursalesFormDialog(),
+                const WindowBar(overlay: true),
+              ],
+            ),
           ),
           child: Row(
             children: [
@@ -303,14 +309,26 @@ class FilaSucursales extends StatelessWidget {
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => SucursalesFormDialog(sucEdit: sucursal, onlyRead: true),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                SucursalesFormDialog(sucEdit: sucursal, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           showDialog(
             context: context,
-            builder: (_) => SucursalesFormDialog(sucEdit: sucursal),
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                SucursalesFormDialog(sucEdit: sucursal),
+                const WindowBar(overlay: true),
+              ],
+            ),
           );
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
