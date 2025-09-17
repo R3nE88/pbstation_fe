@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'package:decimal/decimal.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -16,14 +18,14 @@ import 'package:image/image.dart' as imagen;
 
 class Ticket {
 
-  static Future<List<int>>qr() async {
+  static Future<List<int>>_generarQR(String data) async {
     //final List<int> bytes = [];
     // Using default profile
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
 
-    String qrData = "https://youtu.be/6Y4b25CYkkg?list=RD6Y4b25CYkkg";
+    String qrData = data;
     const double qrSize = 200;
     try {
       final uiImg = await QrPainter(
@@ -46,7 +48,7 @@ class Ticket {
     return bytes;
   }
 
-  static Future<List<int>> generateReceiptBytes(BuildContext context, Ventas venta, String folio) async {
+  static Future<List<int>> _generarTicketDeVenta(BuildContext context, Ventas venta, String folio) async {
     // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
@@ -81,7 +83,8 @@ class Ticket {
         styles: PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.text(formattedDate, //'25/07/2025 04:16p.m.'
         styles: PosStyles(align: PosAlign.right, bold: false));
-    bytes += generator.text('Publico en General',
+    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
+    bytes += generator.text(clienteSvc.obtenerNombreClientePorId(venta.clienteId),
         styles: PosStyles(align: PosAlign.left, bold: false));
 
     // Body: Itemized purchase list (using columns)
@@ -118,7 +121,7 @@ class Ticket {
     bytes += generator.feed(1);
     bytes += generator.text('¿Necesita Facturar?',
         styles: PosStyles(align: PosAlign.center, bold: false));
-    bytes += await qr();
+    bytes += await _generarQR("https://youtu.be/6Y4b25CYkkg?list=RD6Y4b25CYkkg");
     bytes += generator.feed(1);
 
     //Footer
@@ -139,21 +142,334 @@ class Ticket {
     return bytes;
   }
 
-  static void imprimirTicket(context, venta, folio) async{
-      if (Configuracion.impresora != 'null') {
-        bool connected = await PrintUsb.connect(name: Configuracion.impresora);
-        UsbDevice device = UsbDevice(
-          name: Configuracion.impresora, 
-          model: 'x', 
-          isDefault: true, 
-          available: true
-        );
-        if (connected) {
-          List<int> bytes = await generateReceiptBytes(context, venta, folio);
-          await PrintUsb.printBytes(bytes: bytes, device: device);
-          // Check success...
-          //await PrintUsb.close();
+  static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cortes corte, Map<String, TextEditingController> impresoraControllers) async {
+    // Load default capability profile (includes font and code page info)
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
+    DateTime fecha = DateTime.parse(corte.fechaApertura);
+    String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaApertura));
+    String fechaCorteFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaCorte!));
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+    String cajeroQueAbrio = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioId);
+    String cajeroQueCerro = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioIdCerro!);
+    List<int> bytes = [];
+
+    //Abrir cajon
+    bytes.addAll([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+
+    //Barra Horizontal
+    bytes += generator.hr();
+
+    //imagen
+    /*final ByteData data = await rootBundle.load('assets/images/logo_bn3.png');
+    final Uint8List imageBytes = data.buffer.asUint8List();
+    final imagen.Image? image = imagen.decodeImage(imageBytes);
+    bytes += generator.image(image!);*/
+
+    //Header
+    bytes += generator.text('Emilio Alberto Diaz Obregon',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text('San Luis Rio Colorado, Sonora',
+        styles: PosStyles(align: PosAlign.center, bold: false));
+    bytes += generator.text('Av. Jalisco y Calle 7, 83440',
+        styles: PosStyles(align: PosAlign.center, bold: false));
+    bytes += generator.text('RFC: DIOE860426LJA',
+        styles: PosStyles(align: PosAlign.center, bold: false));
+
+    //Corte de caja
+    bytes += generator.text('CORTE DE CAJA',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text('CORTE: ${corte.folio}',
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.text('FECHA: ${DateFormat('dd-MMM-yyyy').format(DateTime.now())}',
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.text('HORA: ${DateFormat('hh:mm a').format(DateTime.now())}',
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.text('TC: ${CajasServices.cajaActual!.tipoCambio}',
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.text('Abrio: $cajeroQueAbrio',
+        styles: PosStyles(align: PosAlign.left, bold: false));
+    bytes += generator.text(fechaAperturaFormatted,
+        styles: PosStyles(align: PosAlign.left, bold: false)); //Formatos.pesos.format(corte.fondoInicial.toDouble())
+    bytes += generator.text('Fondo: ${Formatos.pesos.format(corte.fondoInicial.toDouble())}',
+        styles: PosStyles(align: PosAlign.left, bold: false));
+    bytes += generator.text('Cerro: $cajeroQueCerro',
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.text(fechaCorteFormatted,
+        styles: PosStyles(align: PosAlign.right, bold: false));
+    bytes += generator.hr(); // horizontal rule
+
+    //Ventas por producto
+    bytes += generator.text('VENTA',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.row([
+      PosColumn(text: 'Cant', width: 2, styles: PosStyles(bold: true)),
+      PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
+      PosColumn(text: 'Total', width: 4, styles: PosStyles(bold: true)),
+    ]);
+    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
+    for (var venta in ventasSvc.ventasPorProducto) {
+      Productos? producto = productosSvc.obtenerProductoPorId(venta.productoId);
+      bytes += generator.row([
+        PosColumn(text: venta.cantidad.toString(), width: 2),
+        PosColumn(text: producto!.descripcion, 
+        width: 6),
+        PosColumn(text: Formatos.moneda.format(venta.total.toDouble()), width: 4),
+      ]);
+    }
+    Decimal subtotal = Decimal.parse('0');
+    for (var venta in ventasSvc.ventasPorProducto) {
+      subtotal += venta.subTotal;
+    }
+    Decimal iva = Decimal.parse('0');
+    for (var venta in ventasSvc.ventasPorProducto) {
+      iva += venta.iva;
+    }
+    Decimal totalVenta = Decimal.parse('0');
+    for (var venta in ventasSvc.ventasPorProducto) {
+      totalVenta += venta.total;
+    }
+    bytes += generator.row([
+      PosColumn(text: 'Subtotal', width: 4, styles: PosStyles(bold: false)),
+      PosColumn(text: 'Iva', width: 4, styles: PosStyles(bold: false)),
+      PosColumn(text: 'Total', width: 4, styles: PosStyles(bold: false)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: Formatos.moneda.format(subtotal.toDouble()), width: 4),
+      PosColumn(text: Formatos.moneda.format(iva.toDouble()), width: 4),
+      PosColumn(text: Formatos.moneda.format(totalVenta.toDouble()), width: 4),
+    ]);
+    bytes += generator.hr(); // horizontal rule
+
+    //Corte de Caja
+    Decimal entrada = Decimal.parse("0");
+    Decimal salida = Decimal.parse("0");
+    for (var movimiento in corte.movimientoCaja) {
+      if (movimiento.tipo=="entrada"){
+        entrada += Decimal.parse(movimiento.monto.toString());
+      } else if (movimiento.tipo=="retiro"){
+        salida += Decimal.parse(movimiento.monto.toString());
+      }
+    } 
+    Decimal abonadoMxn = Decimal.parse("0");
+    Decimal abonadoUs = Decimal.parse("0");
+    Decimal abonadoTarjD = Decimal.parse("0");
+    Decimal abonadoTarjC = Decimal.parse("0");
+    Decimal abonadoTrans = Decimal.parse("0");
+    for (var venta in ventasSvc.ventasDeCorteActual) {
+      if (venta.abonadoMxn!=null){
+        abonadoMxn += venta.abonadoMxn!;
+      }
+      if (venta.abonadoUs!=null){
+        abonadoUs += venta.abonadoUs!;
+      }
+      if (venta.abonadoTarj!=null){
+        if (venta.tipoTarjeta == "debito"){
+          abonadoTarjD += venta.abonadoTarj!;
+        } else if(venta.tipoTarjeta == "credito"){
+          abonadoTarjC += venta.abonadoTarj!;
         }
       }
+      if (venta.abonadoTrans!=null){
+        abonadoTrans += venta.abonadoTrans!;
+      }
+    }
+    Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    Decimal total = /*fondo - proximoFondo +*/ entrada - salida + abonadoMxn + abonadoUsCnv + abonadoTarjD + abonadoTarjC + abonadoTrans;
+    bytes += generator.text('CORTE DE CAJA',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.row([
+      PosColumn(text: 'Movimiento', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: '', width: 5, styles: PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Entrada', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(entrada.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Salida', width: 7),
+      PosColumn(text: '-${Formatos.pesos.format(salida.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Efectivo(mxn)', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(abonadoMxn.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Efectivo(us)', width: 7),
+      PosColumn(text: '+${Formatos.dolares.format(abonadoUs.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Tarj Debito', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Tarj Credito', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Transferencia', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', width: 5), //total
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'TOTAL', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5, styles: PosStyles(bold: true)),
+    ]);
+    //bytes += generator.text(' ');
+
+    //Dinero Entregado
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(corte.conteoDolares!.toDouble()).toString());
+    Decimal totalContado = corte.conteoPesos! + contadoUsCnv + corte.conteoDebito! + corte.conteoCredito! + corte.conteoTransf!;
+    bytes += generator.row([
+      PosColumn(text: 'Dinero Entregado', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: '', width: 5, styles: PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Efectivo(mxn)', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(corte.conteoPesos!.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Efectivo(us)', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(contadoUsCnv.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Tarj Debito', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(corte.conteoDebito!.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Tarj Credito', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(corte.conteoCredito!.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Transferencia', width: 7),
+      PosColumn(text: '+${Formatos.pesos.format(corte.conteoTransf!.toDouble())}', width: 5),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'TOTAL', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: Formatos.pesos.format(totalContado.toDouble()), width: 5, styles: PosStyles(bold: true)),
+    ]);
+    bytes += generator.text(' ');
+
+    //Diferencia
+    Decimal diferencia = total - totalContado;
+    bytes += generator.row([
+      PosColumn(text: 'Movimientos', width: 7),
+      PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5, styles: PosStyles(bold: false)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Dinero Entregado', width: 7),
+      PosColumn(text: Formatos.pesos.format(totalContado.toDouble()), width: 5, styles: PosStyles(bold: false)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Diferencia', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", ""), width: 5, styles: PosStyles(bold: true)),
+    ]);
+    bytes += generator.hr(); // horizontal rule
+
+    //Desglose
+    bytes += generator.text('DESGLOSE DE DINERO ENTREGADO',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.row([
+      PosColumn(text: 'Pesos', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: '', width: 5, styles: PosStyles(bold: true)),
+    ]);
+    if(corte.desglosePesos!.isEmpty){
+      bytes += generator.text('n/a');
+    } else {
+      for (var desglose in corte.desglosePesos!) {
+        double total = desglose.denominacion * desglose.cantidad;
+        bytes += generator.row([
+          PosColumn(text: '${desglose.denominacion}x', width: 4),
+          PosColumn(text: '${desglose.cantidad}', width: 2),
+          PosColumn(text: Formatos.pesos.format(total), width: 6),
+        ]);
+      }
+    }
+    bytes += generator.row([
+      PosColumn(text: 'Dolares', width: 7, styles: PosStyles(bold: true)),
+      PosColumn(text: '', width: 5, styles: PosStyles(bold: true)),
+    ]);
+    if(corte.desgloseDolares!.isEmpty){
+      bytes += generator.text('n/a');
+    } else {
+      for (var desglose in corte.desgloseDolares!) {
+        double total = desglose.denominacion * desglose.cantidad;
+        bytes += generator.row([
+          PosColumn(text: '${desglose.denominacion}x', width: 4),
+          PosColumn(text: '${desglose.cantidad}', width: 2),
+          PosColumn(text: Formatos.pesos.format(total), width: 6),
+        ]);
+      }
+    }
+    bytes += generator.hr();
+
+    //Contadores
+    bytes += generator.text('CONTADORES', styles: PosStyles(align: PosAlign.center, bold: true));
+    final impresorasSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    bytes += generator.row([
+      PosColumn(text: 'Impresora', width: 5, styles: PosStyles(bold: true)),
+      PosColumn(text: 'Calculado', width: 4, styles: PosStyles(bold: true)),
+      PosColumn(text: 'Real', width: 3, styles: PosStyles(bold: true)),
+    ]);
+    for (var impresora in impresorasSvc.impresoras) {
+      int cantidadAnotada = int.tryParse(impresoraControllers[impresora.id]?.text.replaceAll(",","")??'hubo un problema') ?? 0;
+      int cantidadSistema = impresorasSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
+      bytes += generator.row([
+        PosColumn(text: impresora.modelo, width: 5),
+        PosColumn(text: Formatos.numero.format(cantidadSistema), width: 4),
+        PosColumn(text: Formatos.numero.format(cantidadAnotada), width: 3),
+      ]);
+    }
+    bytes += generator.hr();
+
+    //Comentario
+    if (corte.comentarios!.isNotEmpty){
+      bytes += generator.text('Comentarios', styles: PosStyles(align: PosAlign.center, bold: true));
+      bytes += generator.text(corte.comentarios!, styles: PosStyles(align: PosAlign.center));
+    }
+
+    
+    // Cut the paper (if supported)
+    bytes += generator.feed(1);
+    bytes += generator.cut();
+    bytes += generator.reset();
+    bytes += generator.reset();
+    return bytes;
+  }
+
+  static void imprimirTicketVenta(context, venta, folio) async{
+    if (Configuracion.impresora != 'null') {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+      UsbDevice device = UsbDevice(
+        name: Configuracion.impresora, 
+        model: 'x', 
+        isDefault: true, 
+        available: true
+      );
+      if (connected) {
+        List<int> bytes = await _generarTicketDeVenta(context, venta, folio);
+        await PrintUsb.printBytes(bytes: bytes, device: device);
+        // Check success...
+        //await PrintUsb.close();
+      }
+    }
+  }
+
+  static void imprimirTicketCorte(context, Cortes corte, Map<String, TextEditingController> impresoraControllers) async{
+    if (Configuracion.impresora != 'null') {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+      UsbDevice device = UsbDevice(
+        name: Configuracion.impresora, 
+        model: 'x', 
+        isDefault: true, 
+        available: true
+      );
+      if (connected) {
+        List<int> bytes = await _generarTicketDeCorte(context, corte, impresoraControllers);
+        await PrintUsb.printBytes(bytes: bytes, device: device);
+        // Check success...
+        //await PrintUsb.close();
+      }
+    }
   }
 }

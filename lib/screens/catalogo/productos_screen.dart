@@ -330,7 +330,7 @@ class FilaProducto extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.tituloPrimario, textAlign: TextAlign.center)),
+            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),

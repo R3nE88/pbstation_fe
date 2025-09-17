@@ -230,7 +230,7 @@ class CajasServices extends ChangeNotifier{
     return [];
   }*/
 
-  /*Future<void> actualizarCaja(Cajas caja) async{
+  Future<void> cerrarCaja(Cajas caja) async{
     isLoading = true;
     try {
       final url = Uri.parse(_baseUrl);
@@ -240,14 +240,11 @@ class CajasServices extends ChangeNotifier{
         body: caja.toJson(),
       );
 
-      if (resp.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(resp.body);
-        final updated = Cajas.fromMap(data);
-        updated.id = data['id']?.toString();
-
-        cajaActual = updated;
-
-        notifyListeners();
+      if (resp.statusCode == 204) {
+        cajaActual = null;
+        cajaActualId = null;
+        final prefs = await SharedPreferences.getInstance();
+        prefs.remove('caja_id');
       } else {
         debugPrint('Error al actualizar caja: ${resp.statusCode} ${resp.body}');
       }
@@ -257,7 +254,7 @@ class CajasServices extends ChangeNotifier{
       isLoading = false;
       notifyListeners();
     }
-  }*/
+  }
 
   Future<void> actualizarCorte(Cortes corte, String id) async{
     isLoading = true;
@@ -281,6 +278,7 @@ class CajasServices extends ChangeNotifier{
       notifyListeners();
     }
   }
+
 
   void eliminarCajaActualSoloDePrueba() async{
     cajaActual = null;

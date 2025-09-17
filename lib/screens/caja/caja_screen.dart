@@ -90,12 +90,12 @@ class _CajaScreenState extends State<CajaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
-      return AbrirCaja(metodo: datosIniciales);
-    }
-
     return Consumer3<UsuariosServices, VentasServices, CajasServices>(
       builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
+        if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
+          return AbrirCaja(metodo: datosIniciales);
+        }
+
         if (usuariosSvc.isLoading || ventasSvc.isLoading || cajasSvc.cortesDeCajaIsLoading){
           return SimpleLoading();
         }
@@ -152,10 +152,11 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime fecha = DateTime.parse(CajasServices.cajaActual!.fechaApertura);
+    
+    final DateTime fecha = DateTime.parse(CajasServices.corteActual!.fechaApertura);
     final mes = DateFormat('MMM', 'es_MX').format(fecha).toUpperCase();
     final String hora = DateFormat('hh:mm a').format(fecha);
-    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(CajasServices.cajaActual!.usuarioId);
+    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId);
     
     return Stack(
       alignment: Alignment.bottomCenter,
@@ -172,7 +173,9 @@ class _Header extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text("CAJA: ", style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(CajasServices.cajaActual!.folio!, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.6))
+                  Text(CajasServices.cajaActual!.folio!, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.6)),
+                  const Text("   TURNO: ", style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                  Text(CajasServices.corteActual!.folio!, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.6))
                 ],
               ),
             ),
@@ -180,15 +183,15 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
+                  padding: const EdgeInsets.only(left: 13, right: 13, bottom: 13),
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.tablaColorHeader,
-                      borderRadius: BorderRadius.only(
+                      borderRadius: BorderRadius.all(Radius.circular(12))/*BorderRadius.only(
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12)
-                      ),
-                      border: Border(bottom: BorderSide(color: Colors.black12, width: 3))
+                      )*/
+                      //border: Border(bottom: BorderSide(color: Colors.black12, width: 3))*/
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
@@ -196,7 +199,7 @@ class _Header extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Abierta por $usuario'),
+                          Text('Turno abierto por\n$usuario', textAlign: TextAlign.center),
                           Text('${fecha.day}/$mes/${fecha.year} a las $hora'),
                           //Text('Fondo: ${Formatos.pesos.format(fondo)}'),
                         ],
@@ -295,7 +298,7 @@ class _Header extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 40),
         
             //Drop Down Button
             Filtro(onFiltroCambio: onFiltroCambio),
@@ -379,9 +382,9 @@ class _FiltroState extends State<Filtro> {
               } else if (opcion.keys.first=='corte') {
                 Cortes corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja.firstWhere((element) => element.id == opcion.values.first);
                 if (CajasServices.corteActualId == corte.id) {
-                  texto = 'Tuno: ${corte.folio!} (actual)';
+                  texto = 'Corte: ${corte.folio!} (turno actual)';
                 } else {
-                  texto = 'Tuno: ${corte.folio!}';
+                  texto = 'Corte: ${corte.folio!}';
                 }
                 
               } else if (opcion.keys.first=='users'){
@@ -450,30 +453,30 @@ class _FilaVentas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /*final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
     final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
     final productosSvc = Provider.of<ProductosServices>(context, listen: false);
 
     final vendedorNombre = usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId);
     final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
     final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
-    final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));*/
+    final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
 
     return Container(
       padding: const EdgeInsets.all(8),
       color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
       child: Row(
         children: [
-          Expanded(flex: 4, child: Text('venta.folio!', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('vendedorNombre', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('clienteNombre', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text('detalles', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
         ],
       ),
     );

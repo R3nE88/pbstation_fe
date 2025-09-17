@@ -880,7 +880,7 @@ class VentaRealizadaDialog extends StatelessWidget {
     FocusNode boton = FocusNode();
 
     //imprimir ticket, abrir caja
-    Ticket.imprimirTicket(context, venta, folio);
+    Ticket.imprimirTicketVenta(context, venta, folio);
     
     Row formField(String mensaje, double value, InputDecoration decoration) {
       return Row(
@@ -910,13 +910,13 @@ class VentaRealizadaDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', venta.abonadoTotal!.toDouble(), AppTheme.inputDecorationSeccess),
+          formField('Recibido:', venta.abonadoTotal.toDouble(), AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
           formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),
-          venta.cambio!.toDouble() == 0 
+          venta.cambio.toDouble() == 0 
           ? formField('Adeudo:',  adeudo, AppTheme.inputDecorationWaringGrave)
-          : formField('Cambio:', venta.cambio!.toDouble(), AppTheme.inputDecorationWaring),           
+          : formField('Cambio:', venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
         ],
       ),
       actions: [

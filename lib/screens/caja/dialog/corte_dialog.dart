@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/widgets/caja/voucher_board.dart';
@@ -102,6 +103,8 @@ class _CorteDialogState extends State<CorteDialog> {
     super.initState();
     //formatear fecha
     fechaAperturaFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaApertura);
+    CajasServices.corteActual!.fechaCorte = fechaCorte.toIso8601String();
+    CajasServices.corteActual!.usuarioIdCerro = Login.usuarioLogeado.id!;
     fechaCorteFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaCorte);
   
     final ventasSvc = Provider.of<VentasServices>(context, listen: false);
@@ -168,9 +171,7 @@ class _CorteDialogState extends State<CorteDialog> {
     super.dispose();
   }
 
-  void terminarCorte(String comentario) async{
-    Loading.displaySpinLoading(context);
-
+  Cortes nuevoCorte(String comentario){
     //Contado
     Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(efectivoDolares).toString());
     Decimal contadoPesos = Decimal.parse(efectivoPesos.toString());
@@ -210,28 +211,17 @@ class _CorteDialogState extends State<CorteDialog> {
 
     //Diferencia
     Decimal diferencia = Decimal.parse("0");
-    //Decimal fondo = CajasServices.corteActual!.fondoInicial;
-    Decimal entrada = Decimal.parse("0");
-    Decimal salida = Decimal.parse("0");
-    for (var movimiento in CajasServices.corteActual!.movimientoCaja) {
-      if (movimiento.tipo=="entrada"){
-        entrada += Decimal.parse(movimiento.monto.toString());
-      } else if (movimiento.tipo=="retiro"){
-        salida += Decimal.parse(movimiento.monto.toString());
-      }
-    } 
-    /*Decimal proximoFondo = proximoFondoCtrl.text.isNotEmpty ? Decimal.parse(proximoFondoCtrl.text.replaceAll(RegExp(r'[^\d.]'), '')) : Decimal.zero;
-    diferencia = fondo - proximoFondo + entrada - salida;*/
 
     Cortes corte = Cortes(
+      id: CajasServices.corteActualId,
       folio: CajasServices.corteActual!.folio,
       usuarioId: CajasServices.corteActual!.usuarioId, 
+      usuarioIdCerro: CajasServices.corteActual!.usuarioIdCerro,
       sucursalId: CajasServices.corteActual!.sucursalId, 
       fechaApertura: CajasServices.cajaActual!.fechaApertura,
-      fechaCorte: DateTime.now().toIso8601String(),
+      fechaCorte: CajasServices.corteActual!.fechaCorte,
       contadoresFinales: convertir(impresoraControllers),
       fondoInicial: CajasServices.corteActual!.fondoInicial, 
-      //proximoFondo: proximoFondo,
       conteoPesos: contadoPesos,
       conteoDolares: contadoDolares,
       conteoDebito: contadoDebito, 
@@ -250,29 +240,37 @@ class _CorteDialogState extends State<CorteDialog> {
       desgloseDolares: mapearDesglose(false),
       ventasIds: CajasServices.corteActual!.ventasIds,
       comentarios: comentario,
-      isCierre: false
+      isCierre: widget.cierre
     );
+
+    return corte;
+  }
+
+  void terminarCorte(String comentario) async{
+    Loading.displaySpinLoading(context);
 
     //Cerrar Corte
+    Cortes corte = nuevoCorte(comentario);
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
     await cajasSvc.actualizarCorte(corte, CajasServices.corteActualId!);
-
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
-    
-    //abrir nuevo corte y asignarlo como activo
-    /*if (!mounted) return;
-    final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-    Cortes primerCorte = Cortes(
-      usuarioId: Login.usuarioLogeado.id!,
-      sucursalId: SucursalesServices.sucursalActualID!,
-      fechaApertura: DateTime.now().toString(),
-      fondoInicial: proximoFondo,
-      movimientoCaja: [],
-      ventasIds: [],
-    );
-    await cajaSvc.createCorte(primerCorte);*/
 
+    //Cerrar Corte
+    Cajas caja = Cajas(
+      id: CajasServices.cajaActualId,
+      folio: CajasServices.cajaActual!.folio,
+      usuarioId: CajasServices.cajaActual!.usuarioId, 
+      sucursalId: CajasServices.cajaActual!.sucursalId, 
+      fechaApertura: CajasServices.cajaActual!.fechaApertura, 
+      fechaCierre: corte.fechaCorte,
+      ventaTotal: corte.ventaTotal,
+      estado: 'cerrada', 
+      cortesIds: CajasServices.cajaActual!.cortesIds, 
+      tipoCambio: CajasServices.cajaActual!.tipoCambio
+    );
+    await cajasSvc.cerrarCaja(caja);
+  
     if (!mounted) return;
     Navigator.pop(context);
     Navigator.pop(context);
@@ -421,7 +419,14 @@ class _CorteDialogState extends State<CorteDialog> {
             );
           }),
           const SizedBox(height: 8),
-          ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Regresar')),
+              const SizedBox(width: 15),
+              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+            ],
+          ),
         ],
       ),
     );
@@ -630,6 +635,7 @@ class _CorteDialogState extends State<CorteDialog> {
   Widget buildReporteFinal(int page){
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
     final ventaSvc = Provider.of<VentasServices>(context);
+    final TextEditingController ctrl = TextEditingController();
 
     if (CajasServices.corteActual==null) return SizedBox();
 
@@ -650,7 +656,7 @@ class _CorteDialogState extends State<CorteDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
       
-          //Header de corte
+          //Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -668,6 +674,8 @@ class _CorteDialogState extends State<CorteDialog> {
               ),
             ],
           ),
+          
+          //Header2
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -684,12 +692,13 @@ class _CorteDialogState extends State<CorteDialog> {
                   Text('Hora del corte: '),
                   Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
                   Text(' por '),
-                  Text(Login.usuarioLogeado.nombre, style: AppTheme.tituloClaro),
+                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioIdCerro!), style: AppTheme.tituloClaro),
                 ],
               ),
             ],
           ), const SizedBox(height: 15),
 
+          //Body 1
           page==1 ?Expanded(
             child: Row(
               children: [
@@ -703,25 +712,103 @@ class _CorteDialogState extends State<CorteDialog> {
                 ),
               ],
             )
-          ) : Expanded(
-            child: Row(
+          ) 
+          : 
+          //Body 2
+          Expanded(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
               children: [
-                ReporteFinalMovimientos(
-                  //proximoFondo: proximoFondoCtrl.text.isNotEmpty ? Decimal.parse(proximoFondoCtrl.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0"), 
-                  contadoPesos: Decimal.parse(efectivoPesos.toString()), 
-                  contadoDolares: Decimal.parse(efectivoDolares.toString()), 
-                  contadoDebito: contarVouchers(debitoControllers), 
-                  contadoCredito: contarVouchers(creditoControllers), 
-                  contadoTransf: contarVouchers(transferenciaControllers), 
+                Row(
+                  children: [
+                    ReporteFinalMovimientos(
+                      //proximoFondo: proximoFondoCtrl.text.isNotEmpty ? Decimal.parse(proximoFondoCtrl.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0"), 
+                      contadoPesos: Decimal.parse(efectivoPesos.toString()), 
+                      contadoDolares: Decimal.parse(efectivoDolares.toString()), 
+                      contadoDebito: contarVouchers(debitoControllers), 
+                      contadoCredito: contarVouchers(creditoControllers), 
+                      contadoTransf: contarVouchers(transferenciaControllers), 
+                    ),
+                    const SizedBox(width: 10),
+                    ReporteFinalDesgloseDinero(
+                      desglosePesos: mapearDesglose(true),
+                      desgloseDolares: mapearDesglose(false),
+                      impresoraControllers: impresoraControllers,
+                      ctrl: ctrl,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                ReporteFinalDesgloseDinero(
-                  desglosePesos: mapearDesglose(true),
-                  desgloseDolares: mapearDesglose(false),
-                  impresoraControllers: impresoraControllers,
-                  callback: (String comentario) {
-                    terminarCorte(comentario);
-                  },
+                
+                //Botones finales
+                Row( 
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Tooltip(
+                      message: 'Funcion En Desarrollo...',
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Descargar PDF'),
+                            Transform.translate(
+                              offset: Offset(8, 1.5),
+                              child: Icon(Icons.picture_as_pdf_outlined, size: 25)
+                            )
+                          ],
+                        )
+                      ),
+                    ), const SizedBox(width: 20),
+
+                    Tooltip(
+                      message: 'Funcion En Desarrollo...',
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Enviar Por Correo'),
+                            Transform.translate(
+                              offset: Offset(8, 1.5),
+                              child: Icon(Icons.email_outlined, size: 25)
+                            )
+                          ],
+                        )
+                      ),
+                    ), const SizedBox(width: 20),
+
+                    ElevatedButton(
+                      onPressed: () => Ticket.imprimirTicketCorte(context, nuevoCorte(ctrl.text), impresoraControllers),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Imprimir Ticket'),
+                          Transform.translate(
+                            offset: Offset(8, 1.5),
+                            child: Icon(Icons.print_outlined, size: 25)
+                          )
+                        ],
+                      )
+                    ), const SizedBox(width: 20),
+
+                    ElevatedButton(
+                      onPressed: () => terminarCorte(ctrl.text),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
+                          Transform.translate(
+                            offset: Offset(8, 1.5),
+                            child: Icon(Icons.done, size: 25)
+                          )
+                        ],
+                      ), 
+                    ),
+                  ],
                 ),
               ],
             )
@@ -751,7 +838,6 @@ class _CorteDialogState extends State<CorteDialog> {
         }
       }
     }
-
     return lista;
   }
 
@@ -1023,9 +1109,13 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
           ElevatedButton(onPressed: (){
             callback();
           }, child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text('Siguiente'),
+              Transform.translate(
+                offset: Offset(8, 1.5),
+                child: Icon(Icons.chevron_right_sharp, size: 25)
+              )
             ],
           ))
         ],
@@ -1142,17 +1232,19 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
     required this.desglosePesos, 
     required this.desgloseDolares, 
     required this.impresoraControllers, 
-    required this.callback,
+    //required this.callback, 
+    required this.ctrl,
   });
 
   final List<Desglose> desglosePesos;
   final List<Desglose> desgloseDolares;
   final Map<String, TextEditingController> impresoraControllers;
-  final Function(String) callback;
+  //final Function() callback;
+  final TextEditingController ctrl;
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController ctrl = TextEditingController();
+    
 
     return Expanded(
       flex: 3,
@@ -1223,19 +1315,9 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white, width: 2)),
               contentPadding: EdgeInsets.all(8),
             ),
-            
           ),
 
-          const SizedBox(height: 15),
-          ElevatedButton(
-            onPressed: () => callback(ctrl.text),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Finalizar'),
-              ],
-            )
-          )
+          const SizedBox(height: 48),
         ],
       )
     );
@@ -1262,7 +1344,7 @@ class ReporteFinalContadores extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(flex: 10, child: Center(child: Text('Impresora', style: AppTheme.tituloClaro))),
-                Expanded(flex: 12, child: Center(child: Text('Contadores sistema/anotado', style: AppTheme.tituloClaro))),
+                Expanded(flex: 12, child: Center(child: Text('Calculado            Real', style: AppTheme.tituloClaro))),
                 Expanded(flex: 7,  child: Center(child: Text('  Diferencia', style: AppTheme.tituloClaro))),
               ],
             ),

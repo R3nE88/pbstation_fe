@@ -171,9 +171,13 @@ class ImpresorasCards extends StatelessWidget {
       if (result == true){ 
         if (!context.mounted) return;
         Loading.displaySpinLoading(context);
-        await Provider.of<ImpresorasServices>(context, listen: false).deleteImpresora(impresora.id!);
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context);
+        await Provider.of<ImpresorasServices>(context, listen: false).deleteImpresora(impresora.id!).whenComplete(
+          () {
+            if (!context.mounted) return;
+            Navigator.pop(context);
+          },
+        );
+        
       }
     }
 

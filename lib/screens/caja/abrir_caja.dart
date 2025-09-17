@@ -100,7 +100,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                         ),
                         Text(
                           CajasServices.cajaActual == null ?
-                          'Aún no sé ha abierto caja este día'
+                          'Aún no sé ha abierto caja.'
                           :
                           '¿Quieres continuar el dia y abrir nuevo turno?',
                           textAlign: TextAlign.center,
@@ -109,7 +109,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                         ),
                         Column(
                           children: [
-                            Text('¿Cuánto efectivo quieres tener en el Fondo?'),
+                            Text('¿Cuánto efectivo quieres tener de Fondo?'),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                               child: TextFormField(

@@ -5,8 +5,10 @@ import 'package:pbstation_frontend/models/models.dart';
 
 class Cortes {
     Cortes({
+      this.id,
       this.folio,
       required this.usuarioId,
+      this.usuarioIdCerro,
       required this.sucursalId,
       required this.fechaApertura,
       this.fechaCorte,
@@ -37,6 +39,7 @@ class Cortes {
     String? id;
     String? folio;
     String usuarioId;
+    String? usuarioIdCerro;
     String sucursalId;
     String fechaApertura; 
     String? fechaCorte; 
@@ -69,6 +72,7 @@ class Cortes {
     factory Cortes.fromMap(Map<String, dynamic> json) => Cortes(
       folio: json["folio"],
       usuarioId: json["usuario_id"],
+      usuarioIdCerro: json["usuario_id_cerro"],
       sucursalId: json["sucursal_id"],
       fechaApertura: json["fecha_apertura"],
       fechaCorte: json["fecha_corte"],
@@ -106,6 +110,7 @@ class Cortes {
       "id": id,
       "folio": folio,
       "usuario_id": usuarioId,
+      "usuario_id_cerro": usuarioIdCerro,
       "sucursal_id": sucursalId,
       "fecha_apertura": fechaApertura,
       "fecha_corte": fechaCorte,
