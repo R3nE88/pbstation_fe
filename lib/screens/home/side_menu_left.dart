@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
@@ -42,7 +43,7 @@ class SideMenuLeft extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: const Text('v0.0001', style: AppTheme.subtituloPrimario), //TODO: version
+            child: Text('v${Constantes.version}', style: AppTheme.subtituloPrimario),
           ),
         ],
       ),

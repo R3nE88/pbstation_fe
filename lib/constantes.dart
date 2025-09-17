@@ -2,6 +2,7 @@ class Constantes{
   static const String baseUrl = '//127.0.0.1:8000/';
   static const double anchoMaximo = 25; //TODO: Agregar esto a ajustes y mover a configuracion
   static const double altoMaximo = 25; //Agregar esto a ajustes? para modificar el valor
+  static late final String version;
 
   static const Map<String, String> regimenFiscal = {
     "601": "General de Ley Personas Morales",

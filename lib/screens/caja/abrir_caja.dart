@@ -244,7 +244,6 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           final cajaSvc = Provider.of<CajasServices>(context, listen: false);
                           final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
 
-
                           //Actualiar Contadores
                           final contadoresMap = Map.fromIterables(
                             impresoraSvc.impresoras.map((impresora) => impresora.id!),
@@ -283,14 +282,15 @@ class _AbrirCajaState extends State<AbrirCaja> {
                             await cajaSvc.createCaja(nuevaCaja);
                           }
                           await cajaSvc.createCorte(corte);
-
                           if(widget.metodo!=null) widget.metodo!();
 
                         } catch (e) {
-                          debugPrint('Error al crear corte: $e');
+                          debugPrint('Error al abrir caja: $e');
                         } finally {
                           // Cerrar el loading usando el context del dialog
-                          Navigator.pop(dialogContext!);
+                          if (dialogContext!.mounted){
+                            Navigator.pop(dialogContext!);
+                          }
                         }
 
                         

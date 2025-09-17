@@ -226,7 +226,7 @@ class FilaSucursales extends StatelessWidget {
         ),
         color: AppTheme.dropDownColor,
         elevation: 2,
-        items: [ //TODO: Solo el administrador puede establecer las sucursales, editar, e eliminar
+        items: [
           PopupMenuItem(
             value: 'asignar',
             child: Row(
@@ -298,12 +298,26 @@ class FilaSucursales extends StatelessWidget {
       if (seleccion != null) {
         if (seleccion == 'asignar') {
           // Lógica para leer
-          if(!context.mounted){ return; }
-          Loading.displaySpinLoading(context);
-          final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
-          await sucursalesServices.establecerSucursal(sucursal);
-          if(!context.mounted){ return; }
-          Navigator.pop(context);
+          if (CajasServices.cajaActual== null) { //Si no hay caja abierta
+            if(!context.mounted){ return; }
+            Loading.displaySpinLoading(context);
+            final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
+            await sucursalesServices.establecerSucursal(sucursal);
+            if(!context.mounted){ return; }
+            Navigator.pop(context);
+          } else {
+            if(!context.mounted){ return; }
+            showDialog(
+              context: context,
+              builder: (_) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
+                  const WindowBar(overlay: true),
+                ],
+              ),
+            );
+          }
         } else if (seleccion == 'leer') {
           // Lógica para leer
           if(!context.mounted){ return; }

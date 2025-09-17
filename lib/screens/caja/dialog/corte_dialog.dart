@@ -467,7 +467,8 @@ class _CorteDialogState extends State<CorteDialog> {
   }*/
 
   Widget _buildEsperandoRetiro() {
-    //final fondo = proximoFondoCtrl.text;
+    final impresoraSvc = Provider.of<ImpresorasServices>(context);
+
     return SizedBox(
       width: 340,
       child: Column(
@@ -488,16 +489,30 @@ class _CorteDialogState extends State<CorteDialog> {
           if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
           const SizedBox(height: 12),
 
-          ElevatedButton(
-            autofocus: true,
-            onPressed: (){
-              setState(() {
-                performingRetiro = false;
-                stage = StepStage.conteoPesos;
-              });
-            }, 
-            //child: Text('Continuar ($segundosRestantes)')
-            child: Text('Continuar')
+          Row( 
+            mainAxisAlignment: impresoraSvc.impresoras.isEmpty ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+            children: [
+              impresoraSvc.impresoras.isEmpty ?
+              ElevatedButton(
+                onPressed: (){
+                  Navigator.pop(context);
+                }, 
+                //child: Text('Continuar ($segundosRestantes)')
+                child: Text('Regresar')
+              ) : const SizedBox(),
+
+              ElevatedButton(
+                autofocus: true,
+                onPressed: (){
+                  setState(() {
+                    performingRetiro = false;
+                    stage = StepStage.conteoPesos;
+                  });
+                }, 
+                //child: Text('Continuar ($segundosRestantes)')
+                child: Text('Continuar')
+              ),
+            ],
           )
         ],
       ),
@@ -857,6 +872,11 @@ class _CorteDialogState extends State<CorteDialog> {
       _ensureImpresoraControllers(impresoraSvc);
     }
 
+    //Si no tengo impresoras y estoy en la primera ventana, ignorarla
+    if (impresoraSvc.impresoras.isEmpty && stage == StepStage.contadores){
+      stage = StepStage.esperandoRetiro;
+    }
+
     Widget content;
     String title = 'Corte de Caja';
 
@@ -865,10 +885,6 @@ class _CorteDialogState extends State<CorteDialog> {
         title = 'Registrar Contadores';
         content = _buildContadores(impresoraSvc);
         break;
-      /*case StepStage.fondo:
-        title = 'Siguiente Fondo';
-        content = _buildFondoStep();
-        break;*/
       case StepStage.esperandoRetiro:
         title = '';
         content = _buildEsperandoRetiro();

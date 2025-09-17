@@ -1,4 +1,3 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -70,6 +69,7 @@ class _VentaScreenState extends State<VentaScreen> {
       indexResta = 0;
     }
 
+    
     if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
       return AbrirCaja();
     }
@@ -427,7 +427,7 @@ class Pestania extends StatelessWidget {
                 onPressed: () {
                   selectedPestania!(index);
                 },
-                child: Text('Venta ${index+1}', style: AppTheme.tituloPrimario) //TODO: nombre de pestaña
+                child: Text('Venta ${index+1}', style: AppTheme.tituloPrimario)
               ),
             ),
           ) 

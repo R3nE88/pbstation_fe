@@ -17,9 +17,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image/image.dart' as imagen;
 
 class Ticket {
+  static late final ProductosServices productoSvc;
+  static late final ClientesServices clienteSvc;
+  static late final UsuariosServices usuarioSvc;
+  static late final VentasServices ventaSvc;
+  static late final ImpresorasServices impresoraSvc;   
 
   static Future<List<int>>_generarQR(String data) async {
-    //final List<int> bytes = [];
     // Using default profile
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
@@ -83,7 +87,6 @@ class Ticket {
         styles: PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.text(formattedDate, //'25/07/2025 04:16p.m.'
         styles: PosStyles(align: PosAlign.right, bold: false));
-    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
     bytes += generator.text(clienteSvc.obtenerNombreClientePorId(venta.clienteId),
         styles: PosStyles(align: PosAlign.left, bold: false));
 
@@ -94,10 +97,9 @@ class Ticket {
       PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
       PosColumn(text: 'Precio', width: 4, styles: PosStyles(bold: true)),
     ]);
-    if(!context.mounted) return[];
-    final productos = Provider.of<ProductosServices>(context, listen: false);
+    
     for (var i = 0; i < venta.detalles.length; i++) {
-      Productos? producto = productos.obtenerProductoPorId(venta.detalles[i].productoId);
+      Productos? producto = productoSvc.obtenerProductoPorId(venta.detalles[i].productoId);
       bytes += generator.row([
         PosColumn(text: venta.detalles[i].cantidad.toString(), width: 2),
         PosColumn(text: 
@@ -111,11 +113,10 @@ class Ticket {
     // Total
     bytes += generator.text('Total: ${Formatos.pesos.format(venta.total.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.abonadoTotal?.toDouble() ?? 0)}',
+    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.abonadoTotal.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Su Cambio: ${Formatos.pesos.format(venta.cambio?.toDouble() ?? 0)}',
+    bytes += generator.text('Su Cambio: ${Formatos.pesos.format(venta.cambio.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-
 
     // QR Code at the end (e.g., link to survey)
     bytes += generator.feed(1);
@@ -143,13 +144,11 @@ class Ticket {
   }
 
   static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cortes corte, Map<String, TextEditingController> impresoraControllers) async {
-    // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
     DateTime fecha = DateTime.parse(corte.fechaApertura);
-    String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaApertura));
+    String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
     String fechaCorteFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaCorte!));
-    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
     String cajeroQueAbrio = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioId);
     String cajeroQueCerro = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioIdCerro!);
     List<int> bytes = [];
@@ -159,12 +158,6 @@ class Ticket {
 
     //Barra Horizontal
     bytes += generator.hr();
-
-    //imagen
-    /*final ByteData data = await rootBundle.load('assets/images/logo_bn3.png');
-    final Uint8List imageBytes = data.buffer.asUint8List();
-    final imagen.Image? image = imagen.decodeImage(imageBytes);
-    bytes += generator.image(image!);*/
 
     //Header
     bytes += generator.text('Emilio Alberto Diaz Obregon',
@@ -207,10 +200,8 @@ class Ticket {
       PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
       PosColumn(text: 'Total', width: 4, styles: PosStyles(bold: true)),
     ]);
-    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
-    for (var venta in ventasSvc.ventasPorProducto) {
-      Productos? producto = productosSvc.obtenerProductoPorId(venta.productoId);
+    for (var venta in ventaSvc.ventasPorProducto) {
+      Productos? producto = productoSvc.obtenerProductoPorId(venta.productoId);
       bytes += generator.row([
         PosColumn(text: venta.cantidad.toString(), width: 2),
         PosColumn(text: producto!.descripcion, 
@@ -219,15 +210,15 @@ class Ticket {
       ]);
     }
     Decimal subtotal = Decimal.parse('0');
-    for (var venta in ventasSvc.ventasPorProducto) {
+    for (var venta in ventaSvc.ventasPorProducto) {
       subtotal += venta.subTotal;
     }
     Decimal iva = Decimal.parse('0');
-    for (var venta in ventasSvc.ventasPorProducto) {
+    for (var venta in ventaSvc.ventasPorProducto) {
       iva += venta.iva;
     }
     Decimal totalVenta = Decimal.parse('0');
-    for (var venta in ventasSvc.ventasPorProducto) {
+    for (var venta in ventaSvc.ventasPorProducto) {
       totalVenta += venta.total;
     }
     bytes += generator.row([
@@ -257,7 +248,7 @@ class Ticket {
     Decimal abonadoTarjD = Decimal.parse("0");
     Decimal abonadoTarjC = Decimal.parse("0");
     Decimal abonadoTrans = Decimal.parse("0");
-    for (var venta in ventasSvc.ventasDeCorteActual) {
+    for (var venta in ventaSvc.ventasDeCorteActual) {
       if (venta.abonadoMxn!=null){
         abonadoMxn += venta.abonadoMxn!;
       }
@@ -315,7 +306,6 @@ class Ticket {
       PosColumn(text: 'TOTAL', width: 7, styles: PosStyles(bold: true)),
       PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5, styles: PosStyles(bold: true)),
     ]);
-    //bytes += generator.text(' ');
 
     //Dinero Entregado
     Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(corte.conteoDolares!.toDouble()).toString());
@@ -405,15 +395,14 @@ class Ticket {
 
     //Contadores
     bytes += generator.text('CONTADORES', styles: PosStyles(align: PosAlign.center, bold: true));
-    final impresorasSvc = Provider.of<ImpresorasServices>(context, listen: false);
     bytes += generator.row([
       PosColumn(text: 'Impresora', width: 5, styles: PosStyles(bold: true)),
       PosColumn(text: 'Calculado', width: 4, styles: PosStyles(bold: true)),
       PosColumn(text: 'Real', width: 3, styles: PosStyles(bold: true)),
     ]);
-    for (var impresora in impresorasSvc.impresoras) {
+    for (var impresora in impresoraSvc.impresoras) {
       int cantidadAnotada = int.tryParse(impresoraControllers[impresora.id]?.text.replaceAll(",","")??'hubo un problema') ?? 0;
-      int cantidadSistema = impresorasSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
+      int cantidadSistema = impresoraSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
       bytes += generator.row([
         PosColumn(text: impresora.modelo, width: 5),
         PosColumn(text: Formatos.numero.format(cantidadSistema), width: 4),
@@ -427,7 +416,6 @@ class Ticket {
       bytes += generator.text('Comentarios', styles: PosStyles(align: PosAlign.center, bold: true));
       bytes += generator.text(corte.comentarios!, styles: PosStyles(align: PosAlign.center));
     }
-
     
     // Cut the paper (if supported)
     bytes += generator.feed(1);
@@ -447,6 +435,7 @@ class Ticket {
         available: true
       );
       if (connected) {
+        cargarServices(context);
         List<int> bytes = await _generarTicketDeVenta(context, venta, folio);
         await PrintUsb.printBytes(bytes: bytes, device: device);
         // Check success...
@@ -465,11 +454,18 @@ class Ticket {
         available: true
       );
       if (connected) {
+        cargarServices(context);
         List<int> bytes = await _generarTicketDeCorte(context, corte, impresoraControllers);
         await PrintUsb.printBytes(bytes: bytes, device: device);
-        // Check success...
-        //await PrintUsb.close();
       }
     }
+  }
+
+  static void cargarServices(context){
+    productoSvc = Provider.of<ProductosServices>(context, listen: false);
+    clienteSvc = Provider.of<ClientesServices>(context, listen: false);
+    usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+    ventaSvc = Provider.of<VentasServices>(context, listen: false);
+    impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
   }
 }

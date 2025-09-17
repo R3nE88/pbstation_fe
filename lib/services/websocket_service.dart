@@ -25,7 +25,7 @@ class WebSocketService with ChangeNotifier {
     // Guardamos servicios en la única instancia
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
-    _instance._ventaSvc        = ventasServices;
+    //_instance._ventaSvc        = ventasServices;
     _instance._ventaEnviadasSvc= ventasEnviadasServices;
     _instance._sucursalSvc     = sucursalesServices;
     _instance._cotizacionesSvc = cotizacionesServices;
@@ -52,7 +52,7 @@ class WebSocketService with ChangeNotifier {
   // Servicios inyectados
   late ProductosServices _productoSvc;
   late ClientesServices _clienteSvc;
-  late VentasServices _ventaSvc;
+  //late VentasServices _ventaSvc;
   late VentasEnviadasServices _ventaEnviadasSvc;
   late SucursalesServices _sucursalSvc;
   late CotizacionesServices _cotizacionesSvc;

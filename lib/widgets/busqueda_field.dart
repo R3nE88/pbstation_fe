@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/theme/theme.dart';
 class BusquedaField<T extends Object> extends StatefulWidget {
   final List<T> items;
   final Function(T?) onItemSelected;
+  final Function() onItemUnselected;
   final T? selectedItem;
   final String Function(T) displayStringForOption;
   final String Function(T)? secondaryDisplayStringForOption; // Hacerlo opcional
@@ -19,6 +20,7 @@ class BusquedaField<T extends Object> extends StatefulWidget {
     super.key,
     required this.items,
     required this.selectedItem,
+    required this.onItemUnselected,
     required this.onItemSelected,
     required this.displayStringForOption,
     this.secondaryDisplayStringForOption, // Parámetro opcional
@@ -27,7 +29,7 @@ class BusquedaField<T extends Object> extends StatefulWidget {
     required this.defaultFirst, 
     required this.hintText, 
     this.teclaFocus,
-    required this.error,
+    required this.error, 
   });
 
   @override
@@ -91,9 +93,8 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   void _validateOrClear() {
     final match = widget.items.firstWhere(
       (item) => widget.displayStringForOption(item) == _controller.text,
-      orElse: () => widget.items.isNotEmpty ? widget.items.first : throw Exception('No items available'),
-    );
-
+      orElse: () => widget.items.isNotEmpty ? widget.items.first :  throw Exception('No items available'));
+    //widget.onItemSelected()
     _selectedItem = match;
     _controller.text = widget.displayStringForOption(match);
     widget.onItemSelected(match);
@@ -223,6 +224,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                       _filteredOptions.clear();
                       _selectedItem = null;
                       widget.onItemSelected(null);
+                      widget.onItemUnselected();
                     });
                   }
                 }

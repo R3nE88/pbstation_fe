@@ -14,11 +14,12 @@ class SucursalesServices extends ChangeNotifier{
   static String? sucursalActualID;
   late Map<String, Sucursales> _sucursalesPorId;
   bool isLoading = false;
-  bool init = true;
+  bool init = false;
+  bool sucursalError = false;
 
   SucursalesServices(){
-    if (init==true){
-      init=false;
+    if (init==false){
+      init=true;
       obtenerSucursalId();
     }
   }
@@ -36,16 +37,18 @@ class SucursalesServices extends ChangeNotifier{
   } //Aqui termina  para mapear y buscar sucursales//
 
   Future<void> obtenerSucursalId() async {
-    if (init==true) return;
+    if (init==false) return;
     try {
       final directory = await getApplicationSupportDirectory();
       final file = File('${directory.path}/config.json');
 
       if (!await file.exists()) {
-        //TODO: Mostrar mensaje de que hubo un problema con la configuracion para inicializar la 'terminal' o algo asi pro xd
+        sucursalError = true;
+        notifyListeners();
         if (kDebugMode) {
           print('⚠️ El archivo config.json no existe.');
         }
+        return;
       }
 
       final contenido = await file.readAsString();

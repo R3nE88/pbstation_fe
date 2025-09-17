@@ -9,7 +9,7 @@ class Modulos{
 
   static bool deshabilitar(String value){ //Escribir que modulos se deshabilitan para el usuario sin permisos
     if (Login.usuarioLogeado.rol != "admin") {
-      if (value == 'usuarios' || value == 'sucursales' || value == 'historial\nde ventas'){
+      if (value == 'usuarios' || value == 'historial\nde cajas'){
         return true;
       }
     }

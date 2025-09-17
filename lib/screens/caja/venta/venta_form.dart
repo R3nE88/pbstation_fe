@@ -529,6 +529,9 @@ class _VentaFormState extends State<VentaForm> {
                                         if (clienteSelected!=null){ clienteError = false; }
                                       });
                                     },
+                                    onItemUnselected: (){
+                                      debugPrint('No se selecciono nada!');
+                                    },
                                     displayStringForOption: (cliente) => cliente.nombre, 
                                     normalBorder: false, 
                                     icono: Icons.perm_contact_cal_sharp, 
@@ -698,7 +701,7 @@ class _VentaFormState extends State<VentaForm> {
                             const SizedBox(height: 2),
                             BusquedaField<Productos>(
                               items: productosServices.productos,
-                              selectedItem: productoSelected,
+                              selectedItem:   productoSelected,
                               onItemSelected: (Productos? selected) {
                                 setState(() {
                                   productoSelected = selected;
@@ -706,7 +709,9 @@ class _VentaFormState extends State<VentaForm> {
                                   calcularSubtotal();
                                 });
                               },
-                              //TODO: onItemUnselected clacularSubTotal
+                              onItemUnselected: (){
+                                limpiarCamposProducto();
+                              },
                               displayStringForOption: (producto) => producto.descripcion, 
                               normalBorder: true, 
                               icono: Icons.copy, 

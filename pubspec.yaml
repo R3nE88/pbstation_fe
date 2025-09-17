@@ -17,14 +17,13 @@ dependencies:
   path_provider: ^2.1.5
   flutter_localization: ^0.3.2
   shared_preferences: ^2.5.3
-  # a partir de aqui es para tickets
   esc_pos_utils_plus: ^2.0.4
   print_usb: ^0.0.3
   qr_flutter: ^4.1.0
-
   cupertino_icons: ^1.0.8
   decimal: ^3.2.4
   image: ^4.5.4
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

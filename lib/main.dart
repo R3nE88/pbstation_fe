@@ -1,6 +1,8 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
@@ -14,6 +16,9 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
   await initializeDateFormatting('es_ES');
+
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  Constantes.version = packageInfo.version;
 
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
@@ -33,6 +38,13 @@ void main() async {
     configuracion, 
     impresoraServices,
   );
+
+  doWhenWindowReady(() {
+    const initialSize = Size(400, 640);
+    appWindow.size = initialSize;
+    appWindow.minSize = initialSize;
+    appWindow.show();
+  });
 
   runApp(
     MultiProvider(
@@ -54,13 +66,6 @@ void main() async {
       child: const MyApp()
     )
   );
-
-  doWhenWindowReady(() {
-    const initialSize = Size(400, 640);
-    appWindow.size = initialSize;
-    appWindow.minSize = initialSize;
-    appWindow.show();
-  });
 }
 
 class MyApp extends StatefulWidget {
@@ -86,8 +91,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Builder(
       builder: (context) {
         final changeTheme = Provider.of<ChangeTheme>(context);

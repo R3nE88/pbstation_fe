@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -14,12 +15,13 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = Provider.of<Configuracion>(context);
     final caja = Provider.of<CajasServices>(context);
+    final suc = Provider.of<SucursalesServices>(context);
     bool loaded = false;
 
     if (config.init == false){
       config.loadConfiguracion();
-      Provider.of<SucursalesServices>(context, listen: false); //Eejcutar constructor de sucursalesServices
     }
+
     if (caja.init == false){
       caja.initCaja();
     }
@@ -58,7 +60,21 @@ class LoginScreen extends StatelessWidget {
                   ? LoginFields() 
                   :  SizedBox(
                     height: double.infinity,
-                    child: Center(
+                    child: suc.sucursalError ?
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Error de Configuracion. Reinstale el programa o llame a soporte tecnico: (653)146-3159', textAlign: TextAlign.center),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: LinearProgressIndicator(
+                              color: const Color.fromARGB(255, 255, 191, 42)
+                            ),
+                          ),
+                          SizedBox(height: 70)
+                        ],
+                      )
+                     : Center(
                       child: CircularProgressIndicator(
                         color: AppTheme.letraClara
                       ),
@@ -71,7 +87,7 @@ class LoginScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
-                  'PrinterBoy Punto De Venta\nv0.0001', 
+                  'PrinterBoy Punto De Venta\nv${Constantes.version}', 
                   style: AppTheme.subtituloConstraste.copyWith(
                     letterSpacing: 1
                   ),

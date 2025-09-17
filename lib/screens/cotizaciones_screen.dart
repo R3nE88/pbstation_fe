@@ -130,7 +130,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
                   ),
                   Transform.translate(
                     offset: Offset(3, -1),
-                    child: Text(cotizacionesServices.todasLasSucursales ?  "Todas las sucursales" : "Esta Sucursal"), //TODO: filtrar por: esta sucursal / todas las sucursales
+                    child: Text(cotizacionesServices.todasLasSucursales ?  "Todas las sucursales" : "Esta Sucursal"),
                   ),
                 ],
               )
@@ -222,7 +222,7 @@ class TablaListView extends StatelessWidget {
     return Expanded(
       child: Container(
         color: cotizaciones.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: ListView.builder( //TODO: acomodar por fecha, mas nuevo arriba siempre
+        child: ListView.builder(
           itemCount: cotizaciones.length,
           itemBuilder: (context, index) => FilaCotizaciones(
             vigente: vigente,
@@ -258,7 +258,7 @@ class FilaCotizaciones extends StatelessWidget {
   Widget build(BuildContext context) {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
-      final String? seleccion;
+      /*final String? seleccion;
       seleccion = await showMenu(
         context: context,
         position: RelativeRect.fromLTRB(
@@ -322,9 +322,9 @@ class FilaCotizaciones extends StatelessWidget {
             ),
           ),
         ],
-      );
+      );*/
 
-      /*if (seleccion != null) { //TODO
+      /*if (seleccion != null) {
         if (seleccion == 'leer') {
           // Lógica para leer
           if(!context.mounted){ return; }
