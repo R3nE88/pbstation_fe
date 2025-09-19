@@ -20,7 +20,6 @@ class Contadores {
     cantidad: json["cantidad"],
   );
 
-
   Map<String, dynamic> toMap() => {
     "id": id,
     "impresora_id": impresoraId,

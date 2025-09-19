@@ -6,14 +6,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class SucursalesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}sucursales/';
   List<Sucursales> sucursales = [];
   Sucursales? sucursalActual;
   static String? sucursalActualID;
-  late Map<String, Sucursales> _sucursalesPorId;
+  Map<String, Sucursales> _sucursalesPorId = {};
   bool isLoading = false;
+  bool loaded = false;
   bool init = false;
   bool sucursalError = false;
 
@@ -27,11 +29,12 @@ class SucursalesServices extends ChangeNotifier{
   //Esto es para mapear y buscar sucursal//
   void cargarSucursales(List<Sucursales> nuevasSucursales) {
     sucursales = nuevasSucursales;
-    _sucursalesPorId= {
+    _sucursalesPorId = {
       for (var c in sucursales) c.id!: c
     };
     notifyListeners();
   }
+  
   String obtenerNombreSucursalPorId(String id) {
     return _sucursalesPorId[id]?.nombre ?? '¡no se encontró la sucursal!';
   } //Aqui termina  para mapear y buscar sucursales//
@@ -90,7 +93,7 @@ class SucursalesServices extends ChangeNotifier{
     }
 
     // Actualiza o agrega el campo "sucursal"
-    config['sucursal'] = sucursal.id; // o sucursal.idSucursal, según tu modelo
+    config['sucursal'] = sucursal.id;
 
     // Guarda el archivo actualizado
     final jsonActualizado = const JsonEncoder.withIndent('  ').convert(config);
@@ -102,13 +105,55 @@ class SucursalesServices extends ChangeNotifier{
 
     sucursalActual = sucursales.firstWhere((element) => element.id == sucursal.id);
     sucursalActualID = sucursalActual!.id;
+    WebSocketService.reconectarConSucursal();
     notifyListeners();
   }
 
+  Future<void> eliminarSucursal(bool miSucursal) async {
+    final directory = await getApplicationSupportDirectory();
+    final file = File('${directory.path}/config.json');
+    if (kDebugMode) {
+      print('Ruta del archivo: ${file.path}');
+    }
+
+    Map<String, dynamic> config = {};
+
+    if (await file.exists()) {
+      final contenido = await file.readAsString();
+      try {
+        config = jsonDecode(contenido);
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error al decodificar JSON, usando mapa vacío: $e');
+        }
+      }
+    }
+
+    // Elimina el campo "sucursal" si existe
+    config.remove('sucursal');
+
+    // Guarda el archivo actualizado
+    final jsonActualizado = const JsonEncoder.withIndent('  ').convert(config);
+    await file.writeAsString(jsonActualizado);
+
+    if (kDebugMode) {
+      print('✅ Sucursal eliminada del archivo config.json');
+    }
+    
+    // Si es mi sucursal, limpiar
+    if (miSucursal){
+      sucursalActual = null;
+      sucursalActualID = null;
+      WebSocketService.reconectarSinSucursal();
+    }
+    
+    notifyListeners();
+  }
 
   Future<List<Sucursales>> loadSucursales() async { 
+    if (loaded) return [];
     isLoading = true;
-
+    
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
@@ -136,6 +181,7 @@ class SucursalesServices extends ChangeNotifier{
     }
     
     isLoading = false;
+    loaded = true;
     cargarSucursales(sucursales);
     notifyListeners();
     return sucursales;
@@ -153,10 +199,10 @@ class SucursalesServices extends ChangeNotifier{
         final body = json.decode(resp.body);
         final suc = Sucursales.fromMap(body as Map<String, dynamic>);
         suc.id = (body as Map)["id"]?.toString();
-        
         sucursales.add(suc);
         isLoading = false;
         cargarSucursales(sucursales);
+
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar a sucursal!');
@@ -202,14 +248,35 @@ class SucursalesServices extends ChangeNotifier{
   }
 
   Future<bool> deleteSucursal(String id) async{
-    //SET ACTIVO EN FALSE
-    return false;
+    Sucursales sucursal = sucursales.firstWhere((element) => element.id == id);
+     sucursal.id = id;
+    try {
+      final url = Uri.parse('$_baseUrl$id');
+      final resp = await http.delete(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: sucursal.toJson(),
+      );
+      if (resp.statusCode == 204){
+        deleteASucursal(id);
+        eliminarSucursal(id == sucursalActualID);
+      }
+    }
+    catch (e){
+      debugPrint('error en deleteSucursal: $e');
+      return false;
+    }
+    return true;
   }
 
+  void deleteASucursal(String id) {
+    sucursales.removeWhere((sucursal) => sucursal.id==id);
+    eliminarSucursal(id == sucursalActualID);
+    notifyListeners();
+  }
 
   Future<String> updateSucursal(Sucursales sucursal, String id) async {
     isLoading = true;
-
     sucursal.id = id;
 
     try {
@@ -224,9 +291,18 @@ class SucursalesServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Sucursales.fromMap(data);
         updated.id = data['id']?.toString();
-
         sucursales = sucursales.map((cli) => cli.id == updated.id ? updated : cli).toList();
+
+        //Si es mi sucursal actualizar mis datos
+        if (sucursalActualID!=null){
+          if (sucursalActualID! == id){
+            sucursalActual = updated;
+            sucursalActualID = id;
+            sucursalActual!.id = sucursalActualID;
+          }
+        }
         notifyListeners();
+
         return 'exito';
       } else {
         debugPrint('Error al actualizar sucursal: ${resp.statusCode} ${resp.body}');
@@ -251,16 +327,11 @@ class SucursalesServices extends ChangeNotifier{
           url, headers: {"tkn": Env.tkn}
         );
 
-        final body = json.decode(resp.body);
-        final suc = Sucursales.fromMap(body as Map<String, dynamic>);
-        suc.id = (body as Map)["id"]?.toString();
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Sucursales.fromMap(data);
+        updated.id = data['id']?.toString();
+        sucursales = sucursales.map((cli) => cli.id == updated.id ? updated : cli).toList();
 
-        sucursales = sucursales.map((sucursal) {
-          if (sucursal.id == suc.id) {
-            return suc;
-          }
-          return sucursal;
-        }).toList();
         notifyListeners();
         isLoading = false;
       } catch (e) {

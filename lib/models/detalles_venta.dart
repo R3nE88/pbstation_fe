@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:decimal/decimal.dart';
 
 class DetallesVenta {
@@ -27,7 +26,7 @@ class DetallesVenta {
   Decimal descuentoAplicado;
   Decimal iva;
   Decimal subtotal;
-  Decimal? cotizacionPrecio; ///Agregar a base de datos
+  Decimal? cotizacionPrecio; 
 
   factory DetallesVenta.fromJson(String str) => DetallesVenta.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -43,7 +42,7 @@ class DetallesVenta {
     descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
     iva: Decimal.parse(json["iva"].toString()),
     subtotal: Decimal.parse(json["subtotal"].toString()),
-    cotizacionPrecio: json["cotizacion_precio"]!=null ? Decimal.tryParse(json["cotizacion_precio"].toString()) : null, //IMPORTATNE SI PUEDE SER NULL USAR tryparse]
+    cotizacionPrecio: json["cotizacion_precio"]!=null ? Decimal.tryParse(json["cotizacion_precio"].toString()) : null,
   );
 
   Map<String, dynamic> toMap() => {

@@ -17,7 +17,7 @@ class CustomDropDown<T> extends StatelessWidget {
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?> onChanged;
   final String hintText;
-  final bool isReadOnly; // Nueva propiedad para habilitar/deshabilitar el widget
+  final bool isReadOnly;
   final bool expanded;
   final bool empty;
 
@@ -36,14 +36,14 @@ class CustomDropDown<T> extends StatelessWidget {
           ),
           child: DropdownButtonHideUnderline(
             child: IgnorePointer(
-              ignoring: isReadOnly, // Ignorar interacción si es solo lectura
+              ignoring: isReadOnly,
               child: DropdownButton<T>(
                 value: value,
                 hint: Text(hintText, style: AppTheme.labelStyle),
                 icon: Icon(Icons.arrow_drop_down, color: AppTheme.letraClara, size: 25),
                 style: AppTheme.subtituloPrimario,
                 dropdownColor: AppTheme.containerColor1,
-                onChanged: isReadOnly ? (w){} : onChanged, // Deshabilitar interacción si es solo lectura
+                onChanged: isReadOnly ? (w){} : onChanged,
                 items: items,
               ),
             ),

@@ -33,9 +33,9 @@ class ImpresorasScreen extends StatelessWidget {
 
               Consumer<ImpresorasServices>(
                 builder: (context, value, child) {  
-                  if (!value.ultimosContadoresLoaded) {
+                  /*if (!value.ultimosContadoresLoaded) {
                     return const SizedBox();
-                  }
+                  }*/
 
                   return Expanded(
                     child: GridView.count(
@@ -169,15 +169,12 @@ class ImpresorasCards extends StatelessWidget {
         )
       ) ?? false;
       if (result == true){ 
+        //if (!context.mounted) return;
         if (!context.mounted) return;
+        final navigator = Navigator.of(context);
         Loading.displaySpinLoading(context);
-        await Provider.of<ImpresorasServices>(context, listen: false).deleteImpresora(impresora.id!).whenComplete(
-          () {
-            if (!context.mounted) return;
-            Navigator.pop(context);
-          },
-        );
-        
+        await Provider.of<ImpresorasServices>(context, listen: false).deleteImpresora(impresora.id!);
+        navigator.pop();
       }
     }
 

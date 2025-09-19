@@ -17,29 +17,33 @@ class CustomNavigationButton extends StatefulWidget {
 }
 
 class _CustomNavigationButtonState extends State<CustomNavigationButton> {
-  Color colorActive = AppTheme.letraClara;
-  Color colorInactive = AppTheme.letra70;
-  Color color = AppTheme.letra70;
+  Color _colorActive = AppTheme.letraClara;
+  Color _colorInactive = AppTheme.letra70;
+  Color _color = AppTheme.letra70;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.inhabilitado){
+      _color = Colors.white24;
+      _colorInactive = Colors.white24;
+      _colorActive = Colors.white38;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.inhabilitado){
-      color = Colors.white24;
-      colorInactive = Colors.white24;
-      colorActive = Colors.white38;
-    }
-
     return Padding(
       padding: EdgeInsets.only(left: 13, top: widget.first ? 0 : 15),
       child: MouseRegion(
         onEnter: widget.selected ? null : (event) {
           setState(() {
-            color = colorActive;
+            _color = _colorActive;
           });
         },
         onExit: (event) {
           setState(() {
-            color = colorInactive;
+            _color = _colorInactive;
           });
         },
         child: Container(
@@ -48,20 +52,20 @@ class _CustomNavigationButtonState extends State<CustomNavigationButton> {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: widget.selected ? colorActive : Colors.transparent,
-                  border: Border.all(color: color),
+                  color: widget.selected ? _colorActive : Colors.transparent,
+                  border: Border.all(color: _color),
                   borderRadius: const BorderRadius.all(Radius.circular(8))
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(!widget.inhabilitado ? widget.icon : Icons.lock, color: widget.selected ? AppTheme.primario1 : color, size: 23),
+                  child: Icon(!widget.inhabilitado ? widget.icon : Icons.lock, color: widget.selected ? AppTheme.primario1 : _color, size: 23),
                 )
               ),
               const SizedBox(width: 10),
               Text(
                 widget.label, 
                 style: TextStyle(
-                  color: widget.selected ? colorActive : color,
+                  color: widget.selected ? _colorActive : _color,
                   fontWeight: FontWeight.w500
                 ),
               )

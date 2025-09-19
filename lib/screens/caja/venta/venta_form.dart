@@ -29,96 +29,149 @@ class VentaForm extends StatefulWidget {
 
 class _VentaFormState extends State<VentaForm> {
   //Variables
-  GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final ScrollController _scrollController = ScrollController();
-  FocusNode checkboxFocus1 = FocusNode();
-  FocusNode checkboxFocus2 = FocusNode();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _checkboxFocus1 = FocusNode();
+  final _checkboxFocus2 = FocusNode();
 
-  late Clientes? clienteSelected;
-  late bool entregaInmediata;
-  late DateTime? fechaEntrega;
-  late List<Productos> productos;
-  late List<DetallesVenta> detallesVenta;
-  late final TextEditingController comentariosController;
+  late Clientes? _clienteSelected;
+  late bool _entregaInmediata;
+  late DateTime? _fechaEntrega;
+  late List<Productos> _productos;
+  late List<DetallesVenta> _detallesVenta;
+  late final TextEditingController _comentariosController;
 
   //Todos estos son para agregar al DetallesVentaelected
-  late Productos? productoSelected;
-  late final TextEditingController precioController;
-  late final TextEditingController cantidadController;
-  late final TextEditingController anchoController;
-  late final TextEditingController altoController;
-  late final TextEditingController comentarioController;
-  late final TextEditingController descuentoController;
-  late Decimal descuentoAplicado;
-  late final TextEditingController ivaController;
-  late final TextEditingController productoTotalController;
+  late Productos? _productoSelected;
+  late final TextEditingController _precioController;
+  late final TextEditingController _cantidadController;
+  late final TextEditingController _anchoController;
+  late final TextEditingController _altoController;
+  late final TextEditingController _comentarioController;
+  late final TextEditingController _descuentoController;
+  late Decimal _descuentoAplicado;
+  late final TextEditingController _ivaController;
+  late final TextEditingController _productoTotalController;
 
-  late final TextEditingController subtotalController;
-  late final TextEditingController totalDescuentoController;
-  late final TextEditingController totalIvaController;
-  late final TextEditingController totalController;
+  late final TextEditingController _subtotalController;
+  late final TextEditingController _totalDescuentoController;
+  late final TextEditingController _totalIvaController;
+  late final TextEditingController _totalController;
 
-  bool anchoError = false;
-  bool altoError = false;
-  bool clienteError = false;
-  bool detallesError = false;
+  bool _anchoError = false;
+  bool _altoError = false;
+  bool _clienteError = false;
+  bool _detallesError = false;
 
-  FocusNode f8FocusNode = FocusNode();
+  final _f8FocusNode = FocusNode();
   late final bool Function(KeyEvent event) _keyHandler;
-  bool canFocus = true;
+  bool _canFocus = true;
 
-  late bool permisoDeAdmin;
+  late bool _permisoDeAdmin;
 
+  @override
+  void initState() {
+    super.initState();
+    _permisoDeAdmin = VentasStates.tabs[widget.index].permisoDeAdmin;
+
+    _clienteSelected = VentasStates.tabs[widget.index].clienteSelected;
+    _entregaInmediata = VentasStates.tabs[widget.index].entregaInmediata;
+    _fechaEntrega = VentasStates.tabs[widget.index].fechaEntrega;
+    _productos = VentasStates.tabs[widget.index].productos;
+    _detallesVenta = VentasStates.tabs[widget.index].detallesVenta;
+    _comentariosController = VentasStates.tabs[widget.index].comentariosController;
+
+    //Todos estos son para agregar al productoSelected
+    _productoSelected = VentasStates.tabs[widget.index].productoSelected;
+    _precioController = VentasStates.tabs[widget.index].precioController;
+    _cantidadController = VentasStates.tabs[widget.index].cantidadController;
+    _anchoController = VentasStates.tabs[widget.index].anchoController;
+    _altoController = VentasStates.tabs[widget.index].altoController;
+    _comentarioController = VentasStates.tabs[widget.index].comentarioController;
+    _descuentoController = VentasStates.tabs[widget.index].descuentoController;
+    _descuentoAplicado = VentasStates.tabs[widget.index].descuentoAplicado;
+    _ivaController = VentasStates.tabs[widget.index].ivaController;
+    _productoTotalController = VentasStates.tabs[widget.index].productoTotalController;
+
+    _subtotalController = VentasStates.tabs[widget.index].subtotalController;
+    _totalDescuentoController = VentasStates.tabs[widget.index].totalDescuentoController;
+    _totalIvaController = VentasStates.tabs[widget.index].totalIvaController;
+    _totalController = VentasStates.tabs[widget.index].totalController;
+
+    _keyHandler = (KeyEvent event) {
+      if (event is KeyDownEvent) {
+        if (event.logicalKey == LogicalKeyboardKey.f8) {
+          if (mounted && _canFocus) {
+            _f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
+            procesarPago();
+          }
+        }
+      }
+      return false; // false para no consumir el evento
+    };
+    HardwareKeyboard.instance.addHandler(_keyHandler);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _checkboxFocus1.dispose();
+    _checkboxFocus2.dispose();
+    _f8FocusNode.dispose();
+    HardwareKeyboard.instance.removeHandler(_keyHandler);
+    super.dispose();
+  }
+  
   //Metodos
   Decimal formatearEntrada(String entrada){
     return Decimal.parse(entrada.replaceAll("MX\$", "").replaceAll(",", "")); 
   }
 
   void calcularSubtotal(){
-    if (productoSelected== null) { return; }
+    if (_productoSelected== null) { return; }
 
-    Decimal precio = productoSelected!.precio;
-    precioController.text = Formatos.pesos.format(precio.toDouble());
-    int descuento = int.tryParse(descuentoController.text.replaceAll('%', '')) ?? 0;
+    Decimal precio = _productoSelected!.precio;
+    _precioController.text = Formatos.pesos.format(precio.toDouble());
+    int descuento = int.tryParse(_descuentoController.text.replaceAll('%', '')) ?? 0;
     int cantidad = 0;
-    if (cantidadController.text.isNotEmpty){
-      cantidad = int.tryParse(cantidadController.text.replaceAll(',', '')) ?? 0;
+    if (_cantidadController.text.isNotEmpty){
+      cantidad = int.tryParse(_cantidadController.text.replaceAll(',', '')) ?? 0;
     } else { cantidad = 0; }
 
     CalculosDinero calcular = CalculosDinero();
     late final Map<String, dynamic> resultado;
-    if (productoSelected?.requiereMedida == true && anchoController.text.isNotEmpty && altoController.text.isNotEmpty) {
-       resultado = calcular.calcularSubtotalConMedida(precio, cantidad, Decimal.parse(anchoController.text), Decimal.parse(altoController.text), descuento);
+    if (_productoSelected?.requiereMedida == true && _anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+       resultado = calcular.calcularSubtotalConMedida(precio, cantidad, Decimal.parse(_anchoController.text), Decimal.parse(_altoController.text), descuento);
     } else {
       resultado = calcular.calcularSubtotal(precio, cantidad, descuento);
     }
-      ivaController.text = Formatos.pesos.format(resultado['iva']);
-      productoTotalController.text = Formatos.pesos.format(resultado['total']);
-      descuentoAplicado = resultado['descuento'];
-      VentasStates.tabs[widget.index].descuentoAplicado = descuentoAplicado;
+      _ivaController.text = Formatos.pesos.format(resultado['iva']);
+      _productoTotalController.text = Formatos.pesos.format(resultado['total']);
+      _descuentoAplicado = resultado['descuento'];
+      VentasStates.tabs[widget.index].descuentoAplicado = _descuentoAplicado;
   }
 
   void calcularTotal(){
     CalculosDinero calcular = CalculosDinero();
-    final Map<String, dynamic> resultado = calcular.calcularTotal(detallesVenta);
+    final Map<String, dynamic> resultado = calcular.calcularTotal(_detallesVenta);
 
-    subtotalController.text = Formatos.pesos.format(resultado['subtotal']);
-    totalDescuentoController.text = Formatos.pesos.format(resultado['descuento']);
-    totalIvaController.text = Formatos.pesos.format(resultado['iva']);
-    totalController.text = Formatos.pesos.format(resultado['total']);
+    _subtotalController.text = Formatos.pesos.format(resultado['subtotal']);
+    _totalDescuentoController.text = Formatos.pesos.format(resultado['descuento']);
+    _totalIvaController.text = Formatos.pesos.format(resultado['iva']);
+    _totalController.text = Formatos.pesos.format(resultado['total']);
   }
 
   void limpiarCamposProducto() {
-    productoSelected = null;
-    VentasStates.tabs[widget.index].productoSelected = productoSelected;
-    precioController.text = Formatos.pesos.format(0);
-    cantidadController.text = '1';
-    anchoController.text = '1';
-    altoController.text = '1';
-    comentarioController.clear();
-    descuentoController.text = '0%';
-    ivaController.text = Formatos.pesos.format(0);
-    productoTotalController.text = Formatos.pesos.format(0);
+    _productoSelected = null;
+    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
+    _precioController.text = Formatos.pesos.format(0);
+    _cantidadController.text = '1';
+    _anchoController.text = '1';
+    _altoController.text = '1';
+    _comentarioController.clear();
+    _descuentoController.text = '0%';
+    _ivaController.text = Formatos.pesos.format(0);
+    _productoTotalController.text = Formatos.pesos.format(0);
   }
 
   Future<void> elegirFecha()async{
@@ -176,10 +229,10 @@ class _VentaFormState extends State<VentaForm> {
 
     if (selectedDate == null || selectedTime == null) {
       setState(() {
-        entregaInmediata = true;
-        fechaEntrega = null;
+        _entregaInmediata = true;
+        _fechaEntrega = null;
         VentasStates.tabs[widget.index].fechaEntrega = null;
-        checkboxFocus1.requestFocus();
+        _checkboxFocus1.requestFocus();
       });
       return; // Si no se seleccionó fecha o hora, no hacer nada
     }
@@ -193,10 +246,10 @@ class _VentaFormState extends State<VentaForm> {
     );                                        
 
     setState(() {
-      checkboxFocus2.requestFocus();
-      entregaInmediata = false;
+      _checkboxFocus2.requestFocus();
+      _entregaInmediata = false;
       VentasStates.tabs[widget.index].entregaInmediata = false;    
-      fechaEntrega = fechaSeleccionada;
+      _fechaEntrega = fechaSeleccionada;
       VentasStates.tabs[widget.index].fechaEntrega = fechaSeleccionada;                                    
     });
 
@@ -213,13 +266,13 @@ class _VentaFormState extends State<VentaForm> {
   void procesarPago() async{
     if(!Configuracion.esCaja) return;
     
-    if (detallesVenta.isEmpty || clienteSelected==null){
-      if (clienteSelected==null){setState((){clienteError = true;});}
-      if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
       return;
     }
 
-    canFocus = false;
+    _canFocus = false;
     await showDialog(
       context: context,
       builder: (_) {
@@ -229,17 +282,17 @@ class _VentaFormState extends State<VentaForm> {
           children: [
             ProcesarPago(
               venta: Ventas(
-                clienteId: clienteSelected!.id!,
-                usuarioId: Login.usuarioLogeado.id!,
+                clienteId: _clienteSelected!.id!,
+                usuarioId: VentasStates.tabs[widget.index].usuarioQueEnvioId != null ? VentasStates.tabs[widget.index].usuarioQueEnvioId! : Login.usuarioLogeado.id!,
                 sucursalId: SucursalesServices.sucursalActualID!,
-                pedidoPendiente: !entregaInmediata, 
-                fechaEntrega: entregaInmediata ? null : fechaEntrega?.toIso8601String(), 
-                detalles: detallesVenta,
-                comentariosVenta: comentarioController.text, 
-                subTotal: formatearEntrada(subtotalController.text),
-                descuento: formatearEntrada(totalDescuentoController.text),
-                iva: formatearEntrada(totalIvaController.text),
-                total: formatearEntrada(totalController.text), 
+                pedidoPendiente: !_entregaInmediata, 
+                fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(), 
+                detalles: _detallesVenta,
+                comentariosVenta: _comentarioController.text, 
+                subTotal: formatearEntrada(_subtotalController.text),
+                descuento: formatearEntrada(_totalDescuentoController.text),
+                iva: formatearEntrada(_totalIvaController.text),
+                total: formatearEntrada(_totalController.text), 
                 //abonadoTotal: Decimal.parse("0"),
                 //cambio: Decimal.parse("0"),
                 liquidado: false, 
@@ -254,7 +307,7 @@ class _VentaFormState extends State<VentaForm> {
       } 
     ).then((value) {
       setState(() {
-        canFocus = true;
+        _canFocus = true;
       });
     },);
   }
@@ -262,27 +315,27 @@ class _VentaFormState extends State<VentaForm> {
   void procesarEnvio()async{
     if(Configuracion.esCaja) return;
 
-    if (detallesVenta.isEmpty || clienteSelected==null){
-      if (clienteSelected==null){setState((){clienteError = true;});}
-      if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
       return;
     }
 
     Loading.displaySpinLoading(context);
 
     VentasEnviadas venta = VentasEnviadas(
-      clienteId: clienteSelected!.id!, 
+      clienteId: _clienteSelected!.id!, 
       usuarioId: Login.usuarioLogeado.id!,
-      usuario: Login.usuarioLogeado.nombre, 
+      usuarioNombre: Login.usuarioLogeado.nombre, 
       sucursalId: SucursalesServices.sucursalActualID!,
-      pedidoPendiente: !entregaInmediata, 
-      fechaEntrega: entregaInmediata ? null : fechaEntrega?.toIso8601String(),
-      detalles: detallesVenta,
-      comentariosVenta: comentarioController.text, 
-      subTotal: formatearEntrada(subtotalController.text), 
-      descuento: formatearEntrada(totalDescuentoController.text), 
-      iva: formatearEntrada(ivaController.text), 
-      total: formatearEntrada(totalController.text),
+      pedidoPendiente: !_entregaInmediata, 
+      fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(),
+      detalles: _detallesVenta,
+      comentariosVenta: _comentarioController.text, 
+      subTotal: formatearEntrada(_subtotalController.text), 
+      descuento: formatearEntrada(_totalDescuentoController.text), 
+      iva: formatearEntrada(_ivaController.text), 
+      total: formatearEntrada(_totalController.text),
       fechaEnvio: DateTime.now().toIso8601String(),
       compu: Configuracion.nombrePC
     );
@@ -300,12 +353,12 @@ class _VentaFormState extends State<VentaForm> {
   }
 
   void procesarCotizacion() async{
-    if (detallesVenta.isEmpty || clienteSelected==null){
-      if (clienteSelected==null){setState((){clienteError = true;});}
-      if (detallesVenta.isEmpty){setState(() {detallesError = true;});}
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
       return;
     }
-    canFocus = false;
+    _canFocus = false;
 
     //Realizar cotizacion///////////////////
     Loading.displaySpinLoading(context);
@@ -314,21 +367,21 @@ class _VentaFormState extends State<VentaForm> {
     final productoSvc = Provider.of<ProductosServices>(context, listen: false);
     final DateTime now = DateTime.now();
     
-    for (var detalle in detallesVenta) { //Agregar precio actual a la cotizacion
+    for (var detalle in _detallesVenta) { //Agregar precio actual a la cotizacion
       detalle.cotizacionPrecio = productoSvc.productos.firstWhere((element) => element.id == detalle.productoId).precio;
     } 
 
     final cotizacion = Cotizaciones(
-      clienteId: clienteSelected!.id!, 
+      clienteId: _clienteSelected!.id!, 
       usuarioId: Login.usuarioLogeado.id!,
       sucursalId: SucursalesServices.sucursalActualID!,
-      detalles: detallesVenta, 
+      detalles: _detallesVenta, 
       fechaCotizacion: now.toIso8601String(), 
-      comentariosVenta: comentariosController.text,
-      subTotal: formatearEntrada(subtotalController.text),
-      descuento: formatearEntrada(totalDescuentoController.text),
-      iva: formatearEntrada(ivaController.text),
-      total: formatearEntrada(totalController.text), 
+      comentariosVenta: _comentariosController.text,
+      subTotal: formatearEntrada(_subtotalController.text),
+      descuento: formatearEntrada(_totalDescuentoController.text),
+      iva: formatearEntrada(_ivaController.text),
+      total: formatearEntrada(_totalController.text), 
       vigente: true
     );
 
@@ -421,61 +474,12 @@ class _VentaFormState extends State<VentaForm> {
       } 
     ).then((value) {
       setState(() {
-        canFocus = true;
+        _canFocus = true;
       });
       //limpiar screen
       widget.rebuild(widget.index);
     });
 
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    permisoDeAdmin = VentasStates.tabs[widget.index].permisoDeAdmin;
-
-    clienteSelected = VentasStates.tabs[widget.index].clienteSelected;
-    entregaInmediata = VentasStates.tabs[widget.index].entregaInmediata;
-    fechaEntrega = VentasStates.tabs[widget.index].fechaEntrega;
-    productos = VentasStates.tabs[widget.index].productos;
-    detallesVenta = VentasStates.tabs[widget.index].detallesVenta;
-    comentariosController = VentasStates.tabs[widget.index].comentariosController;
-
-    //Todos estos son para agregar al productoSelected
-    productoSelected = VentasStates.tabs[widget.index].productoSelected;
-    precioController = VentasStates.tabs[widget.index].precioController;
-    cantidadController = VentasStates.tabs[widget.index].cantidadController;
-    anchoController = VentasStates.tabs[widget.index].anchoController;
-    altoController = VentasStates.tabs[widget.index].altoController;
-    comentarioController = VentasStates.tabs[widget.index].comentarioController;
-    descuentoController = VentasStates.tabs[widget.index].descuentoController;
-    descuentoAplicado = VentasStates.tabs[widget.index].descuentoAplicado;
-    ivaController = VentasStates.tabs[widget.index].ivaController;
-    productoTotalController = VentasStates.tabs[widget.index].productoTotalController;
-
-    subtotalController = VentasStates.tabs[widget.index].subtotalController;
-    totalDescuentoController = VentasStates.tabs[widget.index].totalDescuentoController;
-    totalIvaController = VentasStates.tabs[widget.index].totalIvaController;
-    totalController = VentasStates.tabs[widget.index].totalController;
-
-    _keyHandler = (KeyEvent event) {
-      if (event is KeyDownEvent) {
-        if (event.logicalKey == LogicalKeyboardKey.f8) {
-          if (mounted && canFocus) {
-            f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
-            procesarPago();
-          }
-        }
-      }
-      return false; // false para no consumir el evento
-    };
-    HardwareKeyboard.instance.addHandler(_keyHandler);
-  }
-
-  @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_keyHandler);
-    super.dispose();
   }
 
   @override
@@ -486,7 +490,7 @@ class _VentaFormState extends State<VentaForm> {
     InputDecoration totalDecoration = AppTheme.inputDecorationCustom.copyWith(
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: detallesError ? Colors.red : AppTheme.letraClara)
+        borderSide: BorderSide(color: _detallesError ? Colors.red : AppTheme.letraClara)
       )
     );
 
@@ -499,9 +503,9 @@ class _VentaFormState extends State<VentaForm> {
         child: Padding(
           padding: const EdgeInsets.all(15),
           child: FocusScope(
-            canRequestFocus: canFocus,
+            canRequestFocus: _canFocus,
             child: Form(
-              key: formKey,
+              key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -521,12 +525,12 @@ class _VentaFormState extends State<VentaForm> {
                                 Expanded(
                                   child: BusquedaField<Clientes>(
                                     items: clientesServices.clientes,
-                                    selectedItem: clienteSelected,
+                                    selectedItem: _clienteSelected,
                                     onItemSelected: (Clientes? selected) {
                                       setState(() {
-                                        clienteSelected = selected;
+                                        _clienteSelected = selected;
                                         VentasStates.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
-                                        if (clienteSelected!=null){ clienteError = false; }
+                                        if (_clienteSelected!=null){ _clienteError = false; }
                                       });
                                     },
                                     onItemUnselected: (){
@@ -537,7 +541,7 @@ class _VentaFormState extends State<VentaForm> {
                                     icono: Icons.perm_contact_cal_sharp, 
                                     defaultFirst: false, 
                                     hintText: 'Buscar Cliente', 
-                                    error: clienteError, 
+                                    error: _clienteError, 
                                   ),
                                 ),
                                 Container(
@@ -582,18 +586,18 @@ class _VentaFormState extends State<VentaForm> {
                               child: Row(
                                 children: [
                                   Checkbox(
-                                    focusNode: checkboxFocus1,
-                                    value: entregaInmediata, 
+                                    focusNode: _checkboxFocus1,
+                                    value: _entregaInmediata, 
                                     focusColor: AppTheme.focusColor,
                                     onChanged: (value){
-                                      if (entregaInmediata==true){
+                                      if (_entregaInmediata==true){
                                         return;
                                       }
                                       setState(() {
-                                        fechaEntrega = null;
+                                        _fechaEntrega = null;
                                         VentasStates.tabs[widget.index].fechaEntrega = null;
-                                        checkboxFocus1.requestFocus();
-                                        entregaInmediata = value!;
+                                        _checkboxFocus1.requestFocus();
+                                        _entregaInmediata = value!;
                                         VentasStates.tabs[widget.index].entregaInmediata = value;
                                       });
                                     } 
@@ -626,21 +630,21 @@ class _VentaFormState extends State<VentaForm> {
                                   child: Row(
                                     children: [
                                       Checkbox(
-                                        focusNode: checkboxFocus2,
+                                        focusNode: _checkboxFocus2,
                                         focusColor: AppTheme.focusColor,
-                                        value: !entregaInmediata, 
+                                        value: !_entregaInmediata, 
                                         onChanged: (value)async {
                                           await elegirFecha();
                                         } 
                                       ),
                                       SizedBox(
                                         width: 140,
-                                        child: fechaEntrega==null ? Text(
+                                        child: _fechaEntrega==null ? Text(
                                           'Entregar en otro día  '
                                         ) :
                                         Center(
                                           child: Text(
-                                          '${fechaEntrega!.day}/${fechaEntrega!.month}/${fechaEntrega!.year}',
+                                          '${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
                                           style: AppTheme.tituloClaro,
                                           )
                                         )
@@ -663,7 +667,7 @@ class _VentaFormState extends State<VentaForm> {
                                     Padding(
                                       padding: const EdgeInsets.only(right: 8),
                                       child: Text(
-                                        fechaEntrega == null ? '--:--:--   ' : DateFormat('hh:mm a', 'en_US').format(fechaEntrega!), 
+                                        _fechaEntrega == null ? '--:--:--   ' : DateFormat('hh:mm a', 'en_US').format(_fechaEntrega!), 
                                         style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)
                                       ),
                                     ),
@@ -701,10 +705,10 @@ class _VentaFormState extends State<VentaForm> {
                             const SizedBox(height: 2),
                             BusquedaField<Productos>(
                               items: productosServices.productos,
-                              selectedItem:   productoSelected,
+                              selectedItem:   _productoSelected,
                               onItemSelected: (Productos? selected) {
                                 setState(() {
-                                  productoSelected = selected;
+                                  _productoSelected = selected;
                                   VentasStates.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
                                   calcularSubtotal();
                                 });
@@ -738,7 +742,7 @@ class _VentaFormState extends State<VentaForm> {
                             height: 40,
                             width: 100,
                             child: TextFormField(
-                              controller: precioController,
+                              controller: _precioController,
                               canRequestFocus: false,
                               readOnly: true,
                             ),
@@ -761,15 +765,15 @@ class _VentaFormState extends State<VentaForm> {
                             child: Focus(
                               canRequestFocus: false,
                               onFocusChange: (value) {
-                                if (value==false && cantidadController.text == ''){
-                                  cantidadController.text = '1';
+                                if (value==false && _cantidadController.text == ''){
+                                  _cantidadController.text = '1';
                                   setState(() {
                                     calcularSubtotal();
                                   });
                                 }
                               },
                               child: TextFormField(
-                                controller: cantidadController,
+                                controller: _cantidadController,
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                 maxLength: 6,
                                 inputFormatters: [ NumericFormatter() ],
@@ -779,7 +783,7 @@ class _VentaFormState extends State<VentaForm> {
                                   });
                                 },
                                 onTap: () {
-                                  cantidadController.text = '';
+                                  _cantidadController.text = '';
                                 },
                               ),
                             ),
@@ -789,7 +793,7 @@ class _VentaFormState extends State<VentaForm> {
                       
                       const SizedBox(width: 15),
                       
-                      productoSelected?.requiereMedida==true ? Row(
+                      _productoSelected?.requiereMedida==true ? Row(
                         children: [
                           Column( //Precio por unidad
                             mainAxisAlignment: MainAxisAlignment.start,
@@ -804,21 +808,21 @@ class _VentaFormState extends State<VentaForm> {
                                 child: TextFormField(
                                   buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                   maxLength: 4,
-                                  controller: anchoController,
+                                  controller: _anchoController,
                                   inputFormatters: [ DecimalInputFormatter() ],
                                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: anchoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                  decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
                                   onTap: () {
-                                    anchoController.text = '';
+                                    _anchoController.text = '';
                                   },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
-                                        anchoError = false;
+                                        _anchoError = false;
                                       });
                                     } else {
                                       setState(() {
-                                        anchoError = true;
+                                        _anchoError = true;
                                       });
                                     }
                                     
@@ -829,12 +833,12 @@ class _VentaFormState extends State<VentaForm> {
                                         return;
                                       }
                                       if (double.parse(value.replaceAll(",", "")) > Constantes.anchoMaximo ){
-                                        anchoController.text = Constantes.anchoMaximo.toString();
+                                        _anchoController.text = Constantes.anchoMaximo.toString();
                                       }
                                     }
 
-                                    if (anchoController.text.isNotEmpty && altoController.text.isNotEmpty) {
-                                      if (anchoController.text != '0' && altoController.text != '0') {
+                                    if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                      if (_anchoController.text != '0' && _altoController.text != '0') {
                                         setState(() {
                                           calcularSubtotal();
                                         });
@@ -861,21 +865,21 @@ class _VentaFormState extends State<VentaForm> {
                                 child: TextFormField(
                                   buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                   maxLength: 4,
-                                  controller: altoController,
+                                  controller: _altoController,
                                   inputFormatters: [ DecimalInputFormatter() ],
                                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: altoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                  decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
                                   onTap: () {
-                                    altoController.text = '';
+                                    _altoController.text = '';
                                   },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
-                                        altoError = false;
+                                        _altoError = false;
                                       });
                                     } else {
                                       setState(() {
-                                        altoError = true;
+                                        _altoError = true;
                                       });
                                     }
 
@@ -886,12 +890,12 @@ class _VentaFormState extends State<VentaForm> {
                                         return;
                                       }
                                       if (double.parse(value.replaceAll(",", "")) > Constantes.altoMaximo ){
-                                        altoController.text = Constantes.altoMaximo.toString();
+                                        _altoController.text = Constantes.altoMaximo.toString();
                                       }
                                     }
                                     
-                                    if (anchoController.text.isNotEmpty && altoController.text.isNotEmpty) {
-                                      if (anchoController.text != '0' && altoController.text != '0') {
+                                    if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                      if (_anchoController.text != '0' && _altoController.text != '0') {
                                         setState(() {
                                           calcularSubtotal();
                                         });
@@ -925,7 +929,7 @@ class _VentaFormState extends State<VentaForm> {
                             TextFormField(
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 100,
-                              controller: comentarioController,
+                              controller: _comentarioController,
                               decoration: InputDecoration(
                                 isDense: true,
                                 prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
@@ -952,26 +956,26 @@ class _VentaFormState extends State<VentaForm> {
                                     canRequestFocus: false,
                                     onFocusChange: (hasFocus) {
                                       if (!hasFocus) {
-                                        if (descuentoController.text.isEmpty) {
-                                          descuentoController.text = '0';
+                                        if (_descuentoController.text.isEmpty) {
+                                          _descuentoController.text = '0';
                                           calcularSubtotal();
                                         }
-                                        descuentoController.text = '${descuentoController.text.replaceAll('%', '')}%';
+                                        _descuentoController.text = '${_descuentoController.text.replaceAll('%', '')}%';
                                       } else {
-                                        descuentoController.text = '';
+                                        _descuentoController.text = '';
                                         calcularSubtotal();
                                       }
                                     },
                                     child: TextFormField(
                                       buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                      canRequestFocus: permisoDeAdmin,
-                                      readOnly: !permisoDeAdmin,
+                                      canRequestFocus: _permisoDeAdmin,
+                                      readOnly: !_permisoDeAdmin,
                                       maxLength: 4,
-                                      controller: descuentoController,
+                                      controller: _descuentoController,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
                                       ],
-                                      decoration: permisoDeAdmin 
+                                      decoration: _permisoDeAdmin 
                                       ? InputDecoration(
                                         isDense: true,
                                         prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
@@ -1000,18 +1004,18 @@ class _VentaFormState extends State<VentaForm> {
                                         )
                                       ),
                                       onChanged: (value) {
-                                        if (descuentoController.text.isEmpty) {
-                                          descuentoController.text = '0';
+                                        if (_descuentoController.text.isEmpty) {
+                                          _descuentoController.text = '0';
                                         }
-                                        if (int.parse(descuentoController.text) > 100) {
-                                          descuentoController.text = '100';
+                                        if (int.parse(_descuentoController.text) > 100) {
+                                          _descuentoController.text = '100';
                                         } 
                                         calcularSubtotal();
                                       },
                                     ),
                                   ),
                                 ),
-                                permisoDeAdmin
+                                _permisoDeAdmin
                                 ? const SizedBox()
                                 : Container(
                                   height: 40,
@@ -1030,7 +1034,7 @@ class _VentaFormState extends State<VentaForm> {
                                         bool? permiso = await mostrarDialogoPermiso(context);
                                         if (permiso == true) {
                                           setState(() {
-                                            permisoDeAdmin=true;
+                                            _permisoDeAdmin=true;
                                             VentasStates.tabs[widget.index].permisoDeAdmin=true;
                                           });
                                         }
@@ -1067,7 +1071,7 @@ class _VentaFormState extends State<VentaForm> {
                               child: TextFormField(
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                 maxLength: 3,
-                                controller: ivaController,
+                                controller: _ivaController,
                                 canRequestFocus: false,
                                 readOnly: true,
                               ),
@@ -1089,7 +1093,7 @@ class _VentaFormState extends State<VentaForm> {
                             SizedBox(
                               height: 40,
                               child: TextFormField(
-                                controller: productoTotalController,
+                                controller: _productoTotalController,
                                 canRequestFocus: false,
                                 readOnly: true,
                                 //initialValue: '\$0.00',
@@ -1103,7 +1107,7 @@ class _VentaFormState extends State<VentaForm> {
                       
                       ElevatedButton(
                         onPressed: (){
-                          if (productoSelected == null) {
+                          if (_productoSelected == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Center(child: Padding(
@@ -1116,18 +1120,18 @@ class _VentaFormState extends State<VentaForm> {
                             return;
                           }
             
-                          if (productoSelected!.requiereMedida == true){
+                          if (_productoSelected!.requiereMedida == true){
                             bool isValid = true;
-                            if (anchoController.text.isEmpty || anchoController.text == '0') {
+                            if (_anchoController.text.isEmpty || _anchoController.text == '0') {
                               isValid = false;
                               setState(() {
-                                anchoError = true;
+                                _anchoError = true;
                               });                            
                             }
-                            if (altoController.text.isEmpty || altoController.text == '0') {
+                            if (_altoController.text.isEmpty || _altoController.text == '0') {
                               isValid = false;
                               setState(() {
-                                altoError = true;
+                                _altoError = true;
                               });
                             }
                             if (!isValid) {
@@ -1136,18 +1140,18 @@ class _VentaFormState extends State<VentaForm> {
                           }
             
                           DetallesVenta detalle = DetallesVenta(
-                            productoId: productoSelected!.id!,
-                            cantidad: int.parse(cantidadController.text.replaceAll(',', '')),
-                            ancho: Decimal.parse(anchoController.text), 
-                            alto: Decimal.parse(altoController.text), 
-                            comentarios: comentarioController.text,
-                            descuento: int.tryParse(descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
-                            descuentoAplicado: descuentoAplicado,
-                            iva: Decimal.parse(ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
-                            subtotal: Decimal.parse(productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', ''))
+                            productoId: _productoSelected!.id!,
+                            cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
+                            ancho: Decimal.parse(_anchoController.text), 
+                            alto: Decimal.parse(_altoController.text), 
+                            comentarios: _comentarioController.text,
+                            descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
+                            descuentoAplicado: _descuentoAplicado,
+                            iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', ''))
                           );
               
-                          productos.add(productoSelected!);
+                          _productos.add(_productoSelected!);
             
                           //FocusScope.of(context).previousFocus();
                           /*FocusScope.of(context).previousFocus();
@@ -1160,8 +1164,8 @@ class _VentaFormState extends State<VentaForm> {
                           }*/
             
                           setState(() {
-                            detallesError = false;
-                            detallesVenta.add(detalle);
+                            _detallesError = false;
+                            _detallesVenta.add(detalle);
                             calcularTotal();
                             limpiarCamposProducto();
                           });
@@ -1226,39 +1230,39 @@ class _VentaFormState extends State<VentaForm> {
                               bottomLeft: Radius.circular(12),
                               bottomRight: Radius.circular(12),
                             ),
-                            child: detallesVenta.isNotEmpty ? ListView.builder(
+                            child: _detallesVenta.isNotEmpty ? ListView.builder(
                               controller: _scrollController,
-                              itemCount: detallesVenta.length,
+                              itemCount: _detallesVenta.length,
                               itemBuilder: (context, index) {
                                 return FilaDetalles(
                                   index: index, 
-                                  detalle: detallesVenta[index], 
-                                  producto: productos[index],
+                                  detalle: _detallesVenta[index], 
+                                  producto: _productos[index],
                                   onDelete: () {
-                                    detallesVenta.removeAt(index);
-                                    productos.removeAt(index);
+                                    _detallesVenta.removeAt(index);
+                                    _productos.removeAt(index);
                                     calcularTotal();
                                     setState(() {});
                                   },
                                   onModificate: () {
                                     try {
-                                      productoSelected = productosServices.productos.firstWhere((p) => p.id == detallesVenta[index].productoId);
+                                      _productoSelected = productosServices.productos.firstWhere((p) => p.id == _detallesVenta[index].productoId);
                                     } catch (e) {
                                       return;
                                     }
-                                    VentasStates.tabs[widget.index].productoSelected = productoSelected;
-                                    precioController.text = productoSelected!.precio.toString();
-                                    cantidadController.text = detallesVenta[index].cantidad.toString();
-                                    anchoController.text = detallesVenta[index].ancho.toString();
-                                    altoController.text = detallesVenta[index].alto.toString();
-                                    comentarioController.text = detallesVenta[index].comentarios.toString();
-                                    descuentoController.text = '${detallesVenta[index].descuento.toString()}%';
-                                    ivaController.text = detallesVenta[index].iva.toString();
-                                    productoTotalController.text = detallesVenta[index].subtotal.toString();
+                                    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
+                                    _precioController.text = _productoSelected!.precio.toString();
+                                    _cantidadController.text = _detallesVenta[index].cantidad.toString();
+                                    _anchoController.text = _detallesVenta[index].ancho.toString();
+                                    _altoController.text = _detallesVenta[index].alto.toString();
+                                    _comentarioController.text = _detallesVenta[index].comentarios.toString();
+                                    _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
+                                    _ivaController.text = _detallesVenta[index].iva.toString();
+                                    _productoTotalController.text = _detallesVenta[index].subtotal.toString();
                                     calcularSubtotal();
             
-                                    detallesVenta.removeAt(index);
-                                    productos.removeAt(index);
+                                    _detallesVenta.removeAt(index);
+                                    _productos.removeAt(index);
                                     calcularTotal();
                                     setState(() {});
                                   },
@@ -1281,7 +1285,7 @@ class _VentaFormState extends State<VentaForm> {
                         child: TextFormField(
                           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                           maxLength: 250,
-                          controller: comentariosController,
+                          controller: _comentariosController,
                           maxLines: 5,
                           decoration: InputDecoration(
                             hintText: 'Comentarios de la venta',
@@ -1308,7 +1312,7 @@ class _VentaFormState extends State<VentaForm> {
                               child: Column(
                                 children: [
                                   Configuracion.esCaja ? ElevatedButton(
-                                    focusNode: f8FocusNode,
+                                    focusNode: _f8FocusNode,
                                     onPressed: (){
                                       procesarPago();
                                     },
@@ -1317,7 +1321,7 @@ class _VentaFormState extends State<VentaForm> {
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
                                   ) : ElevatedButton(
-                                    focusNode: f8FocusNode,
+                                    focusNode: _f8FocusNode,
                                     onPressed: (){
                                       procesarEnvio();
                                     },
@@ -1349,7 +1353,7 @@ class _VentaFormState extends State<VentaForm> {
                                       height: 32,
                                       width: 150,
                                       child: TextFormField(
-                                        controller: subtotalController,
+                                        controller: _subtotalController,
                                         canRequestFocus: false,
                                         readOnly: true,
                                         decoration: totalDecoration,
@@ -1366,7 +1370,7 @@ class _VentaFormState extends State<VentaForm> {
                                       height: 32,
                                       width: 150,
                                       child: TextFormField(
-                                        controller: totalDescuentoController,
+                                        controller: _totalDescuentoController,
                                         canRequestFocus: false,
                                         readOnly: true,
                                         decoration: totalDecoration,
@@ -1383,7 +1387,7 @@ class _VentaFormState extends State<VentaForm> {
                                       height: 32,
                                       width: 150,
                                       child: TextFormField(
-                                        controller: totalIvaController,
+                                        controller: _totalIvaController,
                                         canRequestFocus: false,
                                         readOnly: true,
                                         decoration: totalDecoration,
@@ -1400,7 +1404,7 @@ class _VentaFormState extends State<VentaForm> {
                                       height: 36,
                                       width: 150,
                                       child: TextFormField(
-                                        controller: totalController,
+                                        controller: _totalController,
                                         canRequestFocus: false,
                                         readOnly: true,
                                         decoration: totalDecoration,

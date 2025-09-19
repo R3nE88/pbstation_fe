@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
@@ -256,7 +255,6 @@ class FilaCotizaciones extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     void mostrarMenu(BuildContext context, Offset offset) async {
       /*final String? seleccion;
       seleccion = await showMenu(
@@ -363,7 +361,6 @@ class FilaCotizaciones extends StatelessWidget {
     final DateFormat formatter = DateFormat('dd-MM-yyyy');
     final String formatted = formatter.format(dt);
 
-
     return GestureDetector(
       onSecondaryTapDown: (details) {
         mostrarMenu(context, details.globalPosition);
@@ -380,13 +377,8 @@ class FilaCotizaciones extends StatelessWidget {
             Expanded(flex: 3, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(Formatos.pesos.format(cotizacion.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
-
         ),
-
       ),
-
     );
-
   }
-
 }

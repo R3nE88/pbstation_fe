@@ -19,7 +19,6 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
 @override
   void initState() {
     super.initState();
-    
     final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
     sucursalesServices.loadSucursales();
   }
@@ -159,12 +158,13 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                   itemBuilder: (context, index) => FilaSucursales(
                     sucursal: servicios.sucursales[index],
                     index: index,
-                    /*onDelete: () async {
+                    onDelete: () async {
                       Loading.displaySpinLoading(context);
                       await servicios.deleteSucursal(servicios.sucursales[index].id!);
+                      Provider.of<ImpresorasServices>(context, listen:false).clear();
                       if (!context.mounted) return;
                       Navigator.pop(context);
-                    },*/
+                    },
                   ),
                 ),
               ),
@@ -200,10 +200,12 @@ class FilaSucursales extends StatelessWidget {
     super.key,
     required this.sucursal,
     required this.index,
+    required this.onDelete
   });
 
   final Sucursales sucursal;
   final int index;
+  final Function onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -301,8 +303,8 @@ class FilaSucursales extends StatelessWidget {
           if (CajasServices.cajaActual== null) { //Si no hay caja abierta
             if(!context.mounted){ return; }
             Loading.displaySpinLoading(context);
-            final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
-            await sucursalesServices.establecerSucursal(sucursal);
+            await  Provider.of<SucursalesServices>(context, listen: false).establecerSucursal(sucursal);
+            await  Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
             if(!context.mounted){ return; }
             Navigator.pop(context);
           } else {
@@ -345,8 +347,7 @@ class FilaSucursales extends StatelessWidget {
             ),
           );
         } else if (seleccion == 'eliminar') {
-          // Lógica para eliminar
-          //onDelete();
+          onDelete();
         }
       }
     }

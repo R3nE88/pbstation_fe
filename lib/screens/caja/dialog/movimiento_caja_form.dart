@@ -7,27 +7,38 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:provider/provider.dart';
 
-class MovimientoCajaForm extends StatelessWidget {
+class MovimientoCajaForm extends StatefulWidget {
   const MovimientoCajaForm({super.key, required this.isRetiro});
 
   final bool isRetiro;
 
+  @override
+  State<MovimientoCajaForm> createState() => _MovimientoCajaFormState();
+}
+
+class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
+  final formKey = GlobalKey<FormState>();
+  final _montoCtrl = TextEditingController();
+  final _motivoCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _montoCtrl.dispose();
+    _motivoCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    final TextEditingController montoCtrl = TextEditingController();
-    final TextEditingController motivoCtrl = TextEditingController();
-
     void submit() async{
       if (formKey.currentState!.validate()){
         Loading.displaySpinLoading(context);  
         MovimientosCajas movimiento = MovimientosCajas(
           usuarioId: Login.usuarioLogeado.id!, 
-          monto:  double.parse(montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
-          motivo: motivoCtrl.text, 
+          monto:  double.parse(_montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
+          motivo: _motivoCtrl.text, 
           fecha: DateTime.now().toIso8601String(), 
-          tipo: isRetiro ? 'retiro' : 'entrada', 
+          tipo: widget.isRetiro ? 'retiro' : 'entrada', 
         );
         final cajaSvc = Provider.of<CajasServices>(context, listen: false);
         await cajaSvc.agregarMovimiento(movimiento);
@@ -40,7 +51,7 @@ class MovimientoCajaForm extends StatelessWidget {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       title: Text(
-        isRetiro ?
+        widget.isRetiro ?
         "Retirar Efectivo" : "Agregar Efectivo"
       ),
       content: SizedBox(
@@ -53,7 +64,7 @@ class MovimientoCajaForm extends StatelessWidget {
             children: [
               TextFormField(
                 autofocus: true,
-                controller: montoCtrl,
+                controller: _montoCtrl,
                 inputFormatters: [ PesosInputFormatter() ],
                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                 maxLength: 12,
@@ -70,7 +81,7 @@ class MovimientoCajaForm extends StatelessWidget {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
               ), const SizedBox(height: 15),
               TextFormField(
-                controller: motivoCtrl,
+                controller: _motivoCtrl,
                 decoration: InputDecoration(
                   labelText: 'Motivo',
                   labelStyle: AppTheme.labelStyle,

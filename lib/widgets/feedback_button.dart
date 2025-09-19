@@ -12,7 +12,7 @@ class FeedBackButton extends StatefulWidget {
 }
 
 class _FeedBackButtonState extends State<FeedBackButton> {
-  bool enter = false;
+  bool _enter = false;
 
   @override
   Widget build(BuildContext context) {
@@ -22,16 +22,16 @@ class _FeedBackButtonState extends State<FeedBackButton> {
         cursor: SystemMouseCursors.click,
         onEnter: (event) {
           setState(() {
-            enter = true;
+            _enter = true;
           });
         },
         onExit: (event) {
            setState(() {
-            enter = false;
+            _enter = false;
           });
         },
         child: Transform.scale(
-          scale: enter == false ? 1 : widget.valor== null ? 1.08 : widget.valor!,
+          scale: _enter == false ? 1 : widget.valor== null ? 1.08 : widget.valor!,
           child: widget.child
         ),
       )

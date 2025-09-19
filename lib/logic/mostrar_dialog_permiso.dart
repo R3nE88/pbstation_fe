@@ -10,14 +10,12 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
 
   Future<void> verificar() async {
     if (!formKey.currentState!.validate()) return;
-
     Loading.displaySpinLoading(context);
 
     final login = Login();
     bool success = await login.permisoDeAdmin(emailController.text, pswController.text);
 
     if (!context.mounted) return;
-
     Navigator.pop(context); // Cierra loading
 
     if (success) {

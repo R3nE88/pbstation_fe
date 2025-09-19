@@ -10,17 +10,19 @@ class VentasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
   List<Ventas> ventasDeCaja = [];
   List<Ventas> ventasDeCorteActual = [];
-  List<VentasPorProducto> ventasPorProducto = [];
   bool isLoading = false;
+  bool loaded = false;
+  bool ventasCorteActualLoaded = false;
   bool ventasDeCorteLoading = false;
 
-  Future<void> loadVentasDeCaja(String cajaId) async {
+  Future<void> loadVentasDeCaja() async {
+    if (CajasServices.cajaActualId==null) return;
+    
+    if (loaded) return;
     isLoading = true;
 
-    await Future.delayed(Duration(milliseconds: 500));
-
     try {
-      final url = Uri.parse('${_baseUrl}caja/$cajaId');
+      final url = Uri.parse('${_baseUrl}caja/${CajasServices.cajaActualId}');
       final resp = await http.get(
         url, headers: {"tkn": Env.tkn}
       );
@@ -39,13 +41,17 @@ class VentasServices extends ChangeNotifier{
       notifyListeners();
     }
     
+    loaded = true;
     isLoading = false;
     notifyListeners();
   }
 
-  Future<void> loadVentasDeCorteActual(bool loadPorProducto) async {
+  Future<void> loadVentasDeCorteActual() async {
+    if (CajasServices.corteActualId==null) return;
+
+    if (ventasCorteActualLoaded) return;
+    ventasDeCorteLoading = true;
     isLoading = true;
-    if (loadPorProducto) ventasDeCorteLoading = true;
     
     try {
       final url = Uri.parse('${_baseUrl}corte/${CajasServices.corteActualId}');
@@ -65,36 +71,18 @@ class VentasServices extends ChangeNotifier{
       isLoading = false;
       notifyListeners();
     }
-
-    if (loadPorProducto) consolidarVentasPorProducto(ventasDeCorteActual);
     
+    ventasCorteActualLoaded = true;
     isLoading = false;
+    ventasDeCorteLoading = false;
     notifyListeners();
   }
 
-  Future<List<Ventas>?> loadVentasDeCorte(String corteId) async {
-    isLoading = true;
-    //await Future.delayed(const Duration(seconds: 2));
-    late final List<Ventas> vts;
-    try {
-      final url = Uri.parse('${_baseUrl}corte/$corteId');
-      final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
-      );
-      final List<dynamic> listaJson = json.decode(resp.body);
-      vts = listaJson.map<Ventas>((jsonElem) {
-        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
-        return x;
-      }).toList();
-    } catch (e) {
-      isLoading = false;
-      notifyListeners();
-      return [];
-    }    
-    isLoading = false;
-    notifyListeners();
-    return vts;
+  Future<List<Ventas>> loadVentasDeCortes(List<String> ventasIds) async {
+    final ventasMap = {
+      for (var venta in ventasDeCaja) venta.id: venta,
+    };
+    return ventasIds.map((id) => ventasMap[id]).whereType<Ventas>().toList();
   }
 
   List<VentasPorProducto> consolidarVentasPorProducto(List<Ventas> ventas) {
@@ -130,38 +118,10 @@ class VentasServices extends ChangeNotifier{
     }
 
     // Convertimos los valores del mapa a una lista y la devolvemos
-    ventasPorProducto = acumulador.values.toList();
+    final ventasPorProducto = acumulador.values.toList();
     ventasDeCorteLoading = false;
     return ventasPorProducto;
   }
-
-  /*void loadVentasDeCortePorProducto() {
-    /*isLoading = true;
-
-    await Future.delayed(Duration(seconds: 1));
-
-    try {
-      final url = Uri.parse('${_baseUrl}corte/$corteId/por-producto');
-      final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
-      );
-
-      final List<dynamic> listaJson = json.decode(resp.body);
-
-      ventasPorProducto = listaJson.map<VentasPorProducto>((jsonElem) {
-        final x = VentasPorProducto.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
-        return x;
-      }).toList();
-
-    } catch (e) {
-      isLoading = false;
-      notifyListeners();
-    }
-    
-    isLoading = false;
-    notifyListeners();*/
-  }*/
 
   Future<String> createVenta(Ventas venta) async {
     isLoading = true;

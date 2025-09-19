@@ -18,7 +18,6 @@ class Configuracion extends ChangeNotifier{
   bool init = false;
   bool loaded = false;
   bool configLoaded = false;
-
   
   Future<void> loadConfiguracion() async{
     init = true;
@@ -65,9 +64,5 @@ class Configuracion extends ChangeNotifier{
         print(e);
       }
     }
-  }
-
-  Future<void> actualizarDolar() async{
-    
   }
 }

@@ -20,6 +20,7 @@ class UsuariosServices extends ChangeNotifier{
     };
     notifyListeners();
   }
+  
   String obtenerNombreUsuarioPorId(String id) {
     return _usuarioPorId[id]?.nombre ?? '¡no se encontró el usuario!';
   } //Aqui termina  para mapear y buscar usuarios//
@@ -76,5 +77,4 @@ class UsuariosServices extends ChangeNotifier{
     cargarUsuarios(usuarios);
     return usuarios;
   }
-
 }

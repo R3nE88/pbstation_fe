@@ -19,9 +19,8 @@ class VentaScreen extends StatefulWidget {
 }
 
 class _VentaScreenState extends State<VentaScreen> {
-  int indexResta = 0;
-  final int maximoPestanias = 4;
-  bool cajaNotFound=false;
+  int _indexResta = 0;
+  final int _maximoPestanias = 4;
 
   @override
   void initState() {
@@ -29,7 +28,6 @@ class _VentaScreenState extends State<VentaScreen> {
     Provider.of<ClientesServices>(context, listen: false).loadClientes();
     Provider.of<ProductosServices>(context, listen: false).loadProductos();
     Provider.of<VentasEnviadasServices>(context, listen: false).ventasRecibidas();
-    if (CajasServices.cajaActualId == 'buscando'){ cajaNotFound=true; }
   }
 
   @override
@@ -38,7 +36,7 @@ class _VentaScreenState extends State<VentaScreen> {
     Provider.of<CajasServices>(context); //para escuchar listening
 
     void agregarPestania() {
-      if (VentasStates.pestanias >= maximoPestanias) { return; }
+      if (VentasStates.pestanias >= _maximoPestanias) { return; }
       setState(() {
         VentasStates.pestanias++;
         VentasStates.indexSelected = VentasStates.pestanias-2;
@@ -54,19 +52,19 @@ class _VentaScreenState extends State<VentaScreen> {
 
     void rebuildAndClean(index) async{
       VentasStates.clearTab(index);
-      indexResta = 10;
+      _indexResta = 10;
       setState(() {});
       await Future.delayed(const Duration(milliseconds: 235));
       setState(() {});
-      indexResta = 0;
+      _indexResta = 0;
     }
 
     void rebuild() async{
-      indexResta = 10;
+      _indexResta = 10;
       setState(() {});
       await Future.delayed(const Duration(milliseconds: 235));
       setState(() {});
-      indexResta = 0;
+      _indexResta = 0;
     }
 
     
@@ -84,53 +82,90 @@ class _VentaScreenState extends State<VentaScreen> {
   }
 
 
-  Widget body(void Function() agregarPestania, void Function(int index) selectedPestania, void Function(dynamic index) rebuildAndClean, BuildContext context, void Function() rebuild, SucursalesServices suc) {
-    return Padding(
-    padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-  
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-
-            SizedBox( //Pestañas
-              height: 36,
-              width: 500,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: VentasStates.pestanias,
-                itemBuilder: (context, index) {
-                  if (index == VentasStates.pestanias - 1) {
-                    return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
-                  }
-                  return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuildAndClean, index: index);
-                },
+  Widget body(
+    void Function() agregarPestania, 
+    void Function(int index) selectedPestania, 
+    void Function(dynamic index) rebuildAndClean, 
+    BuildContext context, 
+    void Function() rebuild, 
+    SucursalesServices suc){
+      
+      return Padding(
+      padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+    
+          Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+              
+                  SizedBox( //Pestañas
+                    height: 36,
+                    width: 500,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: VentasStates.pestanias,
+                      itemBuilder: (context, index) {
+                        if (index == VentasStates.pestanias - 1) {
+                          return Pestania(last: true, selected: false, agregarPestania: agregarPestania, index: index);
+                        }
+                        return Pestania(last: false, selected: index == VentasStates.indexSelected, selectedPestania: selectedPestania, rebuild: rebuildAndClean, index: index);
+                      },
+                    ),
+                  ),
+                      
+                  Configuracion.esCaja 
+                  ? ventaRecibida(context, rebuild) 
+                  : const SizedBox()
+                ],
               ),
-            ),
 
-            Configuracion.esCaja 
-            ? ventaRecibida(context, rebuild) 
-            : const SizedBox()
-
-          ],
-        ),
-        suc.sucursalActual!=null ? KeyedSubtree(
-          key: ValueKey<int>(VentasStates.indexSelected),
-          child: VentaForm(
-            key: ValueKey('venta-${VentasStates.indexSelected - indexResta}'),
-            index: VentasStates.indexSelected, 
-            rebuild: rebuildAndClean,
+              //Nombre del usuario que envio la venta
+              VentasStates.tabs[VentasStates.indexSelected].usuarioQueEnvioNombre != null ?
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.containerColor1,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
+                    )
+                  ),
+                  height: 26,
+                  child: Padding(
+                    padding: const EdgeInsets.only( left: 12, right: 12, top: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('venta de ', style: AppTheme.labelStyle),
+                        Text(VentasStates.tabs[VentasStates.indexSelected].usuarioQueEnvioNombre!, style: TextStyle(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ) : const SizedBox(),
+            ],
           ),
-        ) 
-        : 
-        const AdvertenciaSucursal(),
-      ],
-    ),
-  );
+          suc.sucursalActual!=null ? KeyedSubtree(
+            key: ValueKey<int>(VentasStates.indexSelected),
+            child: VentaForm(
+              key: ValueKey('venta-${VentasStates.indexSelected - _indexResta}'),
+              index: VentasStates.indexSelected, 
+              rebuild: rebuildAndClean,
+            ),
+          ) 
+          : 
+          const AdvertenciaSucursal(),
+        ],
+      ),
+    );
   }
 
   VentasRecibidasButton ventaRecibida(BuildContext context, void Function() rebuild) {
@@ -181,9 +216,9 @@ class _VentaScreenState extends State<VentaScreen> {
                                     children: [
                                       Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
                                       Text(
-                                        ventasRecibida.ventas[index].usuario.length > 30 
-                                            ? '${ventasRecibida.ventas[index].usuario.substring(0, 30)}...' 
-                                            : ventasRecibida.ventas[index].usuario,
+                                        ventasRecibida.ventas[index].usuarioNombre.length > 30 
+                                            ? '${ventasRecibida.ventas[index].usuarioNombre.substring(0, 30)}...' 
+                                            : ventasRecibida.ventas[index].usuarioNombre,
                                       ),
                                     ],
                                   ),
@@ -270,10 +305,13 @@ class _VentaScreenState extends State<VentaScreen> {
           final clientesS = Provider.of<ClientesServices>(context, listen: false);
           final productosS = Provider.of<ProductosServices>(context, listen: false);
 
+          VentasStates.tabs[index].usuarioQueEnvioId = venta.usuarioId;
+          VentasStates.tabs[index].usuarioQueEnvioNombre = venta.usuarioNombre;
+
           //Pasar los Datos a VentaForm
           VentasStates.tabs[index].clienteSelected = clientesS.clientes.firstWhere((element) => element.id == venta.clienteId);
           VentasStates.tabs[index].entregaInmediata = !venta.pedidoPendiente;
-          VentasStates.tabs[index].fechaEntrega = DateTime.tryParse(venta.fechaEntrega??'');
+          VentasStates.tabs[index].fechaEntrega = venta.fechaEntrega!=null ? DateTime.parse(venta.fechaEntrega!) : null;
           for (var detalle in venta.detalles) {
             VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
           }
@@ -294,6 +332,7 @@ class _VentaScreenState extends State<VentaScreen> {
     );
   }
 }
+
 class AdvertenciaSucursal extends StatelessWidget {
   const AdvertenciaSucursal({
     super.key,
@@ -383,27 +422,12 @@ class Pestania extends StatelessWidget {
             ],
           ),
         ),
-        /*PopupMenuItem(
-          value: 'cerrar',
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.clear, color: AppTheme.colorError, size: 17),
-              Text('  Quitar', style: TextStyle(color: AppTheme.colorError)),
-            ],
-          ),
-        ),*/
       ],
     );
 
     if (seleccion != null) {
       if (seleccion == 'limpiar') {
-        // Lógica para limpiar
-        
         rebuild!(index);
-      } else if (seleccion == 'cerrar') {
-        // Lógica para eliminar
-
       }
     }
   }

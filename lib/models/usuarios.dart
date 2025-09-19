@@ -15,7 +15,6 @@ class Usuarios {
   bool activo;
 
   factory Usuarios.fromJson(String str) => Usuarios.fromMap(json.decode(str));
-
   String toJson() => json.encode(toMap());
 
   factory Usuarios.fromMap(Map<String, dynamic> json) => Usuarios(

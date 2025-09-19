@@ -11,13 +11,12 @@ class VentasPorProducto {
     required this.total
   });
 
-  String? id; //id automatico de la base de datos
+  String? id;
   int cantidad;
   String productoId;
   Decimal subTotal;
   Decimal iva;
   Decimal total;  
-
 
   factory VentasPorProducto.fromJson(String str) => VentasPorProducto.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());

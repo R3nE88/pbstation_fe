@@ -13,13 +13,14 @@ class ImpresorasServices extends ChangeNotifier{
   Map<String, Contadores?> ultimosContadores = {};
   bool ultimosContadoresLoaded = false;
   bool isLoading = false;
+  bool loaded = false;
 
-
-  Future<List<Impresoras>> loadImpresoras(bool loadContadores) async {   
+  Future<List<Impresoras>> loadImpresoras(bool loadContadores, {bool overLoad = false}) async {   
+    if (loaded && !overLoad) return [];
     isLoading = true;
 
     try {
-      final url = Uri.parse('$_baseUrl${SucursalesServices.sucursalActualID}');
+      final url = Uri.parse('${_baseUrl}sucursal/${SucursalesServices.sucursalActualID}');
       final resp = await http.get(
         url, headers: {"tkn": Env.tkn}
       );
@@ -43,8 +44,35 @@ class ImpresorasServices extends ChangeNotifier{
     }
     
     isLoading = false;
+    loaded = true;
     notifyListeners();
     return impresoras;
+  }
+
+  void loadAImpresora(id) async {
+    if (!isLoading) {
+      isLoading = true;
+      try {
+        final url = Uri.parse('$_baseUrl$id');
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
+
+        final body = json.decode(resp.body);
+        final obj = Impresoras.fromMap(body as Map<String, dynamic>);
+        obj.id = (body as Map)["id"]?.toString();
+        
+        impresoras.add(obj);
+        //await loadUltimoContador(obj.id!);
+
+        notifyListeners();
+        isLoading = false;
+      } catch (e) {
+        if (kDebugMode) {
+          print('hubo un problema en loadAImpreosra!: $e');
+        }
+      }
+    }
   }
 
   Future<void> loadUltimosContadores() async {
@@ -53,7 +81,6 @@ class ImpresorasServices extends ChangeNotifier{
       await loadUltimoContador(impresora.id!);
     }
     ultimosContadoresLoaded = true;
-    //notifyListeners();
   }
 
   Future<void> loadUltimoContador(String impresoraId) async {
@@ -62,6 +89,7 @@ class ImpresorasServices extends ChangeNotifier{
       final resp = await http.get(url, headers: {"tkn": Env.tkn});
       if (resp.statusCode == 200) {
         ultimosContadores[impresoraId] = Contadores.fromJson(resp.body);
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('$e');
@@ -109,7 +137,7 @@ class ImpresorasServices extends ChangeNotifier{
     isLoading = true;
 
     try {
-      final url = Uri.parse(_baseUrlContador);
+      final url = Uri.parse('$_baseUrlContador${SucursalesServices.sucursalActualID}');
 
       final resp = await http.post(
         url,
@@ -145,14 +173,14 @@ class ImpresorasServices extends ChangeNotifier{
   Future<bool> deleteImpresora(String id) async{
     bool exito = false;
     try {
-      final url = Uri.parse('$_baseUrl$id');
+      final url = Uri.parse('$_baseUrl$id/${SucursalesServices.sucursalActualID}');
       final resp = await http.delete(
         url, headers: {"tkn": Env.tkn}
         );
       if (resp.statusCode == 204){
         await deleteContadores(id);
         impresoras.removeWhere((impresora) => impresora.id==id);
-        ultimosContadores.removeWhere((key, value) => key==id);
+        
         exito = true;
       }
     } catch (e) {
@@ -162,15 +190,20 @@ class ImpresorasServices extends ChangeNotifier{
     return exito;
   }
 
-  Future<bool> deleteContadores(String id) async{
+  void deleteAImpresora(String id) {
+    impresoras.removeWhere((producto) => producto.id==id);
+    notifyListeners();
+  }
+
+  Future<bool> deleteContadores(String impresoraId) async{
     bool exito = false;
     try {
-      final url = Uri.parse('$_baseUrlContador$id');
+      final url = Uri.parse('$_baseUrlContador$impresoraId/${SucursalesServices.sucursalActualID}');
       final resp = await http.delete(
         url, headers: {"tkn": Env.tkn}
         );
       if (resp.statusCode == 204){
-
+        deleteAContador(impresoraId);
         exito = true;
       }
     } catch (e) {
@@ -178,6 +211,10 @@ class ImpresorasServices extends ChangeNotifier{
     } 
     notifyListeners();
     return exito;
+  }
+
+  void deleteAContador(String impresoraId){
+    ultimosContadores.removeWhere((key, value) => key==impresoraId);
   }
 
   Future<String> updateImpresora(Impresoras impresora, String id) async {
@@ -214,6 +251,30 @@ class ImpresorasServices extends ChangeNotifier{
     }
   }
 
+  void updateAImpresora(String id)async{
+    if (!isLoading) {
+      isLoading = true;
+      try {
+        final url = Uri.parse('$_baseUrl$id');
+        final resp = await http.get(
+          url, headers: {"tkn": Env.tkn}
+        );
+
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Impresoras.fromMap(data);
+        updated.id = data['id']?.toString();
+        impresoras = impresoras.map((prod) => prod.id == updated.id ? updated : prod).toList();
+        
+        notifyListeners();
+        isLoading = false;
+      } catch (e) {
+        if (kDebugMode) {
+          print('hubo un problema al cargar el producto!');
+        }
+      }
+    }
+  }
+
   Future<void> sumarContadores(List<Map<String, dynamic>> contadores) async{
     for (var contador in contadores) {
       await sumarContadorActual(contador['impresora'], contador['cantidad']);
@@ -222,7 +283,7 @@ class ImpresorasServices extends ChangeNotifier{
 
   Future<void> sumarContadorActual(String impresoraId, int contador) async{
     try {
-      final url = Uri.parse('${_baseUrlContador}actual/$impresoraId/$contador');
+      final url = Uri.parse('${_baseUrlContador}actual/$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
@@ -236,7 +297,7 @@ class ImpresorasServices extends ChangeNotifier{
 
   Future<void> actualzarContador(String impresoraId, int contador) async{
     try {
-      final url = Uri.parse('$_baseUrlContador$impresoraId/$contador');
+      final url = Uri.parse('$_baseUrlContador$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
@@ -246,5 +307,13 @@ class ImpresorasServices extends ChangeNotifier{
       debugPrint('Exception en actualzarContadorActual: $e');
     } finally {
     }
+  }
+
+  void clear(){
+    impresoras.clear();
+    ultimosContadores.clear();
+    ultimosContadoresLoaded = false;
+    isLoading = false;
+    loaded = false;
   }
 }

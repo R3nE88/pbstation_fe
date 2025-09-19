@@ -21,46 +21,94 @@ class ProductoFormDialog extends StatefulWidget {
 }
 
 class _ProductoFormDialogState extends State<ProductoFormDialog> {
-  bool onlyRead = false;
-  String titulo = 'Agregar nuevo Producto';
-  late final List<DropdownMenuItem<String>> dropdownItemsTipo;
-  late final List<DropdownMenuItem<String>> dropdownItemsCat;
-  final formKey = GlobalKey<FormState>();
-  final Map<String, TextEditingController> controllers = {
+  bool _onlyRead = false;
+  String _titulo = 'Agregar nuevo Producto';
+  late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
+  late final List<DropdownMenuItem<String>> _dropdownItemsCat;
+  final _formKey = GlobalKey<FormState>();
+  final Map<String, TextEditingController> _controllers = {
     'clave': TextEditingController(),
     'descripcion': TextEditingController(),
     'precio': TextEditingController(),
     'precio_iva': TextEditingController(),
-    'valorImpresion': TextEditingController(),
+    'valor_impresion': TextEditingController(),
   };
-  bool requiereMedida = false;
-  bool inventariable = false;
-  bool imprimible = false;
-  bool tipoEmpty = false;
-  bool categoriaEmpty = false;
-  String? tipoSeleccionado;
-  String? categoriaSeleccionada;
+  bool _requiereMedida = false;
+  bool _inventariable = false;
+  bool _imprimible = false;
+  bool _tipoEmpty = false;
+  bool _categoriaEmpty = false;
+  String? _tipoSeleccionado;
+  String? _categoriaSeleccionada;
+  Decimal _precioSinIva = Decimal.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.prodEdit != null) {
+      _onlyRead = widget.onlyRead ?? false;
+      _titulo = _onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
+
+      final producto = widget.prodEdit!;
+      _controllers['clave']!.text = producto.codigo.toString();
+      _controllers['descripcion']!.text = producto.descripcion;
+      _controllers['precio']!.text = Formatos.pesos.format(CalculosDinero().calcularConIva(producto.precio).toDouble());
+      _precioSinIva = producto.precio;
+      _controllers['precio_iva']!.text =  Formatos.pesos.format(producto.precio.toDouble());
+      _imprimible = widget.prodEdit!.imprimible;
+      if (_imprimible) _controllers['valor_impresion']!.text = producto.valorImpresion.toString();
+      _requiereMedida = widget.prodEdit!.requiereMedida;
+      _inventariable = widget.prodEdit!.inventariable;
+      _imprimible = widget.prodEdit!.imprimible;
+      _tipoSeleccionado = widget.prodEdit!.tipo;
+      _categoriaSeleccionada = widget.prodEdit!.categoria;
+    }
+
+    _dropdownItemsTipo = Constantes.tipo.entries.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.key,
+        child: Text(entry.value),
+      );
+    }).toList();
+
+    _dropdownItemsCat = Constantes.categoria.entries.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.key,
+        child: Text(entry.value),
+      );
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _controllers['clave']!.dispose();
+    _controllers['descripcion']!.dispose();
+    _controllers['precio']!.dispose();
+    _controllers['precio_iva']!.dispose();
+    _controllers['valor_impresion']!.dispose();
+    super.dispose();
+  }
 
   //METODOS
   Future<void> guardarProducto() async {
-    if (tipoSeleccionado==null) tipoEmpty = true;
-    if (categoriaSeleccionada==null) categoriaEmpty = true;
-    if (categoriaEmpty || tipoEmpty) setState(() {});
-    if (formKey.currentState!.validate() && !tipoEmpty && !categoriaEmpty) {
+    if (_tipoSeleccionado==null) _tipoEmpty = true;
+    if (_categoriaSeleccionada==null) _categoriaEmpty = true;
+    if (_categoriaEmpty || _tipoEmpty) setState(() {});
+    if (_formKey.currentState!.validate() && !_tipoEmpty && !_categoriaEmpty) {
 
       final productosServices = Provider.of<ProductosServices>(context, listen: false);
       Loading.displaySpinLoading(context);      
 
       Productos producto = Productos(
-        codigo: int.parse(controllers['clave']!.text),
-        descripcion: controllers['descripcion']!.text,
-        tipo: tipoSeleccionado!,
-        categoria: categoriaSeleccionada!,
-        precio: Decimal.parse(controllers['precio']!.text.replaceAll('MX\$', '').replaceAll(',', '')),
-        requiereMedida: requiereMedida,
-        inventariable: inventariable,
-        imprimible: imprimible,
-        valorImpresion: int.tryParse(controllers['valorImpresion']!.text) ?? 0,
+        codigo: int.parse(_controllers['clave']!.text),
+        descripcion: _controllers['descripcion']!.text,
+        tipo: _tipoSeleccionado!,
+        categoria: _categoriaSeleccionada!,
+        precio: _precioSinIva,
+        requiereMedida: _requiereMedida,
+        inventariable: _inventariable,
+        imprimible: _imprimible,
+        valorImpresion: int.tryParse(_controllers['valor_impresion']!.text) ?? 0,
       );
       
       late String respuesta;
@@ -118,57 +166,24 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       ),
     );
   }
-  
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.prodEdit != null) {
-      onlyRead = widget.onlyRead ?? false;
-      titulo = onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
-
-      final producto = widget.prodEdit!;
-      controllers['clave']!.text = producto.codigo.toString();
-      controllers['descripcion']!.text = producto.descripcion;
-      controllers['precio']!.text = Formatos.pesos.format(producto.precio.toDouble());
-      controllers['precio_iva']!.text = Formatos.pesos.format(CalculosDinero().calcularConIva(producto.precio).toDouble());
-      imprimible = widget.prodEdit!.imprimible;
-      if (imprimible) controllers['valorImpresion']!.text = producto.valorImpresion.toString();
-      requiereMedida = widget.prodEdit!.requiereMedida;
-      inventariable = widget.prodEdit!.inventariable;
-      imprimible = widget.prodEdit!.imprimible;
-      tipoSeleccionado = widget.prodEdit!.tipo;
-      categoriaSeleccionada = widget.prodEdit!.categoria;
-    }
-
-    dropdownItemsTipo = Constantes.tipo.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text(entry.value),
-      );
-    }).toList();
-
-    dropdownItemsCat = Constantes.categoria.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text(entry.value),
-      );
-    }).toList();
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return FocusScope(
-      canRequestFocus: !onlyRead,
+      canRequestFocus: !_onlyRead,
       child: AlertDialog(
         backgroundColor: AppTheme.containerColor2,
-        title: Text(titulo),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(_titulo),
+            Text('IVA: ${Configuracion.iva}%', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.7)),
+          ],
+        ),
         content: SizedBox(
           width: 600,
           child: Form(
-            key: formKey,
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -178,10 +193,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     SizedBox(
                       width: 120,
                       child: buildTextFormField(
-                        controller: controllers['clave']!,
+                        controller: _controllers['clave']!,
                         labelText: 'Codigo',
-                        autoFocus: !onlyRead,
-                        readOnly: onlyRead,
+                        autoFocus: !_onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         validator: (value) {
@@ -194,9 +209,9 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['descripcion']!,
+                        controller: _controllers['descripcion']!,
                         labelText: 'Descripcion',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 50,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -213,25 +228,25 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     Row(
                       children: [
                         CustomDropDown<String>(
-                          isReadOnly: onlyRead,
-                          value: tipoSeleccionado,
+                          isReadOnly: _onlyRead,
+                          value: _tipoSeleccionado,
                           hintText: 'Tipo',
-                          empty: tipoEmpty,
-                          items: dropdownItemsTipo,
+                          empty: _tipoEmpty,
+                          items: _dropdownItemsTipo,
                           onChanged: (val) => setState(() {
-                            tipoEmpty = false;
-                            tipoSeleccionado = val!;
+                            _tipoEmpty = false;
+                            _tipoSeleccionado = val!;
                           }),
                         ), const SizedBox(width: 10),
                         CustomDropDown<String>(
-                          isReadOnly: onlyRead,
-                          value: categoriaSeleccionada,
+                          isReadOnly: _onlyRead,
+                          value: _categoriaSeleccionada,
                           hintText: 'Categoría',
-                          empty: categoriaEmpty,
-                          items: dropdownItemsCat,
+                          empty: _categoriaEmpty,
+                          items: _dropdownItemsCat,
                           onChanged: (val) => setState(() {
-                            categoriaEmpty = false;
-                            categoriaSeleccionada = val!;
+                            _categoriaEmpty = false;
+                            _categoriaSeleccionada = val!;
                           })
                         ),
                       ],
@@ -239,25 +254,18 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     Expanded(
                       flex: 3,
                       child: IgnorePointer(
-                        ignoring: onlyRead,
+                        ignoring: _onlyRead,
                         child: Focus(
                           canRequestFocus: false,
-                          onFocusChange: (hasFocus) {
-                            /*if (!hasFocus) {
-                              if (controllers['precio']!.text.isEmpty) {
-                                controllers['precio']!.text = Formatos.pesos.format(0);
-                              }
-                            }*/
-                          },
                           child: TextFormField(
-                            readOnly: onlyRead,
-                            canRequestFocus: !onlyRead,
-                            controller: controllers['precio']!,
+                            readOnly: _onlyRead,
+                            canRequestFocus: !_onlyRead,
+                            controller: _controllers['precio']!,
                             inputFormatters: [ PesosInputFormatter() ],
                             buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                             maxLength: 12,
                             decoration: InputDecoration(
-                              labelText: 'Precio',
+                              labelText: 'Precio con IVA',
                               labelStyle: AppTheme.labelStyle,
                             ),
                             validator: (value) {
@@ -271,11 +279,11 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                               if (value.isNotEmpty){
                                 String valueForm = value.replaceAll("MX\$", "").replaceAll(",", "");
                                 if (valueForm!=".") {
-                                  double result = CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
-                                  controllers['precio_iva']!.text = Formatos.pesos.format(result);
+                                  _precioSinIva = CalculosDinero().calcularSinIva(Decimal.parse(valueForm));//CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
+                                  _controllers['precio_iva']!.text = Formatos.pesos.format(_precioSinIva.toDouble());
                                 }
                               } else {
-                                controllers['precio_iva']!.text = '';
+                                _controllers['precio_iva']!.text = '';
                               }
                             },
                           ),
@@ -290,10 +298,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         child: TextFormField(
                           readOnly: true,
                           canRequestFocus: false,
-                          controller: controllers['precio_iva']!,
+                          controller: _controllers['precio_iva']!,
                           inputFormatters: [ PesosInputFormatter() ],
                           decoration: InputDecoration(
-                            labelText: 'Precio con Iva',
+                            labelText: 'Precio sin IVA',
                             labelStyle: AppTheme.labelStyle,
                           ),
                         ),
@@ -304,16 +312,16 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                 const SizedBox(height: 10),
                 const Separador(texto: 'Caracteristicas'), 
                 IgnorePointer(
-                  ignoring: onlyRead,
+                  ignoring: _onlyRead,
                   child: Row(
                     children: [
                       Checkbox(
                         focusColor: AppTheme.focusColor,
-                        value: requiereMedida,
+                        value: _requiereMedida,
                         onChanged: (value) {
-                          if (onlyRead==false){
+                          if (_onlyRead==false){
                             setState(() {
-                              requiereMedida = value ?? false;
+                              _requiereMedida = value ?? false;
                             });
                           }
                         }
@@ -323,7 +331,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                   ),
                 ),
                 IgnorePointer(
-                  ignoring: onlyRead,
+                  ignoring: _onlyRead,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -331,11 +339,11 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         children: [
                           Checkbox(
                             focusColor: AppTheme.focusColor,
-                            value: inventariable,
+                            value: _inventariable,
                             onChanged: (value) {
-                              if (onlyRead==false){
+                              if (_onlyRead==false){
                                 setState(() {
-                                  inventariable = value ?? false;
+                                  _inventariable = value ?? false;
                                 });
                               }
                             }
@@ -347,11 +355,11 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         children: [
                           Checkbox(
                             focusColor: AppTheme.focusColor,
-                            value: imprimible,
+                            value: _imprimible,
                             onChanged: (value) {
-                              if (onlyRead==false){
+                              if (_onlyRead==false){
                                 setState(() {
-                                  imprimible = value ?? false;
+                                  _imprimible = value ?? false;
                                 });
                               }
                             }
@@ -360,10 +368,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                           SizedBox(
                             width: 110,
                             child: TextFormField(
-                              controller: controllers['valorImpresion']!,
+                              controller: _controllers['valor_impresion']!,
                               keyboardType: TextInputType.number,
                               inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
-                              readOnly: imprimible==false?true : onlyRead, //si esta marcado el checkbox habilitar
+                              readOnly: _imprimible==false?true : _onlyRead, //si esta marcado el checkbox habilitar
                               maxLines: 1,
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 3,
@@ -382,7 +390,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                                 ),
                               ),
                               validator: (value) {
-                                if (imprimible && (value == null || value.isEmpty)) {
+                                if (_imprimible && (value == null || value.isEmpty)) {
                                   return 'valor de impresion';
                                 }
                                 return null;
@@ -400,7 +408,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
           ),
         ),
         actions: [
-          !onlyRead ? ElevatedButton(
+          !_onlyRead ? ElevatedButton(
             onPressed: () async => guardarProducto(),
             style: AppTheme.botonGuardar,
             child: const Text('Guardar Producto')

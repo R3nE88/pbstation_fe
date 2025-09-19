@@ -334,7 +334,6 @@ class FilaProducto extends StatelessWidget {
             Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            //Expanded(child: Text(Formatos.pesos.format(producto.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),

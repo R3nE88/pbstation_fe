@@ -26,7 +26,6 @@ class Impresoras {
     sucursalId: json["sucursal_id"].toString()
   );
 
-
   Map<String, dynamic> toMap() => {
     "id": id,
     "numero": numero,

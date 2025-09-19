@@ -10,18 +10,19 @@ class CajasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
-  bool init = false;
-  bool loaded = false;
+  bool forLogininit = false;
+  bool forLoginloaded = false;
   bool isLoading = false;
 
   static Cortes? corteActual;
   static String? corteActualId;
   List<Cortes> cortesDeCaja = [];
   bool cortesDeCajaIsLoading = false;
+  bool cortesDeCajaIsLoaded = false;
   List<MovimientosCajas> movimientos = [];
 
   Future<void> initCaja() async{
-    init = true;
+    forLogininit = true;
     //obtener Caja
     final prefs = await SharedPreferences.getInstance();
     cajaActualId = prefs.getString('caja_id');
@@ -29,7 +30,7 @@ class CajasServices extends ChangeNotifier{
       loadCaja(cajaActualId!);
     }
     
-    loaded = true;
+    forLoginloaded = true;
     notifyListeners();
   }
 
@@ -74,8 +75,12 @@ class CajasServices extends ChangeNotifier{
     isLoading = false;
   }
 
-  Future<void> loadCortesDeCaja(String cajaid) async{
+  Future<void> loadCortesDeCaja() async{
+    if (cajaActualId==null) return;
+
+    if (cortesDeCajaIsLoaded) return;
     cortesDeCajaIsLoading = true;
+    await Future.delayed(Duration(milliseconds: 250));
     try {
       final url = Uri.parse('$_baseUrl$cajaActualId/cortes/all');
       final resp = await http.get(
@@ -92,6 +97,7 @@ class CajasServices extends ChangeNotifier{
     } catch (e) {
       cortesDeCajaIsLoading = false;
     }
+    cortesDeCajaIsLoaded = true;
     cortesDeCajaIsLoading = false;
     notifyListeners();
   }
@@ -174,6 +180,7 @@ class CajasServices extends ChangeNotifier{
         corteActual = nuevo;
         corteActualId = corteActual!.id;
         cajaActual!.cortesIds.add(corteActualId!);
+        cortesDeCaja.add(nuevo);
         /*final prefs = await SharedPreferences.getInstance();
         prefs.setString('caja_id', cajaActualId!);*/
 
@@ -226,10 +233,6 @@ class CajasServices extends ChangeNotifier{
     }
   }
 
-  /*Future<List<MovimientoCajas>> loadMovimientos() async{
-    return [];
-  }*/
-
   Future<void> cerrarCaja(Cajas caja) async{
     isLoading = true;
     try {
@@ -278,7 +281,6 @@ class CajasServices extends ChangeNotifier{
       notifyListeners();
     }
   }
-
 
   void eliminarCajaActualSoloDePrueba() async{
     cajaActual = null;

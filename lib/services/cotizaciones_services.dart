@@ -14,9 +14,8 @@ class CotizacionesServices extends ChangeNotifier{
   List<Cotizaciones> vencidas = [];
   List<Cotizaciones> filteredVencidas = [];
   bool todasLasSucursales = false;
-
   bool isLoading = false;
-
+  bool loaded = false;
 
   //Para SearchField
   void filtrarCotizaciones(String query, context) {
@@ -46,6 +45,7 @@ class CotizacionesServices extends ChangeNotifier{
     }
     notifyListeners();
   }
+
   void filtrarVencidas(String query, context) {
     final List<Clientes> clientes = Provider.of<ClientesServices>(context, listen: false).clientes;
     final sucursalId = SucursalesServices.sucursalActualID;
@@ -91,6 +91,7 @@ class CotizacionesServices extends ChangeNotifier{
   }
 
   Future<List<Cotizaciones>> loadCotizaciones() async {    
+    if (loaded) return [];
     isLoading = true;
 
     try {
@@ -120,6 +121,7 @@ class CotizacionesServices extends ChangeNotifier{
       filteredVencidas = obtenerFilter(true);
 
       isLoading = false;
+      loaded = true;
       notifyListeners();
       return [...cotizaciones, ...vencidas];
 
@@ -199,5 +201,4 @@ class CotizacionesServices extends ChangeNotifier{
       notifyListeners();
     }
   }
-
 }

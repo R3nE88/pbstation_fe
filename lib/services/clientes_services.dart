@@ -13,7 +13,6 @@ class ClientesServices extends ChangeNotifier{
   bool isLoading = false;
   bool loaded = false;
 
-
   //Esto es para mapear y buscar clientes//
   void cargarClientes(List<Clientes> nuevosClientes) {
     clientes = nuevosClientes;
@@ -26,7 +25,6 @@ class ClientesServices extends ChangeNotifier{
   String obtenerNombreClientePorId(String id) {
     return _clientesPorId[id]?.nombre ?? '¡no se encontró el cliente!';
   } //Aqui termina  para mapear y buscar clientes//
-
 
   //Para SearchField
   void filtrarClientes(String query) {
@@ -41,7 +39,6 @@ class ClientesServices extends ChangeNotifier{
     }
     notifyListeners();
   }//Aqui termina para SearchField
-
 
   //Metodos HTTPs
   Future<List<Clientes>> loadClientes() async { 
@@ -176,8 +173,8 @@ class ClientesServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
-
         clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+
         filteredClientes = clientes;
         notifyListeners();
         return 'exito';
@@ -204,16 +201,11 @@ class ClientesServices extends ChangeNotifier{
           url, headers: {"tkn": Env.tkn}
         );
 
-        final body = json.decode(resp.body);
-        final cli = Clientes.fromMap(body as Map<String, dynamic>);
-        cli.id = (body as Map)["id"]?.toString();
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Clientes.fromMap(data);
+        updated.id = data['id']?.toString();
+        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
 
-        clientes = clientes.map((cliente) {
-          if (cliente.id == cli.id) {
-            return cli;
-          }
-          return cliente;
-        }).toList();
         filteredClientes = clientes;
         notifyListeners();
         isLoading = false;

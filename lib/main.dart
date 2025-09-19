@@ -12,7 +12,6 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  
   await initializeDateFormatting('es_ES');
@@ -80,13 +79,9 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final websocketService = Provider.of<WebSocketService>(
-        context,
-        listen: false,
-      );
-      websocketService.conectar();
-    });
+    /*WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    });*/
   }
 
   @override

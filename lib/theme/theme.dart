@@ -134,7 +134,7 @@ class AppTheme{
   );
 
   static const TextStyle labelStyle = TextStyle(
-    color: Colors.white54
+    color: Colors.white70
   );
 
   static final botonPrincipalStyle = ButtonStyle(

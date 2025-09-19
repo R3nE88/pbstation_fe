@@ -9,17 +9,18 @@ import 'package:provider/provider.dart';
 class SucursalesFormDialog extends StatefulWidget {
   const SucursalesFormDialog({super.key, this.sucEdit, this.onlyRead});
 
-  @override
-  State<SucursalesFormDialog> createState() => _SucursalesFormDialogState();
-
   final Sucursales? sucEdit; 
   final bool? onlyRead;
+
+  @override
+  State<SucursalesFormDialog> createState() => _SucursalesFormDialogState();
 }
 
 class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
-  bool onlyRead = false;
-  final formKey = GlobalKey<FormState>();
-  final Map<String, TextEditingController> controllers = {
+  bool _onlyRead = false;
+  final _formKey = GlobalKey<FormState>();
+  String _titulo = 'Agregar nueva Sucursal';
+  final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'telefono': TextEditingController(),
     'correo': TextEditingController(),
@@ -27,24 +28,53 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     'ciudad': TextEditingController(),
     'estado': TextEditingController(),
     'pais': TextEditingController(),
-
   };
-  String titulo = 'Agregar nueva Sucursal';
+  
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sucEdit != null) {
+      _onlyRead = widget.onlyRead ?? false;
+      _titulo = _onlyRead ? 'Datos de la Sucursal' : 'Editar Sucursal';
+
+      final sucursal = widget.sucEdit!;
+      _controllers['nombre']!.text = sucursal.nombre;
+      _controllers['telefono']!.text = sucursal.telefono;
+      _controllers['correo']!.text = sucursal.correo;
+      _controllers['direccion']!.text = sucursal.direccion;
+      final partes = sucursal.localidad.split(',');
+      _controllers['ciudad']!.text = partes[0].trim();
+      _controllers['estado']!.text = partes[1].trim();
+      _controllers['pais']!.text = partes[2].trim();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controllers['nombre']!.dispose();
+    _controllers['telefono']!.dispose();
+    _controllers['correo']!.dispose();
+    _controllers['direccion']!.dispose();
+    _controllers['ciudad']!.dispose();
+    _controllers['estado']!.dispose();
+    _controllers['pais']!.dispose();
+    super.dispose();
+  }
 
   //METODOS
   Future<void> guardarSucursal() async {
-    if (!formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
     final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
     Loading.displaySpinLoading(context);
 
-    String localidad = "${controllers['ciudad']!.text}, ${controllers['estado']!.text}, ${controllers['pais']!.text}";
+    String localidad = "${_controllers['ciudad']!.text}, ${_controllers['estado']!.text}, ${_controllers['pais']!.text}";
     
     final sucursal = Sucursales(
-      nombre: controllers['nombre']!.text,
-      correo: controllers['correo']!.text,
-      telefono: controllers['telefono']!.text,
-      direccion: controllers['direccion']!.text,
+      nombre: _controllers['nombre']!.text,
+      correo: _controllers['correo']!.text,
+      telefono: _controllers['telefono']!.text,
+      direccion: _controllers['direccion']!.text,
       localidad: localidad,
       activo: true
     );
@@ -103,7 +133,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
       ignoring: readOnly,
       child: TextFormField(
         autofocus: autoFocus,
-        canRequestFocus: !onlyRead,
+        canRequestFocus: !_onlyRead,
         controller: controller,
         buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
         readOnly: readOnly,
@@ -120,35 +150,16 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.sucEdit != null) {
-      onlyRead = widget.onlyRead ?? false;
-      titulo = onlyRead ? 'Datos de la Sucursal' : 'Editar Sucursal';
-
-      final sucursal = widget.sucEdit!;
-      controllers['nombre']!.text = sucursal.nombre;
-      controllers['correo']!.text = sucursal.correo;
-      controllers['telefono']!.text = sucursal.telefono;
-      controllers['direccion']!.text = sucursal.direccion;
-      final partes = sucursal.localidad.split(',');
-      controllers['ciudad']!.text = partes[0].trim();
-      controllers['estado']!.text = partes[1].trim();
-      controllers['pais']!.text = partes[2].trim();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return FocusScope(
-      canRequestFocus: !onlyRead,
+      canRequestFocus: !_onlyRead,
       child: AlertDialog(
         backgroundColor: AppTheme.containerColor2,
-        title: Text(titulo),
+        title: Text(_titulo),
         content: SizedBox(
           width: 550,
           child: Form(
-            key: formKey,
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -158,10 +169,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       flex: 4,
                       child: buildTextFormField(
-                        controller: controllers['nombre']!, 
+                        controller: _controllers['nombre']!, 
                         labelText: 'Nombre de la Sucursal',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'el nombre'),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -170,9 +181,9 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       flex: 2,
                       child: buildTextFormField(
-                        controller: controllers['telefono']!,
+                        controller: _controllers['telefono']!,
                         labelText: 'Telefono 10 digitos',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         validator: (value) => validateRequiredField(value, 'el telefono'),
@@ -185,10 +196,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                   children: [
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['correo']!, 
+                        controller: _controllers['correo']!, 
                         labelText: 'Correo Electronico',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'el correo'),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -196,10 +207,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['direccion']!, 
+                        controller: _controllers['direccion']!, 
                         labelText: 'Direccion de la Sucursal',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField(value, 'la direccion'),
                         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -211,10 +222,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                   children: [
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['ciudad']!, 
+                        controller: _controllers['ciudad']!, 
                         labelText: 'Ciudad',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField2(value, 'el correo'),
                         autovalidateMode: AutovalidateMode.onUnfocus,
@@ -222,10 +233,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['estado']!, 
+                        controller: _controllers['estado']!, 
                         labelText: 'Estado',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField2(value, 'la direccion'),
                         autovalidateMode: AutovalidateMode.onUnfocus,
@@ -233,10 +244,10 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['pais']!, 
+                        controller: _controllers['pais']!, 
                         labelText: 'Pais',
-                        autoFocus: !onlyRead && widget.sucEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.sucEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 30,
                         validator: (value) => validateRequiredField2(value, 'la direccion'),
                         autovalidateMode: AutovalidateMode.onUnfocus,
@@ -249,7 +260,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
           )
         ),
         actions: [
-          !onlyRead ? ElevatedButton(
+          !_onlyRead ? ElevatedButton(
             onPressed: () async{
               await guardarSucursal();
             }, 

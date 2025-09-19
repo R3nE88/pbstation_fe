@@ -2,28 +2,54 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 
-class SeleccionadorDeHora extends StatelessWidget {
+class SeleccionadorDeHora extends StatefulWidget {
   const SeleccionadorDeHora({
     super.key,
   });
 
   @override
+  State<SeleccionadorDeHora> createState() => _SeleccionadorDeHoraState();
+}
+
+class _SeleccionadorDeHoraState extends State<SeleccionadorDeHora> {
+  final focusNode1 = FocusNode();
+  final focusNode2 = FocusNode();
+  final focusNode3 = FocusNode();
+  final focusNode4 = FocusNode();
+  final focusNode5 = FocusNode();
+  final focusNode6 = FocusNode();
+  final focusNode7 = FocusNode();
+  final focusNode8 = FocusNode();
+  final focusNode9 = FocusNode();
+  final focusNode10 = FocusNode();
+  final focusNode11 = FocusNode();
+  final focusNode12 = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode12.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    focusNode1.dispose();
+    focusNode2.dispose();
+    focusNode3.dispose();
+    focusNode4.dispose();
+    focusNode5.dispose();
+    focusNode6.dispose();
+    focusNode7.dispose();
+    focusNode8.dispose();
+    focusNode9.dispose();
+    focusNode10.dispose();
+    focusNode11.dispose();
+    focusNode12.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final FocusNode focusNode1 = FocusNode();
-    final FocusNode focusNode2 = FocusNode();
-    final FocusNode focusNode3 = FocusNode();
-    final FocusNode focusNode4 = FocusNode();
-    final FocusNode focusNode5 = FocusNode();
-    final FocusNode focusNode6 = FocusNode();
-    final FocusNode focusNode7 = FocusNode();
-    final FocusNode focusNode8 = FocusNode();
-    final FocusNode focusNode9 = FocusNode();
-    final FocusNode focusNode10 = FocusNode();
-    final FocusNode focusNode11 = FocusNode();
-    final FocusNode focusNode12 = FocusNode();
-
-    focusNode12.requestFocus(); // Solicita el foco al primer nodo
-
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       content: Row(

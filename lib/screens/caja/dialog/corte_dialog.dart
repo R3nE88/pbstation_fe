@@ -31,8 +31,7 @@ class _CorteDialogState extends State<CorteDialog> {
   // Impresoras controllers (uno por impresora)
   final Map<String, TextEditingController> impresoraControllers = {};
 
-  // Controlador del fondo siguiente
-  //final TextEditingController proximoFondoCtrl = TextEditingController();
+  final List<VentasPorProducto> _ventasPorProducto = [];
 
   // Denominaciones: ahora con tipo ('billete' | 'moneda') y valor
   final List<Map<String, dynamic>> denominacionesMxn = [
@@ -108,7 +107,7 @@ class _CorteDialogState extends State<CorteDialog> {
     fechaCorteFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaCorte);
   
     final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-    ventasSvc.loadVentasDeCorteActual(true);
+    _ventasPorProducto.addAll(ventasSvc.consolidarVentasPorProducto(ventasSvc.ventasDeCorteActual));
 
     // inicializa controladores de denominación (debe coincidir con denominaciones.length)
     for (var _ in denominacionesMxn) {
@@ -126,14 +125,14 @@ class _CorteDialogState extends State<CorteDialog> {
     //segundosRestantes = segundosTotales;
 
     // Cargar impresoras (si tu servicio devuelve async)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
-
-      setState(() => loadingImpresoras = true);
-      impresoraSvc.loadImpresoras(true).whenComplete(() {
-        _ensureImpresoraControllers(impresoraSvc);
-        setState(() => loadingImpresoras = false);
-      });
+    /*WidgetsBinding.instance.addPostFrameCallback((_) {
+      
+    });*/
+    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    setState(() => loadingImpresoras = true);
+    impresoraSvc.loadImpresoras(true).whenComplete(() {
+      _ensureImpresoraControllers(impresoraSvc);
+      setState(() => loadingImpresoras = false);
     });
   }
 
@@ -218,7 +217,7 @@ class _CorteDialogState extends State<CorteDialog> {
       usuarioId: CajasServices.corteActual!.usuarioId, 
       usuarioIdCerro: CajasServices.corteActual!.usuarioIdCerro,
       sucursalId: CajasServices.corteActual!.sucursalId, 
-      fechaApertura: CajasServices.cajaActual!.fechaApertura,
+      fechaApertura: CajasServices.corteActual!.fechaApertura,
       fechaCorte: CajasServices.corteActual!.fechaCorte,
       contadoresFinales: convertir(impresoraControllers),
       fondoInicial: CajasServices.corteActual!.fondoInicial, 
@@ -256,20 +255,22 @@ class _CorteDialogState extends State<CorteDialog> {
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
 
-    //Cerrar Corte
-    Cajas caja = Cajas(
-      id: CajasServices.cajaActualId,
-      folio: CajasServices.cajaActual!.folio,
-      usuarioId: CajasServices.cajaActual!.usuarioId, 
-      sucursalId: CajasServices.cajaActual!.sucursalId, 
-      fechaApertura: CajasServices.cajaActual!.fechaApertura, 
-      fechaCierre: corte.fechaCorte,
-      ventaTotal: corte.ventaTotal,
-      estado: 'cerrada', 
-      cortesIds: CajasServices.cajaActual!.cortesIds, 
-      tipoCambio: CajasServices.cajaActual!.tipoCambio
-    );
-    await cajasSvc.cerrarCaja(caja);
+    //Cerrar Caja
+    if (widget.cierre){
+      Cajas caja = Cajas(
+        id: CajasServices.cajaActualId,
+        folio: CajasServices.cajaActual!.folio,
+        usuarioId: CajasServices.cajaActual!.usuarioId, 
+        sucursalId: CajasServices.cajaActual!.sucursalId, 
+        fechaApertura: CajasServices.cajaActual!.fechaApertura, 
+        fechaCierre: corte.fechaCorte,
+        ventaTotal: corte.ventaTotal,
+        estado: 'cerrada', 
+        cortesIds: CajasServices.cajaActual!.cortesIds, 
+        tipoCambio: CajasServices.cajaActual!.tipoCambio
+      );
+      await cajasSvc.cerrarCaja(caja);
+    }
   
     if (!mounted) return;
     Navigator.pop(context);
@@ -647,21 +648,21 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  Widget buildReporteFinal(int page){
+  Widget buildReporteFinal(int page, List<VentasPorProducto> ventas){
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
-    final ventaSvc = Provider.of<VentasServices>(context);
+    //final ventaSvc = Provider.of<VentasServices>(context);
     final TextEditingController ctrl = TextEditingController();
 
     if (CajasServices.corteActual==null) return SizedBox();
 
-    if (ventaSvc.ventasDeCorteLoading) {
+    /*if (ventaSvc.ventasDeCorteLoading) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           CircularProgressIndicator(color: Colors.white),
         ],
       );
-    }
+    }*/
 
     return SizedBox(
       width: 1000,
@@ -717,7 +718,7 @@ class _CorteDialogState extends State<CorteDialog> {
           page==1 ?Expanded(
             child: Row(
               children: [
-                ReporteFinalVenta(),
+                ReporteFinalVenta(ventasPorProducto: ventas,),
                 const SizedBox(width: 10),
                 ReporteFinalDescuentosYVendedores(
                   callback: (){
@@ -873,9 +874,13 @@ class _CorteDialogState extends State<CorteDialog> {
     }
 
     //Si no tengo impresoras y estoy en la primera ventana, ignorarla
-    if (impresoraSvc.impresoras.isEmpty && stage == StepStage.contadores){
-      stage = StepStage.esperandoRetiro;
+    if (!loadingImpresoras){
+      if (impresoraSvc.impresoras.isEmpty && stage == StepStage.contadores){
+        stage = StepStage.esperandoRetiro;
+        performingRetiro = true;
+      }
     }
+
 
     Widget content;
     String title = 'Corte de Caja';
@@ -903,7 +908,7 @@ class _CorteDialogState extends State<CorteDialog> {
         break;
       case StepStage.terminado:
         title = '';
-        content = buildReporteFinal(reporteFinalPage);
+        content = buildReporteFinal(reporteFinalPage, _ventasPorProducto);
         break;
     }
 
@@ -940,89 +945,88 @@ con las flechas.''',
 
 class ReporteFinalVenta extends StatelessWidget {
   const ReporteFinalVenta({
-    super.key,
+    super.key, 
+    required this.ventasPorProducto,
   });
+
+  final List<VentasPorProducto> ventasPorProducto;
 
   @override
   Widget build(BuildContext context) {
     final productos = Provider.of<ProductosServices>(context, listen: false);
+
+    Decimal subtotal = Decimal.parse('0');
+    for (var venta in ventasPorProducto) {
+      subtotal += venta.subTotal;
+    }
+    Decimal iva = Decimal.parse('0');
+    for (var venta in ventasPorProducto) {
+      iva += venta.iva;
+    }
+    Decimal total = Decimal.parse('0');
+    for (var venta in ventasPorProducto) {
+      total += venta.total;
+    }
     
     return Expanded(
       flex: 10,
-      child: Consumer<VentasServices>(
-        builder: (context, value, child) {
-          Decimal subtotal = Decimal.parse('0');
-          for (var venta in value.ventasPorProducto) {
-            subtotal += venta.subTotal;
-          }
-          Decimal iva = Decimal.parse('0');
-          for (var venta in value.ventasPorProducto) {
-            iva += venta.iva;
-          }
-          Decimal total = Decimal.parse('0');
-          for (var venta in value.ventasPorProducto) {
-            total += venta.total;
-          }
-          
-          return Column(
-            children: [
-              Separador(
-                texto: 'Ventas por Articulos',
+      child: Column(
+        children: [
+          Separador(
+            texto: 'Ventas por Articulos',
+          ),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 3 , child: Center(child: Text('Cant'))),
+                  Expanded(flex: 10, child: Center(child: Text('Articulos'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Iva'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Total'))),
+                ],
               ),
-              Container(
-                color: AppTheme.tablaColorHeader,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical : 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(flex: 3 , child: Center(child: Text('Cant'))),
-                      Expanded(flex: 10, child: Center(child: Text('Articulos'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Iva'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Total'))),
-                    ],
-                  ),
-                ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: ventasPorProducto.length,
+                itemBuilder: (context, index) {
+                  Productos? producto = productos.obtenerProductoPorId(ventasPorProducto[index].productoId);
+                  
+                  return FilaProductos(
+                    cantidad: ventasPorProducto[index].cantidad, 
+                    articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
+                    iva: Decimal.parse(ventasPorProducto[index].iva.toString()), 
+                    subtotal: Decimal.parse(ventasPorProducto[index].subTotal.toString()), 
+                    total: Decimal.parse(ventasPorProducto[index].total.toString()), 
+                    color: index+1
+                  );
+                },
               ),
-              Expanded(
-                child: Container(
-                  color: AppTheme.tablaColor1,
-                  child: ListView.builder(
-                    itemCount: value.ventasPorProducto.length,
-                    itemBuilder: (context, index) {
-                      Productos? producto = productos.obtenerProductoPorId(value.ventasPorProducto[index].productoId);
-                      
-                      return FilaProductos(
-                        cantidad: value.ventasPorProducto[index].cantidad, 
-                        articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
-                        iva: Decimal.parse(value.ventasPorProducto[index].iva.toString()), 
-                        subtotal: Decimal.parse(value.ventasPorProducto[index].subTotal.toString()), 
-                        total: Decimal.parse(value.ventasPorProducto[index].total.toString()), 
-                        color: index+1
-                      );
-                    },
-                  ),
-                ),
+            ),
+          ),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 13, child: Center(child: Text('Total:'))),
+                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
+                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
+                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
+                ],
               ),
-              Container(
-                color: AppTheme.tablaColorHeader,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical : 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(flex: 13, child: Center(child: Text('Total:'))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       )
     );
   }

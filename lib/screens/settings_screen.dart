@@ -17,15 +17,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  List<String> devices = [];
-  String? selectedDevice;
-  //String? selectedDeviceName;
+  List<String> _devices = [];
+  String? _selectedDevice;
 
   @override
   void initState() {
     super.initState();
     _loadUsbDevices();
-    selectedDevice = Configuracion.impresora;
+    _selectedDevice = Configuracion.impresora;
   }
 
   Future<void> _loadUsbDevices() async {
@@ -36,7 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         usbstring.add(device.name);
       }
       setState(() {
-        devices = usbstring;
+        _devices = usbstring;
       });
     } catch (e) {
       if (kDebugMode) {
@@ -87,8 +86,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: DropdownButton<String>(
                   hint: Text('Selecciona un dispositivo USB'),
-                  value: selectedDevice,
-                  items: devices.map((String device) {
+                  value: _selectedDevice,
+                  items: _devices.map((String device) {
                     return DropdownMenuItem<String>(
                       value: device,
                       child: Text(device, style: AppTheme.subtituloConstraste),
@@ -97,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (String? newValue) {
                     if (newValue != null) {
                       setState(() {
-                        selectedDevice = newValue;
+                        _selectedDevice = newValue;
                       });
                       _saveSelectedDevice(newValue);
                     }

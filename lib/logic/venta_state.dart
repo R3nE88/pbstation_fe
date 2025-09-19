@@ -1,9 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
-import 'package:pbstation_frontend/models/clientes.dart';
-import 'package:pbstation_frontend/models/detalles_venta.dart';
-import 'package:pbstation_frontend/models/productos.dart';
+import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
 
 class VentasStates {
@@ -29,6 +27,8 @@ class VentasStates {
 
 class VentaTab {
   Clientes? clienteSelected;
+  String? usuarioQueEnvioId;
+  String? usuarioQueEnvioNombre;
   bool entregaInmediata;
   DateTime? fechaEntrega;
   Productos? productoSelected;
@@ -52,6 +52,8 @@ class VentaTab {
 
   VentaTab()
       : clienteSelected = null,
+        usuarioQueEnvioId = null,
+        usuarioQueEnvioNombre = null,
         entregaInmediata = true,
         fechaEntrega = null,
         productos = [],
@@ -91,6 +93,8 @@ class VentaTab {
 
   void clear(){
     clienteSelected = null;
+    usuarioQueEnvioId = null;
+    usuarioQueEnvioNombre = null;
     productoSelected = null;
     entregaInmediata = true;
     fechaEntrega = null;
@@ -113,6 +117,3 @@ class VentaTab {
     permisoDeAdmin = Login.admin;
   }
 }
-
-//Login.usuarioLogeado.rol == "admin";
-//bool? permiso = await mostrarDialogoPermiso(context);

@@ -39,13 +39,9 @@ class WebSocketService with ChangeNotifier {
 
   WebSocketService._internal();
 
-  // Asegúrate que Constantes.baseUrl incluya host:port y que la ruta quede correcta.
-  // Ejemplo: Constantes.baseUrl = '://mi-servidor:8000/' -> _socketUrl = 'ws://mi-servidor:8000/ws'
-  final String _socketUrl = 'ws:${Constantes.baseUrl}ws';
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   Timer? _reconnectTimer;
-
   bool isConnected = false;
   final List<String> mensajesRecibidos = [];
 
@@ -62,6 +58,24 @@ class WebSocketService with ChangeNotifier {
   // Map de comandos a handlers
   final Map<String, void Function(String)> _handlers = {};
 
+  /// Construye la URL del WebSocket con o sin sucursal
+  String _buildSocketUrl() {
+    String baseUrl = 'ws:${Constantes.baseUrl}ws';
+    
+    // Obtener sucursal actual
+    String? sucursalId = SucursalesServices.sucursalActualID;
+    
+    if (sucursalId != null && sucursalId.isNotEmpty) {
+      // Agregar sucursal como query parameter
+      baseUrl = '$baseUrl?sucursal_id=$sucursalId';
+      if (kDebugMode) print('WebSocket conectando con sucursal: $sucursalId');
+    } else {
+      if (kDebugMode) print('WebSocket conectando sin sucursal específica');
+    }
+    
+    return baseUrl;
+  }
+
   /// Inicializa el mapa de comandos
   void _setupHandlers() {
     _handlers
@@ -74,13 +88,27 @@ class WebSocketService with ChangeNotifier {
         'post-cliente':      (id) => _clienteSvc.loadACliente(id),
         'put-cliente':       (id) => _clienteSvc.updateACliente(id),
         'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
+        // 'post-usuario':      (id) => _usuarioSvc.loadAUsuario(id),
+        // 'put-usuario':       (id) => _usuarioSvc.updateAUsuario(id),
+        // 'delete-usuario':    (id) => _usuarioSvc.deleteAUsuario(id),
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
+        'delete-sucursal':   (id) => _sucursalSvc.deleteASucursal(id),
         'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
-        'post-impresora':    (id) => _impresoraSvc.loadImpresoras(false),
-        'put-impresora':     (id) => _impresoraSvc.loadImpresoras(false),
-        'delete-impresora':  (id) => _impresoraSvc.loadImpresoras(false),
-        'ventaenviada': (id) {
+        //'put-cotizacion':    (id) => _cotizacionesSvc.updateACotizacion(id),
+        //'delete-cotizacion': (id) => _cotizacionesSvc.deleteACotizacion(id),
+        
+        // Estos ahora solo llegarán a la sucursal correspondiente automáticamente
+        'post-impresora':    (id) => _impresoraSvc.loadAImpresora(id), //Tambien carga el contador
+        'put-impresora':     (id) => _impresoraSvc.updateAImpresora(id),
+        'delete-impresora':  (id) => _impresoraSvc.deleteAImpresora(id),
+        'post-contadores':   (id) => _impresoraSvc.loadUltimoContador(id),
+        'put-contadores':    (id) => _impresoraSvc.loadUltimoContador(id),
+        'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
+        /*'post-venta':        (id) => _ventaSvc.loadAVenta(id),
+        'put-venta':         (id) => _ventaSvc.updateAVenta(id),*/
+        
+        'ventaenviada':      (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();
           }
@@ -102,10 +130,13 @@ class WebSocketService with ChangeNotifier {
       isConnected = false;
       notifyListeners();
 
-      if (kDebugMode) print('Intentando conectar WebSocket a $_socketUrl ...');
+      // Construir URL con sucursal
+      final socketUrl = _buildSocketUrl();
+      
+      if (kDebugMode) print('Intentando conectar WebSocket a $socketUrl ...');
 
       // Esperamos al handshake. Timeout para evitar espera infinita.
-      final socket = await WebSocket.connect(_socketUrl).timeout(timeout);
+      final socket = await WebSocket.connect(socketUrl).timeout(timeout);
 
       // Si llegamos aquí, el handshake tuvo éxito: convertimos a IOWebSocketChannel
       _channel = IOWebSocketChannel(socket);
@@ -138,6 +169,29 @@ class WebSocketService with ChangeNotifier {
       }
       _onDisconnected();
     }
+  }
+
+  /// Reconectar con nueva sucursal (útil cuando cambia la sucursal activa)
+  Future<void> _reconectarConSucursal() async {
+    if (kDebugMode) print('Reconectando WebSocket con nueva sucursal...');
+    desconectar();
+    await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
+    await conectar();
+  }
+
+  Future<void> _reconectarSinSucursal() async {
+    if (kDebugMode) print('Reconectando WebSocket...');
+    desconectar();
+    await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
+    await conectar();
+  }
+
+  /// Método estático para reconectar desde fuera de la clase
+  static Future<void> reconectarConSucursal() async {
+    return _instance._reconectarConSucursal();
+  }
+  static Future<void> reconectarSinSucursal() async {
+    return _instance._reconectarSinSucursal();
   }
 
   /// Procesa mensajes entrantes usando el mapa de handlers.
@@ -228,3 +282,10 @@ class WebSocketService with ChangeNotifier {
     // podrías llamar notifyListeners() si hace falta.
   }
 }
+
+
+
+
+
+
+//TODO: probar web socket de impresoras/contadores

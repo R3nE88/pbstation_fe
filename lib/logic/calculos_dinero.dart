@@ -49,9 +49,9 @@ class CalculosDinero {
 
     for (var detalle in detallesVenta) {
       subtotal += detalle.subtotal-detalle.iva+detalle.descuentoAplicado;
-      totalDescuento += detalle.descuentoAplicado; // Asumiendo que descuento es un porcentaje
-      totalIva += detalle.iva; // Asumiendo que iva ya está calculado
-      total += detalle.subtotal; // Total final
+      totalDescuento += detalle.descuentoAplicado;
+      totalIva += detalle.iva;
+      total += detalle.subtotal;
     }
 
     return {
@@ -70,10 +70,16 @@ class CalculosDinero {
   }
 
   Decimal calcularConIva(Decimal precio){
-    Decimal iva = Decimal.parse(precio.toString()) * leerIva().round(scale: 3);
+    Decimal iva = Decimal.parse(precio.toString()) * leerIva().round(scale: 6);
     return iva + precio; 
   }
 
+  Decimal calcularSinIva(Decimal precioConIva) {
+    Decimal iva = leerIva();
+    Decimal base = Decimal.fromInt(1) + iva;
+    Decimal precioSinIva = (precioConIva / base).toDecimal(scaleOnInfinitePrecision: 6);
+    return precioSinIva;
+  }
 
 }
 

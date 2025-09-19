@@ -59,7 +59,7 @@ class _VentasRecibidasButtonState extends State<VentasRecibidasButton> with Sing
           builder: (context, child) {
             return Transform.translate(
               offset: const Offset(0, -8),
-              child: ElevatedButton( //TOIDO: Agregar F4 como tecla de acceso directo
+              child: ElevatedButton( //TODO: Agregar F4 como tecla de acceso directo
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tieneVentas ? _colorAnimation.value : Colors.white,
                   elevation: tieneVentas ? 3 : 1,

@@ -13,7 +13,6 @@ class ProductosServices extends ChangeNotifier{
   bool isLoading = false;
   bool loaded = false;
 
-
   void cargarProductos(List<Productos> nuevosProductos) {
     productos = nuevosProductos;
     _productosPorId = {
@@ -21,17 +20,21 @@ class ProductosServices extends ChangeNotifier{
     };
     notifyListeners();
   }
+  
   Productos? obtenerProductoPorId(String id) {
     return _productosPorId[id];
   }
+  
   String descripcionConCantidad(DetallesVenta detalles) {
     final producto = _productosPorId[detalles.productoId];
-    final descripcion = producto?.descripcion ?? 'Desconocido';
-    if (producto!.requiereMedida){
+    if (producto==null) return 'No se encontro el producto';
+    final descripcion = producto.descripcion;
+    if (producto.requiereMedida){
       return '${detalles.cantidad} $descripcion(${detalles.ancho}x${detalles.alto})';
     }
     return '${detalles.cantidad} $descripcion';
   }
+  
   String obtenerDetallesComoTexto(List<DetallesVenta> detalles) {
     return detalles.map((detalle) {
       return descripcionConCantidad(detalle);
@@ -186,8 +189,8 @@ class ProductosServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Productos.fromMap(data);
         updated.id = data['id']?.toString();
-
         productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
+        
         filteredProductos = productos;
         notifyListeners();
         return 'exito';
@@ -214,16 +217,11 @@ class ProductosServices extends ChangeNotifier{
           url, headers: {"tkn": Env.tkn}
         );
 
-        final body = json.decode(resp.body);
-        final prod = Productos.fromMap(body as Map<String, dynamic>);
-        prod.id = (body as Map)["id"]?.toString();
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Productos.fromMap(data);
+        updated.id = data['id']?.toString();
+        productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
         
-        productos = productos.map((producto) {
-          if (producto.id == prod.id) {
-            return prod;
-          }
-          return producto;
-        }).toList();
         filteredProductos = productos;
         notifyListeners();
         isLoading = false;

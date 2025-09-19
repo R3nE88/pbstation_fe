@@ -23,20 +23,26 @@ class AbrirCaja extends StatefulWidget {
 
 class _AbrirCajaState extends State<AbrirCaja> {
   final formKey = GlobalKey<FormState>();
-  TextEditingController fondotxt = TextEditingController();
-  bool cajaNotFound=false;
-  bool fondoReady=false;
+  final _fondotxt = TextEditingController();
+  bool _cajaNotFound=false;
+  bool _fondoReady=false;
 
   @override
   void initState() {
     super.initState();
-    if (CajasServices.cajaActualId == 'buscando'){ cajaNotFound=true; }
+    if (CajasServices.cajaActualId == 'buscando'){ _cajaNotFound=true; }
     Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(false);
   }
 
   @override
+  void dispose() {
+    _fondotxt.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if(cajaNotFound==true){
+    if(_cajaNotFound==true){
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -56,7 +62,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                 Text('puede abrir una nueva caja ', style: AppTheme.subtituloConstraste),
                 ElevatedButton(
                   onPressed: (){
-                    setState(() { cajaNotFound = false; });
+                    setState(() { _cajaNotFound = false; });
                   }, child: 
                   Transform.translate( offset:Offset(0,-3),child: Text('Abrir Nueva Caja', textScaler: TextScaler.linear(0.9)))
                 )
@@ -68,7 +74,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
       );
     }
     
-    if (!fondoReady){
+    if (!_fondoReady){
       return Padding(
         padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
         child: Stack(
@@ -113,7 +119,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                               child: TextFormField(
-                                controller: fondotxt,
+                                controller: _fondotxt,
                                 textAlign: TextAlign.center,
                                 inputFormatters: [ PesosInputFormatter() ],
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
@@ -133,7 +139,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                                 onFieldSubmitted: (s) async{
                                   setState(() {
                                     if (formKey.currentState!.validate()) {
-                                      fondoReady=true;
+                                      _fondoReady=true;
                                     }
                                   });
                                 },
@@ -146,7 +152,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           onPressed: () async{
                             setState(() {
                               if (formKey.currentState!.validate()) {
-                                fondoReady=true;
+                                _fondoReady=true;
                               }
                             });
                           }, 
@@ -272,7 +278,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           Cortes corte = Cortes(
                             usuarioId: Login.usuarioLogeado.id!,
                             sucursalId: SucursalesServices.sucursalActualID!,
-                            fondoInicial: Decimal.parse(fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            fondoInicial: Decimal.parse(_fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
                             fechaApertura: fa,
                             movimientoCaja: [],
                             ventasIds: [],

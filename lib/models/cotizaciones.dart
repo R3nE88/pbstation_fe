@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:decimal/decimal.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
@@ -20,20 +19,19 @@ class Cotizaciones {
     required this.vigente,
   });
 
-  String? id; //id automatico de la base de datos
-  String? folio; //Folio generado por el sistema backend
-  String clienteId; //Cliente que hizo la compra
-  String usuarioId; //usuario que realizo la venta
-  String sucursalId; //Sucursal donde se hizo lo venta
-  List<DetallesVenta> detalles; //todos los detalles de venta
-  String fechaCotizacion; //en que momento se realizo la venta (se genera al "imprimir ticket")
-  String comentariosVenta; //Comentario en general de la venta
-  Decimal subTotal; //Total sin descuento ni impuestos $
-  Decimal descuento; //Total del descuento $
-  Decimal iva; //Total de impuestos $
-  Decimal total; //Total total
+  String? id;
+  String? folio;
+  String clienteId;
+  String usuarioId;
+  String sucursalId;
+  List<DetallesVenta> detalles;
+  String fechaCotizacion;
+  String comentariosVenta;
+  Decimal subTotal;
+  Decimal descuento;
+  Decimal iva;
+  Decimal total;
   bool vigente;
-
 
   factory Cotizaciones.fromJson(String str) => Cotizaciones.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());

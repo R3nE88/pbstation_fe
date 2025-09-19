@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:decimal/decimal.dart';
 import 'package:pbstation_frontend/models/models.dart';
 
@@ -8,7 +7,7 @@ class VentasEnviadas {
     this.id,
     required this.clienteId,
     required this.usuarioId,
-    required this.usuario,
+    required this.usuarioNombre,
     required this.sucursalId,
     required this.pedidoPendiente,
     this.fechaEntrega,
@@ -22,23 +21,21 @@ class VentasEnviadas {
     required this.compu,
   });
 
-  String? id; //id automatico de la base de datos
-  String clienteId; //Cliente que hizo la compra
-  String usuarioId; //usuario que realizo la venta
-  String usuario; //nombre del colaborador que hizo la venta 
-  String sucursalId; //Sucursal donde se hizo lo venta
-  bool pedidoPendiente; //determina si es pedido y se entregara en otro momento
-  String? fechaEntrega; //fecha establecida para entrega
-  List<DetallesVenta> detalles; //todos los detalles de venta
-  String comentariosVenta; //Comentario en general de la venta
-  Decimal subTotal; //Total sin descuento ni impuestos $
-  Decimal descuento; //Total del descuento $
-  Decimal iva; //Total de impuestos $
-  Decimal total; //Total total
+  String? id;
+  String clienteId;
+  String usuarioId;
+  String usuarioNombre;
+  String sucursalId;
+  bool pedidoPendiente;
+  String? fechaEntrega;
+  List<DetallesVenta> detalles;
+  String comentariosVenta;
+  Decimal subTotal;
+  Decimal descuento;
+  Decimal iva;
+  Decimal total;
   String fechaEnvio;
   String compu;
-  
-
 
   factory VentasEnviadas.fromJson(String str) => VentasEnviadas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -46,7 +43,7 @@ class VentasEnviadas {
   factory VentasEnviadas.fromMap(Map<String, dynamic> json) => VentasEnviadas(
     clienteId: json["cliente_id"],
     usuarioId: json["usuario_id"],
-    usuario: json["usuario"],
+    usuarioNombre: json["usuario"],
     sucursalId: json["sucursal_id"],
     pedidoPendiente: json["pedido_pendiente"],
     fechaEntrega: json["fecha_entrega"],
@@ -66,7 +63,7 @@ class VentasEnviadas {
     "id": id,
     "cliente_id": clienteId,
     "usuario_id": usuarioId,
-    "usuario": usuario,
+    "usuario": usuarioNombre,
     "sucursal_id": sucursalId,
     "pedido_pendiente": pedidoPendiente,
     "fecha_entrega": fechaEntrega,

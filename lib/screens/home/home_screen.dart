@@ -4,6 +4,7 @@ import 'package:pbstation_frontend/logic/home_state.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +26,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: modProv.subModuloSeleccionado);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final websocketService = Provider.of<WebSocketService>(
+        context,
+        listen: false,
+      );
+      websocketService.conectar();
+
       if (_pageController.hasClients) {
         _pageController.jumpToPage(modProv.subModuloSeleccionado);
       }

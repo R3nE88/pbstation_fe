@@ -17,6 +17,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image/image.dart' as imagen;
 
 class Ticket {
+  static bool _init = false;
   static late final ProductosServices productoSvc;
   static late final ClientesServices clienteSvc;
   static late final UsuariosServices usuarioSvc;
@@ -200,7 +201,8 @@ class Ticket {
       PosColumn(text: 'Articulo', width: 6, styles: PosStyles(bold: true)),
       PosColumn(text: 'Total', width: 4, styles: PosStyles(bold: true)),
     ]);
-    for (var venta in ventaSvc.ventasPorProducto) {
+    List<VentasPorProducto> ventasPorProducto = ventaSvc.consolidarVentasPorProducto(ventaSvc.ventasDeCorteActual);
+    for (var venta in ventasPorProducto) {
       Productos? producto = productoSvc.obtenerProductoPorId(venta.productoId);
       bytes += generator.row([
         PosColumn(text: venta.cantidad.toString(), width: 2),
@@ -210,15 +212,15 @@ class Ticket {
       ]);
     }
     Decimal subtotal = Decimal.parse('0');
-    for (var venta in ventaSvc.ventasPorProducto) {
+    for (var venta in ventasPorProducto) {
       subtotal += venta.subTotal;
     }
     Decimal iva = Decimal.parse('0');
-    for (var venta in ventaSvc.ventasPorProducto) {
+    for (var venta in ventasPorProducto) {
       iva += venta.iva;
     }
     Decimal totalVenta = Decimal.parse('0');
-    for (var venta in ventaSvc.ventasPorProducto) {
+    for (var venta in ventasPorProducto) {
       totalVenta += venta.total;
     }
     bytes += generator.row([
@@ -394,22 +396,24 @@ class Ticket {
     bytes += generator.hr();
 
     //Contadores
-    bytes += generator.text('CONTADORES', styles: PosStyles(align: PosAlign.center, bold: true));
-    bytes += generator.row([
-      PosColumn(text: 'Impresora', width: 5, styles: PosStyles(bold: true)),
-      PosColumn(text: 'Calculado', width: 4, styles: PosStyles(bold: true)),
-      PosColumn(text: 'Real', width: 3, styles: PosStyles(bold: true)),
-    ]);
-    for (var impresora in impresoraSvc.impresoras) {
-      int cantidadAnotada = int.tryParse(impresoraControllers[impresora.id]?.text.replaceAll(",","")??'hubo un problema') ?? 0;
-      int cantidadSistema = impresoraSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
+    if (impresoraSvc.impresoras.isNotEmpty){
+      bytes += generator.text('CONTADORES', styles: PosStyles(align: PosAlign.center, bold: true));
       bytes += generator.row([
-        PosColumn(text: impresora.modelo, width: 5),
-        PosColumn(text: Formatos.numero.format(cantidadSistema), width: 4),
-        PosColumn(text: Formatos.numero.format(cantidadAnotada), width: 3),
+        PosColumn(text: 'Impresora', width: 5, styles: PosStyles(bold: true)),
+        PosColumn(text: 'Calculado', width: 4, styles: PosStyles(bold: true)),
+        PosColumn(text: 'Real', width: 3, styles: PosStyles(bold: true)),
       ]);
+      for (var impresora in impresoraSvc.impresoras) {
+        int cantidadAnotada = int.tryParse(impresoraControllers[impresora.id]?.text.replaceAll(",","")??'hubo un problema') ?? 0;
+        int cantidadSistema = impresoraSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
+        bytes += generator.row([
+          PosColumn(text: impresora.modelo, width: 5),
+          PosColumn(text: Formatos.numero.format(cantidadSistema), width: 4),
+          PosColumn(text: Formatos.numero.format(cantidadAnotada), width: 3),
+        ]);
+      }
+      bytes += generator.hr();
     }
-    bytes += generator.hr();
 
     //Comentario
     if (corte.comentarios!.isNotEmpty){
@@ -462,10 +466,13 @@ class Ticket {
   }
 
   static void cargarServices(context){
-    productoSvc = Provider.of<ProductosServices>(context, listen: false);
-    clienteSvc = Provider.of<ClientesServices>(context, listen: false);
-    usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-    ventaSvc = Provider.of<VentasServices>(context, listen: false);
-    impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    if (_init==false){
+      _init=true;
+      productoSvc = Provider.of<ProductosServices>(context, listen: false);
+      clienteSvc = Provider.of<ClientesServices>(context, listen: false);
+      usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+      ventaSvc = Provider.of<VentasServices>(context, listen: false);
+      impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    }
   }
 }

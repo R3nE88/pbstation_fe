@@ -1,7 +1,7 @@
 name: pbstation_frontend
 description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-version: 1.0.0+1
+version: 0.8.0+1
 
 environment:
   sdk: ^3.7.2 #flutter 3.29.3
@@ -37,6 +37,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/loading.gif
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

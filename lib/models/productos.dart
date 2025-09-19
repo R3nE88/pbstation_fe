@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:decimal/decimal.dart';
 
 class Productos {
@@ -42,7 +41,6 @@ class Productos {
     valorImpresion: json["valor_impresion"] as int,
     requiereMedida: json["requiere_medida"] as bool,
   );
-
 
   Map<String, dynamic> toMap() => {
     "id": id,

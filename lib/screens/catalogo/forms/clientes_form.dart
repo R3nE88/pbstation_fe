@@ -10,21 +10,21 @@ import 'package:provider/provider.dart';
 class ClientesFormDialog extends StatefulWidget {
   const ClientesFormDialog({super.key, this.cliEdit, this.onlyRead});
 
-  @override
-  State<ClientesFormDialog> createState() => _ClientesFormState();
-
   final Clientes? cliEdit; 
   final bool? onlyRead;
+
+  @override
+  State<ClientesFormDialog> createState() => _ClientesFormState();
 }
 
 class _ClientesFormState extends State<ClientesFormDialog> {
   //Varaibles
-  bool onlyRead = false;
-  final formKey = GlobalKey<FormState>();
-  String? regimenFiscal;
-  String titulo = 'Agregar nuevo Cliente';
-  late final List<DropdownMenuItem<String>> dropdownItems;
-  final Map<String, TextEditingController> controllers = {
+  bool _onlyRead = false;
+  final _formKey = GlobalKey<FormState>();
+  String? _regimenFiscal;
+  String _titulo = 'Agregar nuevo Cliente';
+  late final List<DropdownMenuItem<String>> _dropdownItems;
+  final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
     'telefono': TextEditingController(),
@@ -40,18 +40,72 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     'pais': TextEditingController(),
   };
 
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.cliEdit != null) {
+      _onlyRead = widget.onlyRead ?? false;
+      _titulo = _onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
+
+      final cliente = widget.cliEdit!;
+      _controllers['nombre']!.text = cliente.nombre;
+      _controllers['correo']!.text = cliente.correo ?? '';
+      _controllers['telefono']!.text = '${cliente.telefono ?? ''}';
+      _controllers['razon']!.text = cliente.razonSocial ?? '';
+      _controllers['rfc']!.text = cliente.rfc ?? '';
+      _controllers['cp']!.text = '${cliente.codigoPostal ?? ''}';
+      _controllers['direccion']!.text = cliente.direccion ?? '';
+      _controllers['noExt']!.text = '${cliente.noExt ?? ''}';
+      _controllers['noInt']!.text = '${cliente.noInt ?? ''}';
+      _controllers['colonia']!.text = cliente.colonia ?? '';
+      if (cliente.localidad != null) {
+        final partes = cliente.localidad!.split(',');
+        _controllers['ciudad']!.text = partes[0].trim();
+        _controllers['estado']!.text = partes[1].trim();
+        _controllers['pais']!.text = partes[2].trim();
+      }
+      _regimenFiscal = cliente.regimenFiscal;
+    }
+
+    _dropdownItems = Constantes.regimenFiscal.entries.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.key,
+        child: Text('${entry.key} - ${entry.value}'),
+      );
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _controllers['nombre']!.dispose();
+    _controllers['correo']!.dispose();
+    _controllers['telefono']!.dispose();
+    _controllers['razon']!.dispose();
+    _controllers['rfc']!.dispose();
+    _controllers['cp']!.dispose();
+    _controllers['direccion']!.dispose();
+    _controllers['noExt']!.dispose();
+    _controllers['noInt']!.dispose();
+    _controllers['colonia']!.dispose();
+    _controllers['ciudad']!.dispose();
+    _controllers['estado']!.dispose();
+    _controllers['pais']!.dispose();
+    super.dispose();
+  }
+
   //METODOS
   Future<void> guardarCliente() async {
-    if (!formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
     final clientesServices = Provider.of<ClientesServices>(context, listen: false);
     Loading.displaySpinLoading(context);
 
     String? localidad;
-    if (controllers['ciudad']!.text.isNotEmpty ||
-        controllers['estado']!.text.isNotEmpty ||
-        controllers['pais']!.text.isNotEmpty) {
-      if ([controllers['ciudad']!.text, controllers['estado']!.text, controllers['pais']!.text]
+    if (_controllers['ciudad']!.text.isNotEmpty ||
+        _controllers['estado']!.text.isNotEmpty ||
+        _controllers['pais']!.text.isNotEmpty) {
+      if ([_controllers['ciudad']!.text, _controllers['estado']!.text, _controllers['pais']!.text]
           .any((text) => text.isEmpty)) {
         await showDialog(
           context: context,
@@ -70,22 +124,22 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         Navigator.pop(context);
         return;
       }
-      localidad = "${controllers['ciudad']!.text}, ${controllers['estado']!.text}, ${controllers['pais']!.text}";
+      localidad = "${_controllers['ciudad']!.text}, ${_controllers['estado']!.text}, ${_controllers['pais']!.text}";
     }
 
     final cliente = Clientes(
-      nombre: controllers['nombre']!.text,
-      correo: controllers['correo']!.text.isEmpty ? null : controllers['correo']!.text,
-      telefono: controllers['telefono']!.text.isEmpty ? null : int.tryParse(controllers['telefono']!.text),        
-      razonSocial: controllers['razon']!.text.isEmpty ? null : controllers['razon']!.text,
-      rfc: controllers['rfc']!.text.isEmpty ? null : controllers['rfc']!.text,
-      codigoPostal: controllers['cp']!.text.isEmpty ? null : int.tryParse(controllers['cp']!.text),
-      direccion: controllers['direccion']!.text.isEmpty ? null : controllers['direccion']!.text,
-      noExt: controllers['noExt']!.text.isEmpty ? null : int.tryParse(controllers['noExt']!.text),
-      noInt: controllers['noInt']!.text.isEmpty ? null : int.tryParse(controllers['noInt']!.text),
-      colonia: controllers['colonia']!.text.isEmpty ? null : controllers['colonia']!.text,
+      nombre: _controllers['nombre']!.text,
+      correo: _controllers['correo']!.text.isEmpty ? null : _controllers['correo']!.text,
+      telefono: _controllers['telefono']!.text.isEmpty ? null : int.tryParse(_controllers['telefono']!.text),        
+      razonSocial: _controllers['razon']!.text.isEmpty ? null : _controllers['razon']!.text,
+      rfc: _controllers['rfc']!.text.isEmpty ? null : _controllers['rfc']!.text,
+      codigoPostal: _controllers['cp']!.text.isEmpty ? null : int.tryParse(_controllers['cp']!.text),
+      direccion: _controllers['direccion']!.text.isEmpty ? null : _controllers['direccion']!.text,
+      noExt: _controllers['noExt']!.text.isEmpty ? null : int.tryParse(_controllers['noExt']!.text),
+      noInt: _controllers['noInt']!.text.isEmpty ? null : int.tryParse(_controllers['noInt']!.text),
+      colonia: _controllers['colonia']!.text.isEmpty ? null : _controllers['colonia']!.text,
       localidad: localidad,
-      regimenFiscal: regimenFiscal,
+      regimenFiscal: _regimenFiscal,
     );
 
     final respuesta = widget.cliEdit == null
@@ -131,7 +185,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       ignoring: readOnly,
       child: TextFormField(
         autofocus: autoFocus,
-        canRequestFocus: !onlyRead,
+        canRequestFocus: !_onlyRead,
         controller: controller,
         buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
         readOnly: readOnly,
@@ -147,53 +201,18 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.cliEdit != null) {
-      onlyRead = widget.onlyRead ?? false;
-      titulo = onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
-
-      final cliente = widget.cliEdit!;
-      controllers['nombre']!.text = cliente.nombre;
-      controllers['correo']!.text = cliente.correo ?? '';
-      controllers['telefono']!.text = '${cliente.telefono ?? ''}';
-      controllers['razon']!.text = cliente.razonSocial ?? '';
-      controllers['rfc']!.text = cliente.rfc ?? '';
-      controllers['cp']!.text = '${cliente.codigoPostal ?? ''}';
-      controllers['direccion']!.text = cliente.direccion ?? '';
-      controllers['noExt']!.text = '${cliente.noExt ?? ''}';
-      controllers['noInt']!.text = '${cliente.noInt ?? ''}';
-      controllers['colonia']!.text = cliente.colonia ?? '';
-      if (cliente.localidad != null) {
-        final partes = cliente.localidad!.split(',');
-        controllers['ciudad']!.text = partes[0].trim();
-        controllers['estado']!.text = partes[1].trim();
-        controllers['pais']!.text = partes[2].trim();
-      }
-      regimenFiscal = cliente.regimenFiscal;
-    }
-
-    dropdownItems = Constantes.regimenFiscal.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text('${entry.key} - ${entry.value}'),
-      );
-    }).toList();
-  }
   
   @override
   Widget build(BuildContext context) {
     return FocusScope(
-      canRequestFocus: !onlyRead,
+      canRequestFocus: !_onlyRead,
       child: AlertDialog(
         backgroundColor: AppTheme.containerColor2,
-        title: Text(titulo),
+        title: Text(_titulo),
         content: SizedBox(
           width: 600,
           child: Form(
-            key: formKey,
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -202,19 +221,19 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                   children: [
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['nombre']!, 
+                        controller: _controllers['nombre']!, 
                         labelText: 'Nombre',
-                        autoFocus: !onlyRead && widget.cliEdit == null,
-                        readOnly:  onlyRead,
+                        autoFocus: !_onlyRead && widget.cliEdit == null,
+                        readOnly:  _onlyRead,
                         maxLength: 40,
                         validator: (value) => validateRequiredField(value, 'el nombre'),
                       )
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['telefono']!,
+                        controller: _controllers['telefono']!,
                         labelText: 'Telefono 10 digitos',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         validator: (value) => validateRequiredField(value, 'el telefono'),
@@ -224,9 +243,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                 ), const SizedBox(height: 15),
                 Flexible(
                   child: buildTextFormField(
-                    controller: controllers['correo']!,
+                    controller: _controllers['correo']!,
                     labelText: 'Correo Electronico',
-                    readOnly: onlyRead,
+                    readOnly: _onlyRead,
                     maxLength: 30,
                     validator: (value) => validateRequiredField(value, 'el correo electronico'),
                   ),
@@ -237,17 +256,17 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 2,
                       child: buildTextFormField(
-                        controller: controllers['razon']!,
+                        controller: _controllers['razon']!,
                         labelText: 'Razon Social',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
-                        controller: controllers['rfc']!,
+                        controller: _controllers['rfc']!,
                         labelText: 'RFC',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ),
@@ -258,18 +277,18 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                   children: [
                     Flexible(
                       child: CustomDropDown<String>(
-                        isReadOnly: onlyRead,
-                        value: regimenFiscal,
+                        isReadOnly: _onlyRead,
+                        value: _regimenFiscal,
                         hintText: 'Regimen Fiscal',
                         expanded: true,
-                        items: dropdownItems,
-                        onChanged: (val) => setState(() => regimenFiscal = val!),
+                        items: _dropdownItems,
+                        onChanged: (val) => setState(() => _regimenFiscal = val!),
                       ),
-                    ), SizedBox(width: onlyRead ? 0 : 10),
+                    ), SizedBox(width: _onlyRead ? 0 : 10),
       
-                    !onlyRead 
+                    !_onlyRead 
                     ? IconButton(
-                      onPressed:  () => setState(() => regimenFiscal = null), 
+                      onPressed:  () => setState(() => _regimenFiscal = null), 
                       icon: Icon(Icons.clear, color: AppTheme.letraClara,)
                     ) 
                     : const SizedBox()
@@ -281,18 +300,18 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 3,
                       child: buildTextFormField(
-                        controller: controllers['direccion']!,
+                        controller: _controllers['direccion']!,
                         labelText: 'Calle',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['noExt']!,
+                        controller: _controllers['noExt']!,
                         labelText: 'No. Exterior',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 6,
                         
                       ),
@@ -300,9 +319,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['noInt']!,
+                        controller: _controllers['noInt']!,
                         labelText: 'No. Interior',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 6,
                       ),
                     ),
@@ -314,9 +333,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 2,
                       child: buildTextFormField(
-                        controller: controllers['colonia']!,
+                        controller: _controllers['colonia']!,
                         labelText: 'Colonia',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
@@ -324,9 +343,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['cp']!,
+                        controller: _controllers['cp']!,
                         labelText: 'Codigo Postal',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 5,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       ),
@@ -338,27 +357,27 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['ciudad']!,
+                        controller: _controllers['ciudad']!,
                         labelText: 'Ciudad',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['estado']!,
+                        controller: _controllers['estado']!,
                         labelText: 'Estado',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
                       flex: 1,
                       child: buildTextFormField(
-                        controller: controllers['pais']!,
+                        controller: _controllers['pais']!,
                         labelText: 'País',
-                        readOnly: onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 30,
                       ),
                     ),
@@ -369,7 +388,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
           )
         ),
         actions: [
-          !onlyRead ? ElevatedButton(
+          !_onlyRead ? ElevatedButton(
             onPressed: () async{
               await guardarCliente();
             }, 
