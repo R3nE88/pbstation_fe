@@ -12,6 +12,18 @@ class ConnectionOverlay extends StatefulWidget {
 
 class _ConnectionOverlayState extends State<ConnectionOverlay> {
   OverlayEntry? _overlayEntry;
+  bool _show = false;
+
+  Future<void>esperarParaMostrar() async {
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() => _show=true);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    esperarParaMostrar();
+  }
 
   @override
   void dispose() {
@@ -95,6 +107,8 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
+    if (_show==false) return;
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Material(
         color: Colors.transparent,
@@ -132,13 +146,13 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const Icon(
                           Icons.wifi_off,
                           color: Colors.white,
                           size: 48,
                         ),
-                        const SizedBox(height: 20),
-                        const Text(
+                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const SizedBox(height: 20),
+                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const Text(
                           'Conexión perdida con el servidor',
                           style: TextStyle(
                             color: Colors.white, 
@@ -149,10 +163,13 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
                         const SizedBox(height: 20),
                         const CircularProgressIndicator(color: Colors.white),
                         const SizedBox(height: 20),
-                        const Text(
+                        WebSocketService.reconectandoSucursal==false ? const Text(
                           'Reconectando...',
                           style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
+                        ) : const Text(
+                          'Conectando...',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ) ,
                       ],
                     ),
                   ),
@@ -192,7 +209,7 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
             _showOverlay();
           }
         });
-
+    
         return const SizedBox.shrink();
       },
     );

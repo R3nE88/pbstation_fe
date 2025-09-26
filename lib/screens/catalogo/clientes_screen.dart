@@ -44,23 +44,13 @@ class _ClientesScreenState extends State<ClientesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.containerColor1,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 10),
-              Expanded(child: _buildTable()),
-            ],
-          ),
-        ),
+    return BodyPadding(
+      child: Column(
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 10),
+          Expanded(child: _buildTable()),
+        ],
       ),
     );
   }
@@ -81,7 +71,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
               width: 300,
               child: Tooltip(
                 waitDuration: Durations.short4,
-                message: 'codigo o descripcion',
+                message: 'Nombre o RFC',
                 child: TextFormField(
                   controller: _searchController,
                   decoration: InputDecoration(

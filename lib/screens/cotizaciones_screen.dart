@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class CotizacionesScreen extends StatefulWidget {
@@ -63,33 +64,24 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
         if (cot.isLoading || cli.isLoading || prod.isLoading || suc.isLoading) {
           return const Center(child: CircularProgressIndicator());
         } else {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.containerColor1,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  children: [
-                    _buildHeader(context, true),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      flex: 8,
-                      child: _buildTable(cot, true)
-                    ),
-                    const SizedBox(height: 10),
-                    _buildHeader(context, false),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      flex: 7,
-                      child: _buildTable(cot, false)
-                    ),
-                  ],
+          return BodyPadding(
+            hasSubModules: false,
+            child: Column(
+              children: [
+                _buildHeader(context, true),
+                const SizedBox(height: 10),
+                Expanded(
+                  flex: 8,
+                  child: _buildTable(cot, true)
                 ),
-              ),
+                const SizedBox(height: 10),
+                _buildHeader(context, false),
+                const SizedBox(height: 10),
+                Expanded(
+                  flex: 7,
+                  child: _buildTable(cot, false)
+                ),
+              ],
             ),
           );
         }

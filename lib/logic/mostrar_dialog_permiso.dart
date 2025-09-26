@@ -37,7 +37,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
     }
   }
 
-  return showDialog<bool>(
+  return showDialog<bool>( //TODO: hacer mas bonito esta ventana
     context: context,
     builder: (context) {
       return Stack(

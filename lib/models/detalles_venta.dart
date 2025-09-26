@@ -3,11 +3,11 @@ import 'package:decimal/decimal.dart';
 
 class DetallesVenta {
   DetallesVenta({
-    this.id,
+    //this.id,
     required this.productoId,
     required this.cantidad,
-    required this.ancho,
-    required this.alto,
+    this.ancho,
+    this.alto,
     required this.comentarios,
     required this.descuento,
     required this.descuentoAplicado,
@@ -16,11 +16,11 @@ class DetallesVenta {
     this.cotizacionPrecio
   });
 
-  String? id;
+  //String? id;
   String productoId;
   int cantidad;
-  Decimal ancho;
-  Decimal alto;
+  double? ancho;
+  double? alto;
   String comentarios;
   int descuento;
   Decimal descuentoAplicado;
@@ -32,11 +32,11 @@ class DetallesVenta {
   String toJson() => json.encode(toMap());
 
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
-    id: json["id"]?.toString(),
+    //id: json["id"]?.toString(),
     productoId: json["producto_id"],
     cantidad: json["cantidad"],
-    ancho: Decimal.parse(json["ancho"].toString()),
-    alto: Decimal.parse(json["alto"].toString()),
+    ancho: json["ancho"],
+    alto: json["alto"],
     comentarios: json["comentarios"],
     descuento: json["descuento"],
     descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
@@ -46,7 +46,7 @@ class DetallesVenta {
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
+    //"id": id,
     "producto_id": productoId,
     "cantidad": cantidad,
     "ancho": ancho,

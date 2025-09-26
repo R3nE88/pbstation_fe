@@ -21,6 +21,7 @@ class MovimientosCajas {
   String toJson() => json.encode(toMap());
 
   factory MovimientosCajas.fromMap(Map<String, dynamic> json) => MovimientosCajas(
+    id: json["id"]?.toString(),
     usuarioId: json["usuario_id"],
     tipo: json["tipo"],
     monto: json["monto"],

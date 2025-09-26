@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/screens/screens.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/frame_animation_widget.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
     bool _loading = false;
     bool _loaded = false;
+    bool _servicesLoaded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,34 +35,23 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() { _loading = true; });
 
       await Provider.of<CajasServices>(context, listen:  false).loadCortesDeCaja();
+      if (!context.mounted) return;
       await Provider.of<ClientesServices>(context, listen: false).loadClientes();
+      if (!context.mounted) return;
       await Provider.of<CotizacionesServices>(context, listen: false).loadCotizaciones();
+      if (!context.mounted) return;
       await Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true);
+      if (!context.mounted) return;
       await Provider.of<ProductosServices>(context, listen: false).loadProductos();
+      if (!context.mounted) return;
       await Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
+      if (!context.mounted) return;
       await Provider.of<VentasEnviadasServices>(context, listen: false).ventasRecibidas();
+      if (!context.mounted) return;
       await Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja();
+      if (!context.mounted) return;
       await Provider.of<VentasServices>(context, listen: false).loadVentasDeCorteActual();
-
-      //Cargar Home Screen
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOut;
-
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            var offsetAnimation = animation.drive(tween);
-
-            return SlideTransition(
-              position: offsetAnimation,
-              child: child,
-            );
-          },
-        ),
-      );
+      _servicesLoaded = true;      
     }
 
     return Stack(
@@ -70,6 +61,60 @@ class _LoginScreenState extends State<LoginScreen> {
           body: Background(),
         ),
 
+        Visibility(
+          visible: _loading,
+          maintainState: true,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+          
+                const BarraW(),
+
+                NumberedFrameAnimation(
+                  basePath: 'assets/frames/',
+                  extension: '.png',
+                  frameCount: 177,
+                  startIndex: 1,
+                  fps: 50,
+                  loop: true,
+                  autoPlay: true, // ← Ahora funciona correctamente
+                  height: 300,
+                  onAnimationComplete: () {
+                    if (_servicesLoaded){
+                      //Cargar Home Screen
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushReplacement(
+                        PageRouteBuilder(
+                          transitionDuration: Duration.zero, // Sin duración de transición
+                          reverseTransitionDuration: Duration.zero, // Sin duración de transición reversa
+                          pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return child; // Sin animación, solo retorna el widget directamente
+                          },
+                        ),
+                      );
+                    }
+                  },
+                ),
+          
+                const SizedBox(height: 20),
+                
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'PrinterBoy Punto De Venta\nv${Constantes.version}', 
+                    style: AppTheme.subtituloPrimario.copyWith(
+                      letterSpacing: 1
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
 
         Visibility(
           visible: !_loading,
@@ -100,10 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _loaded
                     ? LoginFields(
                       callback: ()=> loadServicesAndProcess(),
-                       
-                      callbackLoading: (value) {
-                        setState(() { _loading = value; });
-                      },
                     ) 
                     :  SizedBox(
                       height: double.infinity,
@@ -134,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     'PrinterBoy Punto De Venta\nv${Constantes.version}', 
-                    style: AppTheme.subtituloConstraste.copyWith(
+                    style: AppTheme.subtituloPrimario.copyWith(
                       letterSpacing: 1
                     ),
                     textAlign: TextAlign.center,
@@ -143,41 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-        ),
-        
-        _loading ?
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-
-              const BarraW(),
-
-              Center(
-                child: SizedBox(
-                  width: 350,
-                  child: Image.asset(
-                    'assets/loading.gif',
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-              
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  'PrinterBoy Punto De Venta\nv${Constantes.version}', 
-                  style: AppTheme.subtituloConstraste.copyWith(
-                    letterSpacing: 1
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            ],
-          ),
-        ) : const SizedBox()
+        ),   
       ],
     );
   }
@@ -211,11 +218,9 @@ class LoginFields extends StatefulWidget {
   const LoginFields({
     super.key, 
     required this.callback, 
-    required this.callbackLoading,
   });
   
   final Function callback;
-  final Function(bool) callbackLoading;
 
   @override
   State<LoginFields> createState() => _LoginFieldsState();
@@ -225,7 +230,6 @@ class _LoginFieldsState extends State<LoginFields> {
   final _email = TextEditingController();
   final _psw = TextEditingController();
   final _formKey = GlobalKey<FormState>(); 
-  //bool _loading = false;
   bool _invalid = false;
 
   @override
@@ -237,20 +241,6 @@ class _LoginFieldsState extends State<LoginFields> {
 
   @override
   Widget build(BuildContext context) {
-    /*if (_loading == true) {
-      return SizedBox(
-        height: double.infinity,
-        child: Center(
-          child: Transform.translate(
-            offset: Offset(0, -50),
-            child: CircularProgressIndicator(
-              color: AppTheme.letraClara
-            ),
-          ),
-        ),
-      );
-    }*/
-
     return Padding(
       padding: const EdgeInsets.only(top: 35),
       child: Form(
@@ -339,20 +329,10 @@ class _LoginFieldsState extends State<LoginFields> {
 
   Future<bool> verificarAcceso() async {
     if (_formKey.currentState!.validate()) {
-      widget.callbackLoading(true);
-
-      await Future.delayed(const Duration(milliseconds: 350));
-
       final login = Login();
       bool success = await login.login(_email.text, _psw.text);
-
-      if (success) {
-        widget.callbackLoading(false);
-        return true;
-      } else {
-        widget.callbackLoading(false);
-        return false;
-      }
+      if (success) { return true;
+      } else { return false; }
     }
     return false;
   }

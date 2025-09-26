@@ -25,6 +25,7 @@ class Ventas {
     this.recibidoUs,
     this.recibidoTarj,
     this.recibidoTrans,
+    required this.recibidoTotal,
     this.abonadoMxn,
     this.abonadoUs,
     this.abonadoTarj,
@@ -56,6 +57,7 @@ class Ventas {
   Decimal? recibidoUs;
   Decimal? recibidoTarj;
   Decimal? recibidoTrans;
+  Decimal recibidoTotal;
   Decimal? abonadoMxn;
   Decimal? abonadoUs;
   Decimal? abonadoTarj;
@@ -68,6 +70,7 @@ class Ventas {
   String toJson() => json.encode(toMap());
 
   factory Ventas.fromMap(Map<String, dynamic> json) => Ventas(
+    id: json["id"]?.toString(),
     folio: json["folio"],
     clienteId: json["cliente_id"],
     usuarioId: json["usuario_id"],
@@ -90,6 +93,7 @@ class Ventas {
     recibidoUs: json["recibido_us"]!=null ? Decimal.parse(json["recibido_us"]) : null, 
     recibidoTarj: json["recibido_tarj"]!=null ? Decimal.tryParse(json["recibido_tarj"]): null, 
     recibidoTrans: json["recibido_trans"]!=null ? Decimal.tryParse(json["recibido_trans"]): null, 
+    recibidoTotal : Decimal.parse(json["recibido_total"]),
     abonadoMxn: json["abonado_mxn"]!=null ? Decimal.tryParse(json["abonado_mxn"]): null, 
     abonadoUs: json["abonado_us"]!=null ? Decimal.tryParse(json["abonado_us"]): null, 
     abonadoTarj: json["abonado_tarj"]!=null ? Decimal.tryParse(json["abonado_tarj"]): null, 
@@ -121,6 +125,7 @@ class Ventas {
     "recibido_us": recibidoUs,
     "recibido_tarj": recibidoTarj,
     "recibido_trans": recibidoTrans,
+    "recibido_total": recibidoTotal,
     "abonado_mxn": abonadoMxn,
     "abonado_us": abonadoUs,
     "abonado_tarj": abonadoTarj,

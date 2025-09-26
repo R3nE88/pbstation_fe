@@ -70,6 +70,7 @@ class Cortes {
     String toJson() => json.encode(toMap());
 
     factory Cortes.fromMap(Map<String, dynamic> json) => Cortes(
+      id: json["id"]?.toString(),
       folio: json["folio"],
       usuarioId: json["usuario_id"],
       usuarioIdCerro: json["usuario_id_cerro"],

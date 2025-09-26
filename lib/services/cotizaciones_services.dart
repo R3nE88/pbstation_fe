@@ -36,7 +36,7 @@ class CotizacionesServices extends ChangeNotifier{
         // Buscar cliente correspondiente
         final cliente = clientes.firstWhere(
           (c) => c.id == cotizacion.clienteId,
-          orElse: () => Clientes(nombre: 'error'),
+          orElse: () => Clientes(nombre: 'error', adeudos: []),
         );
         final nombreMatch = cliente.nombre.toLowerCase().contains(query);
 
@@ -64,7 +64,7 @@ class CotizacionesServices extends ChangeNotifier{
         // Buscar cliente correspondiente
         final cliente = clientes.firstWhere(
           (c) => c.id == cotizacion.clienteId,
-          orElse: () => Clientes(nombre: 'error'),
+          orElse: () => Clientes(nombre: 'error', adeudos: []),
         );
         final nombreMatch = cliente.nombre.toLowerCase().contains(query);
 

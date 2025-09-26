@@ -133,6 +133,11 @@ class AppTheme{
     fontSize: 13,
   );
 
+  static final TextStyle warningStyle = TextStyle(
+    color: const Color.fromARGB(255, 255, 163, 4), 
+    fontWeight: FontWeight.bold
+  );
+
   static const TextStyle labelStyle = TextStyle(
     color: Colors.white70
   );
@@ -252,7 +257,7 @@ class AppTheme{
       seedColor: AppTheme.primario2, // Cambia aquí tu color base
     ),
 
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       surfaceTintColor: Colors.transparent
     ),
      
@@ -349,7 +354,7 @@ class AppTheme{
       seedColor: Colors.white // Cambia aquí tu color base
     ),
 
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       surfaceTintColor: Colors.transparent
     ),
      

@@ -21,6 +21,7 @@ void main() async {
 
   final productosService = ProductosServices();
   final clientesServices = ClientesServices();
+  final usuariosServices = UsuariosServices();
   final ventasServices = VentasServices();
   final ventasEnvServices = VentasEnviadasServices();
   final sucursalesServices = SucursalesServices();
@@ -30,6 +31,7 @@ void main() async {
   final websocketService = WebSocketService(
     productosService, 
     clientesServices, 
+    usuariosServices,
     ventasServices, 
     ventasEnvServices,
     sucursalesServices,
@@ -38,18 +40,12 @@ void main() async {
     impresoraServices,
   );
 
-  doWhenWindowReady(() {
-    const initialSize = Size(400, 640);
-    appWindow.size = initialSize;
-    appWindow.minSize = initialSize;
-    appWindow.show();
-  });
-
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: productosService),
         ChangeNotifierProvider.value(value: clientesServices),
+        ChangeNotifierProvider.value(value: usuariosServices),
         ChangeNotifierProvider.value(value: ventasServices),
         ChangeNotifierProvider.value(value: ventasEnvServices),
         ChangeNotifierProvider.value(value: sucursalesServices),
@@ -57,7 +53,6 @@ void main() async {
         ChangeNotifierProvider.value(value: configuracion),
         ChangeNotifierProvider.value(value: impresoraServices),
         ChangeNotifierProvider.value(value: websocketService),
-        ChangeNotifierProvider(create: (_) => UsuariosServices()),
         ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
         ChangeNotifierProvider(create: (_) => ModulosProvider()),
@@ -65,6 +60,15 @@ void main() async {
       child: const MyApp()
     )
   );
+
+  doWhenWindowReady(() {
+    const initialSize = Size(400, 640);
+    appWindow.minSize = initialSize;
+    appWindow.size = initialSize;
+    appWindow.maxSize = initialSize*1.5;
+    appWindow.alignment = Alignment.center;
+    appWindow.show();
+  });
 }
 
 class MyApp extends StatefulWidget {
@@ -76,13 +80,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  void initState() {
-    super.initState();
-
-    /*WidgetsBinding.instance.addPostFrameCallback((_) {
-
-    });*/
-  }
 
   @override
   Widget build(BuildContext context) {

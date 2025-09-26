@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.3
-  intl: 0.19.0
+  intl: ^0.20.2
   web_socket_channel: ^2.4.0
   bitsdojo_window: ^0.1.5
   http: ^1.4.0
@@ -24,6 +24,7 @@ dependencies:
   decimal: ^3.2.4
   image: ^4.5.4
   package_info_plus: ^9.0.0
+  gif_view: ^1.0.3
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +39,7 @@ flutter:
   assets:
     - assets/images/
     - assets/loading.gif
+    - assets/frames/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

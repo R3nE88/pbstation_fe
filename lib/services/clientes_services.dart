@@ -9,6 +9,7 @@ class ClientesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
+  List<Clientes> clientesConAdeudo = [];
   late Map<String, Clientes> _clientesPorId;
   bool isLoading = false;
   bool loaded = false;
@@ -83,9 +84,9 @@ class ClientesServices extends ChangeNotifier{
         final body = json.decode(resp.body);
         final cli = Clientes.fromMap(body as Map<String, dynamic>);
         cli.id = (body as Map)["id"]?.toString();
-        
         clientes.add(cli);
         filteredClientes = clientes;
+
         isLoading = false;
         cargarClientes(clientes);
       } catch (e) {
@@ -161,12 +162,13 @@ class ClientesServices extends ChangeNotifier{
   Future<String> updateCliente(Clientes cliente, String id) async {
     isLoading = true;
     cliente.id = id;
+    
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
-        body: cliente.id,
+        body: cliente.toJson(),
       );
 
       if (resp.statusCode == 200) {
@@ -205,8 +207,8 @@ class ClientesServices extends ChangeNotifier{
         final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
         clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
-
         filteredClientes = clientes;
+
         notifyListeners();
         isLoading = false;
       } catch (e) {
@@ -215,5 +217,55 @@ class ClientesServices extends ChangeNotifier{
         }
       }
     }
+  }
+
+  List<Clientes> loadAdeudos(){
+    clientesConAdeudo.clear();
+    for (var cliente in clientes) {
+      if (cliente.adeudos.isNotEmpty){
+        clientesConAdeudo.add(cliente);
+      }
+    }
+    return clientesConAdeudo;
+  }
+
+  Future<void> adeudarCliente (String clienteId, Adeudos adeudo) async {
+    try {
+      final url = Uri.parse('$_baseUrl$clienteId/adeudos');
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: adeudo.toJson(),   
+      );
+
+      if (resp.statusCode == 201) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updated = Clientes.fromMap(data);
+        updated.id = data['id']?.toString();
+        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        filteredClientes = clientes;
+      } else {
+        debugPrint('Error al crear adeudo: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('Exception en adeudarCliente: $e');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> quitarDeuda(String ventaId, String clienteId) async{
+    try {
+      final url = Uri.parse('${_baseUrl}adeudos/$ventaId');
+      final resp = await http.delete(
+        url, headers: {"tkn": Env.tkn}
+      );
+      if (resp.statusCode == 204){
+        clientesConAdeudo.firstWhere((cliente) => cliente.id == clienteId).adeudos.removeWhere((adeudo) => adeudo.ventaId == ventaId);
+      }
+    } catch (e) {
+      debugPrint('$e');
+    } 
+    notifyListeners();
   }
 }

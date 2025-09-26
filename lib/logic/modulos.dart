@@ -9,7 +9,7 @@ class Modulos{
 
   static bool deshabilitar(String value){ //Escribir que modulos se deshabilitan para el usuario sin permisos
     if (Login.usuarioLogeado.rol != "admin") {
-      if (value == 'usuarios' || value == 'historial\nde cajas'){
+      if (value == 'equipo' || value == 'historial\nde cajas'){
         return true;
       }
     }
@@ -23,16 +23,17 @@ class Modulos{
   }
 
   static const Map<String, List<String>> modulos = {
-    'caja': [
+    'venta': [
       'venta',
       'caja', 
-      'historial\nde cajas' //Solo administrador
+      'historial\nde cajas', //Solo administrador
+      'adeudos'
     ],
     'catalogo': [
       'productos y\nservicios',
-      'usuarios', //Solo administrador
+      'equipo', //Solo administrador
       'clientes',
-      'sucursales' //Solo administrador
+      'sucursales'
     ],
     'cotizaciones': [
       'cotizaciones',
@@ -57,11 +58,12 @@ class Modulos{
   };
 
   static const Map<String, List<IconData>> modulosIconos = {
-    'caja' : [
-      Icons.point_of_sale,
-      Icons.sell,
+    'venta' : [
       Icons.attach_money,
-      Icons.history
+      Icons.attach_money,
+      Icons.point_of_sale,
+      Icons.history,
+      Icons.payments
     ],
     'catalogo' : [
       Icons.menu_book,
@@ -94,16 +96,17 @@ class Modulos{
   };
 
   static const Map<String, List<Widget>> modulosScreens = {
-    'caja': [
+    'venta': [
       VentaScreen(),
       CajaScreen(),
       SizedBox(), //Falta
+      AdeudosSCreen(), 
     ],
     'catalogo': [
       ProductosScreen(),
-      SizedBox(), //Falta
+      UsuariosScreen(),
       ClientesScreen(),
-      SucursalesScreen(), //Falta
+      SucursalesScreen(),
     ],
     'cotizaciones': [
       CotizacionesScreen()

@@ -25,23 +25,13 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.containerColor1,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 10),      
-              Expanded(child: _buildTable()),
-            ],
-          ),
-        ),
+    return BodyPadding(
+      child: Column(
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 10),      
+          Expanded(child: _buildTable()),
+        ],
       ),
     );
   }
@@ -161,8 +151,8 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                     onDelete: () async {
                       Loading.displaySpinLoading(context);
                       await servicios.deleteSucursal(servicios.sucursales[index].id!);
+                      if(!context.mounted) return;
                       Provider.of<ImpresorasServices>(context, listen:false).clear();
-                      if (!context.mounted) return;
                       Navigator.pop(context);
                     },
                   ),
@@ -229,13 +219,24 @@ class FilaSucursales extends StatelessWidget {
         color: AppTheme.dropDownColor,
         elevation: 2,
         items: [
-          PopupMenuItem(
-            value: 'asignar',
+          sucursal.id != SucursalesServices.sucursalActualID ? PopupMenuItem(
+            value: 'vincular',
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_business, color: AppTheme.letraClara, size: 17),
-                Text('  Asignar Sucursal a esta Terminal', style: AppTheme.subtituloPrimario),
+                Icon(Icons.add, color: AppTheme.letraClara, size: 17),
+                Text('  Vincular a esta Terminal', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          )
+          :
+          PopupMenuItem(
+            value: 'desvincular',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.remove, color: AppTheme.letraClara, size: 17),
+                Text('  Desvincular de esta terminal', style: AppTheme.subtituloPrimario),
               ],
             ),
           ),
@@ -298,12 +299,36 @@ class FilaSucursales extends StatelessWidget {
       }
 
       if (seleccion != null) {
-        if (seleccion == 'asignar') {
-          // Lógica para leer
+        if (seleccion == 'vincular') {
+          // Lógica para asignar
           if (CajasServices.cajaActual== null) { //Si no hay caja abierta
             if(!context.mounted){ return; }
             Loading.displaySpinLoading(context);
             await  Provider.of<SucursalesServices>(context, listen: false).establecerSucursal(sucursal);
+            if(!context.mounted) return;
+            await  Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
+            if(!context.mounted){ return; }
+            Navigator.pop(context);
+          } else {
+            if(!context.mounted){ return; }
+            showDialog(
+              context: context,
+              builder: (_) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
+                  const WindowBar(overlay: true),
+                ],
+              ),
+            );
+          }
+        } else if (seleccion == 'desvincular') {
+          // Lógica para desasingar
+          if (CajasServices.cajaActual== null) { //Si no hay caja abierta
+            if(!context.mounted){ return; }
+            Loading.displaySpinLoading(context);
+            await  Provider.of<SucursalesServices>(context, listen: false).desvincularSucursal(true);
+            if(!context.mounted) return;
             await  Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
             if(!context.mounted){ return; }
             Navigator.pop(context);

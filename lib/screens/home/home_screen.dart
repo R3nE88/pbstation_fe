@@ -17,7 +17,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final double barraHeight = 35;
   late PageController _pageController;
+  bool _showScreenInit = false;
+
+  Future<void> esperarParaMostrar() async{
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() => _showScreenInit = true );
+  }
 
   @override
   void initState() {
@@ -36,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _pageController.jumpToPage(modProv.subModuloSeleccionado);
       }
     });
+
+    esperarParaMostrar();
   }
 
   @override
@@ -60,15 +69,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (!HomeState.init) {
       HomeState.init = true;
-      const size = Size(1024, 720);
-      appWindow.minSize = size;
+      appWindow.minSize = Size(1024, 720);
+      appWindow.maxSize = Size(1920, 1080);
       appWindow.maximize();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appWindow.maximize();
+      });
     }
-
-    const double barraHeight = 35;
+    
     final modProv = context.watch<ModulosProvider>();
     final height = MediaQuery.of(context).size.height - barraHeight;
     final screens = Modulos.modulosScreens[modProv.moduloSeleccionado] ?? <Widget>[];
+
+    if (!_showScreenInit){
+      return Scaffold(backgroundColor: AppTheme.backgroundColor);
+    }
 
     return Stack(
       alignment: Alignment.topCenter,

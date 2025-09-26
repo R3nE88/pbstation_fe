@@ -139,7 +139,8 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       noInt: _controllers['noInt']!.text.isEmpty ? null : int.tryParse(_controllers['noInt']!.text),
       colonia: _controllers['colonia']!.text.isEmpty ? null : _controllers['colonia']!.text,
       localidad: localidad,
-      regimenFiscal: _regimenFiscal,
+      regimenFiscal: _regimenFiscal, 
+      adeudos: [],
     );
 
     final respuesta = widget.cliEdit == null
@@ -200,7 +201,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       ),
     );
   }
-
   
   @override
   Widget build(BuildContext context) {

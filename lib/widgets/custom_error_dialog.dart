@@ -22,9 +22,9 @@ class CustomErrorDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(
+        ElevatedButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Aceptar', style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700))
+          child: Center(child: const Text('Regresar'))
         )
       ],
     );

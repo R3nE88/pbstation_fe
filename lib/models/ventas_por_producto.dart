@@ -22,6 +22,7 @@ class VentasPorProducto {
   String toJson() => json.encode(toMap());
 
   factory VentasPorProducto.fromMap(Map<String, dynamic> json) => VentasPorProducto(
+    id: json["id"]?.toString(),
     cantidad: json['cantidad'],
     productoId: json['producto_id'],
     subTotal: Decimal.parse(json["subtotal"].toString()),

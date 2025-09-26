@@ -109,7 +109,7 @@ class SucursalesServices extends ChangeNotifier{
     notifyListeners();
   }
 
-  Future<void> eliminarSucursal(bool miSucursal) async {
+  Future<void> desvincularSucursal(bool miSucursal) async {
     final directory = await getApplicationSupportDirectory();
     final file = File('${directory.path}/config.json');
     if (kDebugMode) {
@@ -259,7 +259,7 @@ class SucursalesServices extends ChangeNotifier{
       );
       if (resp.statusCode == 204){
         deleteASucursal(id);
-        eliminarSucursal(id == sucursalActualID);
+        desvincularSucursal(id == sucursalActualID);
       }
     }
     catch (e){
@@ -271,7 +271,7 @@ class SucursalesServices extends ChangeNotifier{
 
   void deleteASucursal(String id) {
     sucursales.removeWhere((sucursal) => sucursal.id==id);
-    eliminarSucursal(id == sucursalActualID);
+    desvincularSucursal(id == sucursalActualID);
     notifyListeners();
   }
 

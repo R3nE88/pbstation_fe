@@ -89,7 +89,6 @@ class Login {
         print('Error during HTTP request: $e');
       }
     }
-
     return false;
   }
 }

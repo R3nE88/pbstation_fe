@@ -30,6 +30,7 @@ class Cajas {
   String toJson() => json.encode(toMap());
 
   factory Cajas.fromMap(Map<String, dynamic> json) => Cajas(
+    id: json["id"]?.toString(),
     folio: json["folio"],
     usuarioId: json["usuario_id"],
     sucursalId: json["sucursal_id"],

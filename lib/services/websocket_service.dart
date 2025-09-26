@@ -15,6 +15,7 @@ class WebSocketService with ChangeNotifier {
   factory WebSocketService(
     ProductosServices productosService,
     ClientesServices clientesService,
+    UsuariosServices usuariosServices,
     VentasServices ventasServices,
     VentasEnviadasServices ventasEnviadasServices,
     SucursalesServices sucursalesServices,
@@ -25,7 +26,8 @@ class WebSocketService with ChangeNotifier {
     // Guardamos servicios en la única instancia
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
-    //_instance._ventaSvc        = ventasServices;
+    _instance._usuariosSvc     = usuariosServices;
+    _instance._ventaSvc        = ventasServices;
     _instance._ventaEnviadasSvc= ventasEnviadasServices;
     _instance._sucursalSvc     = sucursalesServices;
     _instance._cotizacionesSvc = cotizacionesServices;
@@ -48,7 +50,8 @@ class WebSocketService with ChangeNotifier {
   // Servicios inyectados
   late ProductosServices _productoSvc;
   late ClientesServices _clienteSvc;
-  //late VentasServices _ventaSvc;
+  late UsuariosServices _usuariosSvc;
+  late VentasServices _ventaSvc;
   late VentasEnviadasServices _ventaEnviadasSvc;
   late SucursalesServices _sucursalSvc;
   late CotizacionesServices _cotizacionesSvc;
@@ -57,6 +60,8 @@ class WebSocketService with ChangeNotifier {
 
   // Map de comandos a handlers
   final Map<String, void Function(String)> _handlers = {};
+
+  static bool reconectandoSucursal = false;
 
   /// Construye la URL del WebSocket con o sin sucursal
   String _buildSocketUrl() {
@@ -88,9 +93,9 @@ class WebSocketService with ChangeNotifier {
         'post-cliente':      (id) => _clienteSvc.loadACliente(id),
         'put-cliente':       (id) => _clienteSvc.updateACliente(id),
         'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
-        // 'post-usuario':      (id) => _usuarioSvc.loadAUsuario(id),
-        // 'put-usuario':       (id) => _usuarioSvc.updateAUsuario(id),
-        // 'delete-usuario':    (id) => _usuarioSvc.deleteAUsuario(id),
+        'post-usuario':      (id) => _usuariosSvc.loadAUsuario(id),
+        'put-usuario':       (id) => _usuariosSvc.updateAUsuario(id),
+        'delete-usuario':    (id) => _usuariosSvc.deleteAUsuario(id),
         'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
         'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
         'delete-sucursal':   (id) => _sucursalSvc.deleteASucursal(id),
@@ -105,6 +110,7 @@ class WebSocketService with ChangeNotifier {
         'post-contadores':   (id) => _impresoraSvc.loadUltimoContador(id),
         'put-contadores':    (id) => _impresoraSvc.loadUltimoContador(id),
         'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
+        'delete-venta-deuda':   (id) => _ventaSvc.removeAVentaDeuda(id),
         /*'post-venta':        (id) => _ventaSvc.loadAVenta(id),
         'put-venta':         (id) => _ventaSvc.updateAVenta(id),*/
         
@@ -174,16 +180,20 @@ class WebSocketService with ChangeNotifier {
   /// Reconectar con nueva sucursal (útil cuando cambia la sucursal activa)
   Future<void> _reconectarConSucursal() async {
     if (kDebugMode) print('Reconectando WebSocket con nueva sucursal...');
+    reconectandoSucursal = true;
     desconectar();
     await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
     await conectar();
+    reconectandoSucursal = false;
   }
 
   Future<void> _reconectarSinSucursal() async {
     if (kDebugMode) print('Reconectando WebSocket...');
+    reconectandoSucursal = true;
     desconectar();
     await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
     await conectar();
+    reconectandoSucursal = false;
   }
 
   /// Método estático para reconectar desde fuera de la clase
@@ -282,10 +292,3 @@ class WebSocketService with ChangeNotifier {
     // podrías llamar notifyListeners() si hace falta.
   }
 }
-
-
-
-
-
-
-//TODO: probar web socket de impresoras/contadores

@@ -26,6 +26,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
   final _fondotxt = TextEditingController();
   bool _cajaNotFound=false;
   bool _fondoReady=false;
+  bool _loadingToComplete = false;
 
   @override
   void initState() {
@@ -40,8 +41,67 @@ class _AbrirCajaState extends State<AbrirCaja> {
     super.dispose();
   }
 
+  void abrirCaja(List<TextEditingController> controllers) async {
+    setState(() {_loadingToComplete=true;});
+    final cajaSvc = Provider.of<CajasServices>(context, listen: false);
+    final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+
+    // Actualizar Contadores
+    final contadoresMap = Map.fromIterables(
+      impresoraSvc.impresoras.map((impresora) => impresora.id!),
+      controllers.map((ctrl) => int.tryParse(ctrl.text.replaceAll(',', '').trim()) ?? 0),
+    );
+
+    for (var element in contadoresMap.entries) {
+      if (element.value > 0) {
+        await impSvc.actualzarContador(element.key, element.value);
+      }
+    }
+
+    String fa = DateTime.now().toIso8601String();
+
+    late Cajas nuevaCaja;
+    if (CajasServices.cajaActual == null) {
+      nuevaCaja = Cajas(
+        usuarioId: Login.usuarioLogeado.id!,
+        sucursalId: SucursalesServices.sucursalActualID!,
+        fechaApertura: fa,
+        estado: "abierta",
+        cortesIds: [],
+        tipoCambio: Configuracion.dolar,
+      );
+    }
+
+    Cortes corte = Cortes(
+      usuarioId: Login.usuarioLogeado.id!,
+      sucursalId: SucursalesServices.sucursalActualID!,
+      fondoInicial: Decimal.parse(_fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
+      fechaApertura: fa,
+      movimientoCaja: [],
+      ventasIds: [],
+    );
+
+    if (CajasServices.cajaActual == null) {
+      await cajaSvc.createCaja(nuevaCaja);
+    }
+    await cajaSvc.createCorte(corte);
+
+    if (widget.metodo != null) widget.metodo!();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (SucursalesServices.sucursalActualID==null){
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Necesitas tener una sucursal vinculada a esta terminal\npara acceder a esta pantalla.', style: AppTheme.tituloPrimario, textAlign: TextAlign.center)
+        ],
+      );
+    }
+
+
     if(_cajaNotFound==true){
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -213,7 +273,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                     ...List.generate(impresoraSvc.impresoras.length, (index) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: TextFormField(
+                        child: !_loadingToComplete ? TextFormField(
                           controller: controllers[index],
                           autofocus: index==0 ? true : false,
                           decoration: InputDecoration(
@@ -222,85 +282,12 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           inputFormatters: [ NumericFormatter() ],
                           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                           maxLength: 12,
-                        ),
+                        ) : const SizedBox(),
                       );
                     }), const SizedBox(height: 8),
                 
-                
-                    ElevatedButton(
-                      onPressed: () async{
-                        // Mostrar loading y guardar el context del dialog
-                        BuildContext? dialogContext;
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) {
-                            dialogContext = ctx;
-                            return Stack(
-                              alignment: Alignment.topRight,
-                              children: [
-                                const Center(child: CircularProgressIndicator()),
-                                const WindowBar(overlay: true),
-                              ],
-                            );
-                          },
-                        );
-
-                        try {
-                          final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-                          final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
-
-                          //Actualiar Contadores
-                          final contadoresMap = Map.fromIterables(
-                            impresoraSvc.impresoras.map((impresora) => impresora.id!),
-                            controllers.map((ctrl) => int.tryParse(ctrl.text.replaceAll(',', '').trim()) ?? 0),
-                          );
-                          for (var element in contadoresMap.entries) {
-                            if (element.value>0){
-                              await impSvc.actualzarContador(element.key, element.value);
-                            }
-                          }
-
-                          String fa = DateTime.now().toIso8601String();
-
-                          late Cajas nuevaCaja;
-                          if (CajasServices.cajaActual==null){
-                            nuevaCaja = Cajas(
-                              usuarioId: Login.usuarioLogeado.id!,
-                              sucursalId: SucursalesServices.sucursalActualID!,
-                              fechaApertura: fa,
-                              estado: "abierta",
-                              cortesIds: [],
-                              tipoCambio: Configuracion.dolar,
-                            );
-                          }
-
-                          Cortes corte = Cortes(
-                            usuarioId: Login.usuarioLogeado.id!,
-                            sucursalId: SucursalesServices.sucursalActualID!,
-                            fondoInicial: Decimal.parse(_fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
-                            fechaApertura: fa,
-                            movimientoCaja: [],
-                            ventasIds: [],
-                          );
-
-                          if (CajasServices.cajaActual==null){
-                            await cajaSvc.createCaja(nuevaCaja);
-                          }
-                          await cajaSvc.createCorte(corte);
-                          if(widget.metodo!=null) widget.metodo!();
-
-                        } catch (e) {
-                          debugPrint('Error al abrir caja: $e');
-                        } finally {
-                          // Cerrar el loading usando el context del dialog
-                          if (dialogContext!.mounted){
-                            Navigator.pop(dialogContext!);
-                          }
-                        }
-
-                        
-                      }, 
+                    !_loadingToComplete ? ElevatedButton(
+                      onPressed: () => abrirCaja(controllers),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -308,7 +295,8 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           Icon(Icons.point_of_sale)
                         ],
                       ),
-                    )
+                    ) : const SimpleLoading()
+                    
                   ]
                 ),
               )

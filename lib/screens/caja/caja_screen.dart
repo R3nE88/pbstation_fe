@@ -19,7 +19,6 @@ class CajaScreen extends StatefulWidget {
 }
 
 class _CajaScreenState extends State<CajaScreen> {
-  Cajas? _caja;
   List<Ventas> _ventasParaMostrar = [];
 
   @override
@@ -31,7 +30,6 @@ class _CajaScreenState extends State<CajaScreen> {
   }
 
   void datosIniciales(){
-    _caja = CajasServices.cajaActual;
     final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
     ventasSvc.loadVentasDeCaja().whenComplete(
       () {
@@ -60,7 +58,7 @@ class _CajaScreenState extends State<CajaScreen> {
       final cajaSvc = Provider.of<CajasServices>(context, listen: false);
       Loading.displaySpinLoading(context);
       List<String> ventasIds = cajaSvc.cortesDeCaja.firstWhere((element) => element.id == opcion.values.first).ventasIds;
-      _ventasParaMostrar = await ventaSvc.loadVentasDeCortes(ventasIds);      //await ventaSvc.loadVentasDeCorte(opcion.values.first) ?? []; //TODO que no sea https
+      _ventasParaMostrar = await ventaSvc.loadVentasDeCortes(ventasIds);
       setState(() {});
       if (!mounted) return;
       Navigator.pop(context);
@@ -97,44 +95,35 @@ class _CajaScreenState extends State<CajaScreen> {
           return SimpleLoading();
         }
 
-        return Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
-          child: Container(
-            color: AppTheme.containerColor1,
-            child: Padding(
-              padding: const EdgeInsets.all(15),
-              child: Column(
-                children: [
-                  
-                  //Header
-                  _Header(
-                    total: sumarTotal(_ventasParaMostrar),
-                    onFiltroCambio: (value) => filtrarVentasPor(value),
-                  ), 
-
-                  //Body
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _TablaHeader(),
-                        Expanded(
-                          child: Container(
-                            color: _ventasParaMostrar.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-                            child: ListView.builder(
-                              itemCount: _ventasParaMostrar.length,
-                              itemBuilder: (context, index) {
-                                return _FilaVentas(index: index, venta: _ventasParaMostrar[index]);
-                              },
-                            ),
-                          ),
+        return BodyPadding(
+          child: Column(
+            children: [
+              //Header
+              _Header(
+                total: sumarTotal(_ventasParaMostrar),
+                onFiltroCambio: (value) => filtrarVentasPor(value),
+              ), 
+              //Body
+              Expanded(
+                child: Column(
+                  children: [
+                    _TablaHeader(),
+                    Expanded(
+                      child: Container(
+                        color: _ventasParaMostrar.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                        child: ListView.builder(
+                          itemCount: _ventasParaMostrar.length,
+                          itemBuilder: (context, index) {
+                            return _FilaVentas(index: index, venta: _ventasParaMostrar[index]);
+                          },
                         ),
-                        _TablaFooter(total: _ventasParaMostrar.length)
-                      ],
-                    )
-                  ),
-                ],
-              )
-            )
+                      ),
+                    ),
+                    _TablaFooter(total: _ventasParaMostrar.length)
+                  ],
+                )
+              ),
+            ],
           )
         );
       }

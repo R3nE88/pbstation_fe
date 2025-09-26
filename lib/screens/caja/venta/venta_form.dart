@@ -293,6 +293,7 @@ class _VentaFormState extends State<VentaForm> {
                 descuento: formatearEntrada(_totalDescuentoController.text),
                 iva: formatearEntrada(_totalIvaController.text),
                 total: formatearEntrada(_totalController.text), 
+                recibidoTotal: Decimal.zero,
                 //abonadoTotal: Decimal.parse("0"),
                 //cambio: Decimal.parse("0"),
                 liquidado: false, 
@@ -576,6 +577,7 @@ class _VentaFormState extends State<VentaForm> {
                           const Text(' Fecha de Entrega:', style: AppTheme.subtituloPrimario),
                           const SizedBox(height: 2),
                           Container(
+                            height: 40,
                             decoration: BoxDecoration(
                               color: const Color.fromARGB(43, 255, 255, 255),
                               border: Border.all(color: AppTheme.letraClara),
@@ -621,6 +623,7 @@ class _VentaFormState extends State<VentaForm> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
+                                height: 40,
                                 decoration: BoxDecoration(
                                   color: const Color.fromARGB(43, 255, 255, 255),
                                   border: Border.all(color: AppTheme.letraClara),
@@ -1032,11 +1035,13 @@ class _VentaFormState extends State<VentaForm> {
                                     child: IconButton(
                                       onPressed: () async{
                                         bool? permiso = await mostrarDialogoPermiso(context);
-                                        if (permiso == true) {
-                                          setState(() {
-                                            _permisoDeAdmin=true;
-                                            VentasStates.tabs[widget.index].permisoDeAdmin=true;
-                                          });
+                                        if (permiso!=null){
+                                          if (permiso == true) {
+                                            setState(() {
+                                              _permisoDeAdmin=true;
+                                              VentasStates.tabs[widget.index].permisoDeAdmin=true;
+                                            });
+                                          }
                                         }
                                       }, 
                                       icon: Transform.translate(
@@ -1142,8 +1147,8 @@ class _VentaFormState extends State<VentaForm> {
                           DetallesVenta detalle = DetallesVenta(
                             productoId: _productoSelected!.id!,
                             cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
-                            ancho: Decimal.parse(_anchoController.text), 
-                            alto: Decimal.parse(_altoController.text), 
+                            ancho: double.parse(_anchoController.text), 
+                            alto: double.parse(_altoController.text), 
                             comentarios: _comentarioController.text,
                             descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
                             descuentoAplicado: _descuentoAplicado,
@@ -1152,17 +1157,7 @@ class _VentaFormState extends State<VentaForm> {
                           );
               
                           _productos.add(_productoSelected!);
-            
-                          //FocusScope.of(context).previousFocus();
-                          /*FocusScope.of(context).previousFocus();
-                          FocusScope.of(context).previousFocus();
-                          FocusScope.of(context).previousFocus();
-                          
-                          if (productoSelected!.requiereMedida){
-                            FocusScope.of(context).previousFocus();
-                            FocusScope.of(context).previousFocus();
-                          }*/
-            
+                        
                           setState(() {
                             _detallesError = false;
                             _detallesVenta.add(detalle);

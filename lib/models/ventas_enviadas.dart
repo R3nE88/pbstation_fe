@@ -41,6 +41,7 @@ class VentasEnviadas {
   String toJson() => json.encode(toMap());
 
   factory VentasEnviadas.fromMap(Map<String, dynamic> json) => VentasEnviadas(
+    id: json["id"]?.toString(),
     clienteId: json["cliente_id"],
     usuarioId: json["usuario_id"],
     usuarioNombre: json["usuario"],

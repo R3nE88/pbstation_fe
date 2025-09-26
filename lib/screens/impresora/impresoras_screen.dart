@@ -17,44 +17,27 @@ class ImpresorasScreen extends StatelessWidget {
     final imprSvc = Provider.of<ImpresorasServices>(context, listen: false);
     imprSvc.loadImpresoras(true);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.containerColor1,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            children: [
-
-              _buildHeader(),
-
-              Consumer<ImpresorasServices>(
-                builder: (context, value, child) {  
-                  /*if (!value.ultimosContadoresLoaded) {
-                    return const SizedBox();
-                  }*/
-
-                  return Expanded(
-                    child: GridView.count(
-                      crossAxisCount: screenSize < 1300 ? 3 : 4,
-                      childAspectRatio: 3,
-                      children: List.generate(value.impresoras.length+1, (index) {
-                        if (index==0 && Login.admin) return AgregarImpresora();
-                        final contador = value.ultimosContadores[value.impresoras[index-1].id];
-                        return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
-                      })
-                    ),
-                  );
-                },
-              )
-
-
-            ],
+    return BodyPadding(
+      hasSubModules: false,
+      child: Column(
+        children: [
+          _buildHeader(),
+          Consumer<ImpresorasServices>(
+            builder: (context, value, child) {  
+              return Expanded(
+                child: GridView.count(
+                  crossAxisCount: screenSize < 1300 ? 3 : 4,
+                  childAspectRatio: 3,
+                  children: List.generate(value.impresoras.length+1, (index) {
+                    if (index==0 && Login.admin) return AgregarImpresora();
+                    final contador = value.ultimosContadores[value.impresoras[index-1].id];
+                    return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
+                  })
+                ),
+              );
+            },
           )
-        )
+        ],
       )
     );
   }

@@ -37,6 +37,7 @@ class Cotizaciones {
   String toJson() => json.encode(toMap());
 
   factory Cotizaciones.fromMap(Map<String, dynamic> json) => Cotizaciones(
+    id: json["id"]?.toString(),
     folio: json["folio"],
     clienteId: json["cliente_id"],
     usuarioId: json["usuario_id"],

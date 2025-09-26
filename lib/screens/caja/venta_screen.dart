@@ -134,8 +134,8 @@ class _VentaScreenState extends State<VentaScreen> {
                   decoration: BoxDecoration(
                     color: AppTheme.containerColor1,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(15),
-                      topRight: Radius.circular(15),
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10),
                     )
                   ),
                   height: 26,
@@ -377,7 +377,7 @@ class AdvertenciaSucursal extends StatelessWidget {
                   TextSpan(text: 'Catálogo', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
                   TextSpan(text: ' > ', style: AppTheme.subtituloPrimario,),
                   TextSpan(text: 'Sucursales', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
-                  TextSpan(text: '  con una cuenta de administradory asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
+                  TextSpan(text: '  con una cuenta de administrador y asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
                 ],
               ),
             )

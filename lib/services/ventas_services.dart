@@ -10,7 +10,9 @@ class VentasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
   List<Ventas> ventasDeCaja = [];
   List<Ventas> ventasDeCorteActual = [];
+  List<Ventas> ventasConDeuda = [];
   bool isLoading = false;
+  bool adeudoLoading = false;
   bool loaded = false;
   bool ventasCorteActualLoaded = false;
   bool ventasDeCorteLoading = false;
@@ -123,9 +125,8 @@ class VentasServices extends ChangeNotifier{
     return ventasPorProducto;
   }
 
-  Future<String> createVenta(Ventas venta) async {
+  Future<Ventas?> createVenta(Ventas venta) async {
     isLoading = true;
-
     try {
       final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}');
       final resp = await http.post(
@@ -145,21 +146,110 @@ class VentasServices extends ChangeNotifier{
         //Añadir venta a corte actual
         CajasServices.corteActual!.ventasIds.add(nuevo.id!);
 
-        if (kDebugMode) {
-          print('venta creada!');
-        }
-        return data['folio'];
+        isLoading = false;
+        notifyListeners();
+        return nuevo;
       } else {
         debugPrint('Error al crear venta: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en createVenta: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<Ventas?> pagarDeuda(Ventas venta, String id) async {
+    isLoading = true;
+    venta.id = id;
+
+    try {
+      final url = Uri.parse('${_baseUrl}deuda');
+      final resp = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        body: venta.toJson(),
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final updatedVenta = Ventas.fromMap(data);
+        updatedVenta.id = data['id']?.toString();
+
+        // Actualizar en ventasDeCaja y ventasDeCorteActual
+        final listasToUpdate = [ventasDeCaja, ventasDeCorteActual];
+        for (final lista in listasToUpdate) {
+          final index = lista.indexWhere((venta) => venta.id == updatedVenta.id);
+          if (index != -1) {
+            lista[index] = updatedVenta;
+          }
+        }
+
+        // Remover de ventasConDeuda si existe
+        ventasConDeuda.removeWhere((venta) => venta.id == updatedVenta.id);
+
+        notifyListeners();
+        return updatedVenta;
+      }else {
+        debugPrint('Error al actualizar venta: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
     } catch (e) {
-      debugPrint('Exception en createVenta: $e');
-      return 'Hubo un problema al crear la venta.\n$e';
+      debugPrint('Exception en updateVenta: $e');
+      return null;
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  void removeAVentaDeuda(String id)async{
+    ventasConDeuda.removeWhere((venta) => venta.id==id);
+    notifyListeners();
+  }
+
+  Future<void> loadAdeudos(List<Clientes> adeudados, String? sucursalId) async{
+    adeudoLoading = true;
+    ventasConDeuda.clear();
+    List<String> ventasIds = [];
+    for (var adeudado in adeudados) {
+      for (var adeudo in adeudado.adeudos) {
+        ventasIds.add(adeudo.ventaId);
+      }
+    }
+     try {
+      late final Uri url;
+      if (sucursalId==null){
+        url = Uri.parse('${_baseUrl}por-id');
+      } else {
+        url = Uri.parse('${_baseUrl}por-id?sucursal_id=$sucursalId');
+      }
+       
+      final resp = await http.post(
+        url, 
+        headers: {
+          "tkn": Env.tkn, 
+          "Content-Type": "application/json",
+        }, 
+        body: json.encode(ventasIds)
+      );
+      final List<dynamic> listaJson = json.decode(resp.body);
+      ventasConDeuda = listaJson.map<Ventas>((jsonElem) {
+        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+        x.id = (jsonElem as Map)["id"]?.toString();
+        return x;
+      }).toList();
+    } catch (e) {
+      isLoading = false;
+      notifyListeners();
+    }
+
+    adeudoLoading = false;
+    notifyListeners();
   }
 }
