@@ -32,9 +32,11 @@ class Ventas {
     this.abonadoTrans,
     Decimal? abonadoTotal,
     Decimal? cambio,
-    required this.liquidado
+    required this.liquidado,
+    bool? wasDeuda,
   })  : abonadoTotal = abonadoTotal ?? Decimal.parse("0"),
-        cambio = cambio ?? Decimal.parse("0");
+        cambio = cambio ?? Decimal.parse("0"),
+        wasDeuda = wasDeuda ?? false;
 
   String? id;
   String? folio;
@@ -65,6 +67,7 @@ class Ventas {
   Decimal abonadoTotal; 
   Decimal cambio;
   bool liquidado;
+  bool wasDeuda;
 
   factory Ventas.fromJson(String str) => Ventas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -97,10 +100,11 @@ class Ventas {
     abonadoMxn: json["abonado_mxn"]!=null ? Decimal.tryParse(json["abonado_mxn"]): null, 
     abonadoUs: json["abonado_us"]!=null ? Decimal.tryParse(json["abonado_us"]): null, 
     abonadoTarj: json["abonado_tarj"]!=null ? Decimal.tryParse(json["abonado_tarj"]): null, 
-    abonadoTrans: json["abonado_trans"]!=null ? Decimal.tryParse(json["abonado_trans"]): null, 
+    abonadoTrans: json["abonado_trans"]!=null ? Decimal.tryParse(json["abonado_trans"]): null,
     abonadoTotal: Decimal.parse(json["abonado_total"]), 
     cambio: Decimal.parse(json["cambio"]), 
     liquidado: json["liquidado"],
+    wasDeuda: json["was_deuda"],
   );
 
   Map<String, dynamic> toMap() => {
@@ -133,5 +137,6 @@ class Ventas {
     "abonado_total": abonadoTotal,
     "cambio": cambio,
     "liquidado":liquidado,
+    "was_deuda":wasDeuda,
   };
 }

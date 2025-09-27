@@ -176,13 +176,11 @@ class CajasServices extends ChangeNotifier{
         final nuevo = Cortes.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        //Guardar como caja actual la recien creada.
+        //Guardar como corte actual la recien creada.
         corteActual = nuevo;
         corteActualId = corteActual!.id;
         cajaActual!.cortesIds.add(corteActualId!);
         cortesDeCaja.add(nuevo);
-        /*final prefs = await SharedPreferences.getInstance();
-        prefs.setString('caja_id', cajaActualId!);*/
 
         if (kDebugMode) {
           print('corte creado!');

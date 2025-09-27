@@ -256,7 +256,7 @@ class ClientesServices extends ChangeNotifier{
 
   Future<void> quitarDeuda(String ventaId, String clienteId) async{
     try {
-      final url = Uri.parse('${_baseUrl}adeudos/$ventaId');
+      final url = Uri.parse('$_baseUrl$clienteId/adeudos/$ventaId');
       final resp = await http.delete(
         url, headers: {"tkn": Env.tkn}
       );

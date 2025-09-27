@@ -140,7 +140,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       colonia: _controllers['colonia']!.text.isEmpty ? null : _controllers['colonia']!.text,
       localidad: localidad,
       regimenFiscal: _regimenFiscal, 
-      adeudos: [],
+      adeudos: widget.cliEdit==null ? [] : widget.cliEdit!.adeudos,
     );
 
     final respuesta = widget.cliEdit == null

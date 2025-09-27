@@ -149,7 +149,7 @@ class Ticket {
     return bytes;
   }
 
-  static Future<List<int>> _generarTicketDeudaPagada(BuildContext context, Ventas venta, String folio) async {
+  static Future<List<int>> _generarTicketDeudaPagada(BuildContext context, Ventas venta, String folio, Map<String, double> datosDeuda) async {
     // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
@@ -186,6 +186,9 @@ class Ticket {
         styles: PosStyles(align: PosAlign.right, bold: false));
     bytes += generator.text(clienteSvc.obtenerNombreClientePorId(venta.clienteId),
         styles: PosStyles(align: PosAlign.left, bold: false));
+    bytes += generator.text('',);
+    bytes += generator.text('Liquidacion de cuenta',
+        styles: PosStyles(align: PosAlign.center, bold: true));
 
     // Body: Itemized purchase list (using columns)
     bytes += generator.hr(); // horizontal rule
@@ -208,11 +211,16 @@ class Ticket {
     bytes += generator.hr(); // horizontal rule
 
     // Total
-    bytes += generator.text('Pagado anteriormente: ${Formatos.pesos.format(venta.total.toDouble())}',
+    bytes += generator.text('Total: ${Formatos.pesos.format(venta.total.toDouble())}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Pago: ${Formatos.pesos.format(venta.recibidoTotal.toDouble())}',
+    bytes += generator.text('Pagado Anteriormente: ${Formatos.pesos.format(datosDeuda["anterior_recibido"])}',
         styles: PosStyles(align: PosAlign.right, bold: true));
-    bytes += generator.text('Su Cambio: ${Formatos.pesos.format(venta.cambio.toDouble())}',
+    bytes += generator.hr(); // horizontal rule
+    bytes += generator.text('Recibido: ${Formatos.pesos.format(datosDeuda["deuda_recibido"])}',
+        styles: PosStyles(align: PosAlign.right, bold: true));
+    bytes += generator.text('Pago: ${Formatos.pesos.format(datosDeuda["deuda_total"])}',
+        styles: PosStyles(align: PosAlign.right, bold: true));
+    bytes += generator.text('Su Cambio: ${Formatos.pesos.format(datosDeuda["deuda_cambio"])}',
         styles: PosStyles(align: PosAlign.right, bold: true));
 
     // QR Code at the end (e.g., link to survey)
@@ -341,6 +349,7 @@ class Ticket {
         salida += Decimal.parse(movimiento.monto.toString());
       }
     } 
+    
     Decimal abonadoMxn = Decimal.parse("0");
     Decimal abonadoUs = Decimal.parse("0");
     Decimal abonadoTarjD = Decimal.parse("0");
@@ -544,7 +553,7 @@ class Ticket {
     }
   }
 
-  static void imprimirTicketDeudaPagada(context, venta, folio) async{
+  static void imprimirTicketDeudaPagada(context, venta, folio, datosDeuda) async{
     if (Configuracion.impresora != 'null') {
       bool connected = await PrintUsb.connect(name: Configuracion.impresora);
       UsbDevice device = UsbDevice(
@@ -555,7 +564,7 @@ class Ticket {
       );
       if (connected) {
         cargarServices(context);
-        List<int> bytes = await _generarTicketDeudaPagada(context, venta, folio);
+        List<int> bytes = await _generarTicketDeudaPagada(context, venta, folio, datosDeuda);
         await PrintUsb.printBytes(bytes: bytes, device: device);
         // Check success...
         //await PrintUsb.close();

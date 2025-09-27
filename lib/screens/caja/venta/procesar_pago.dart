@@ -286,22 +286,24 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
     
-    bool liquidado = formatearEntrada(_abonarCtrl.text) - widget.venta.total.toDouble() == 0;
-    Decimal abonadoMx = Decimal.parse("0");
-    Decimal abonadoUs = Decimal.parse("0");
-    Decimal abonadoTarj = Decimal.parse("0");
-    Decimal abonadoTrans = Decimal.parse("0");
-    if (liquidado == false){
-      abonadoMx = Decimal.parse(_efectivoImporte.toString());
-      abonadoUs = Decimal.parse(_dolarImporte.toString());
-      abonadoTarj = Decimal.parse(_tarjetaImporte.toString());
-      abonadoTrans = Decimal.parse(_transferenciaImporte.toString());
+    Decimal? abonadoMx;
+    Decimal? abonadoUs;
+    Decimal? abonadoTarj;
+    Decimal? abonadoTrans;
+    if (_endeudar == true){
+      //Si no liquido, significa que queda debiendo, asi que el importe = abonado
+      abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
+      abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+      abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
+      abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
     } else {
-      abonadoUs = Decimal.parse(_dolarImporte.toString());
-      abonadoTarj = Decimal.parse(_tarjetaImporte.toString());
-      abonadoTrans = Decimal.parse(_transferenciaImporte.toString());
-      abonadoMx = Decimal.parse(_efectivoImporte.toString());
-      abonadoMx = abonadoMx - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+      //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
+      abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+      abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
+      abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
+      abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
+      abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+      abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
     }
 
     Ventas nuevaVenta = Ventas(
@@ -329,13 +331,23 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       abonadoUs: abonadoUs,
       abonadoTarj: abonadoTarj,
       abonadoTrans: abonadoTrans,
-      abonadoTotal: Decimal.parse(formatearEntrada(_abonarCtrl.text).toString()),
+      abonadoTotal: (abonadoMx??Decimal.zero) + (abonadoUs??Decimal.zero) + (abonadoTarj??Decimal.zero) + (abonadoTrans??Decimal.zero),
       cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),    
-      liquidado: liquidado
+      liquidado: !_endeudar,
+      wasDeuda: _endeudar
     );
     nuevaVenta.recibidoTotal = (nuevaVenta.recibidoMxn??Decimal.zero) + (nuevaVenta.recibidoTarj??Decimal.zero) + (nuevaVenta.recibidoTrans??Decimal.zero) + (nuevaVenta.recibidoUs??Decimal.zero);
+
+    //Realizar venta
     Ventas? venta = await ventasServices.createVenta(nuevaVenta);
-    String folio = venta!.folio!;
+    if (venta==null) return;
+
+    //Guardar venta a corte
+    if (!mounted) return;
+    var corte = Provider.of<CajasServices>(context, listen: false)
+    .cortesDeCaja
+    .firstWhere((element) => element.id == CajasServices.corteActual!.id);
+    if (!corte.ventasIds.contains(venta.id!)) { corte.ventasIds.add(venta.id!); }
 
     //Enduedar cliente
     if (_endeudar){
@@ -356,6 +368,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     Navigator.pop(context, true);
     
     //Ventana  de venta realizada
+    String folio = venta.folio!;
     await showDialog(
       context: context,
       builder: (context) => Stack(
@@ -380,12 +393,19 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
     
-    Decimal abonadoMx = Decimal.parse(_efectivoImporte.toString());
-    Decimal abonadoUs = Decimal.parse(_dolarImporte.toString());
-    Decimal abonadoTarj = Decimal.parse(_tarjetaImporte.toString());
-    Decimal abonadoTrans = Decimal.parse(_transferenciaImporte.toString()); 
-    abonadoMx = abonadoMx - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+    Decimal? abonadoMx;
+    Decimal? abonadoUs;
+    Decimal? abonadoTarj;
+    Decimal? abonadoTrans;
 
+    //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
+    abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+    abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
+    abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
+    abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
+    abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+    abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
+    
     Ventas deudaPagada = Ventas(
       clienteId: widget.venta.clienteId,
       usuarioId: widget.venta.usuarioId,
@@ -394,7 +414,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       pedidoPendiente: widget.venta.pedidoPendiente,
       fechaEntrega: widget.venta.fechaEntrega,
       detalles: widget.venta.detalles,
-      fechaVenta: DateTime.now().toIso8601String(),//widget.venta.fechaVenta,
+      fechaVenta: DateTime.now().toIso8601String(),
       comentariosVenta: widget.venta.comentariosVenta,
       subTotal: widget.venta.subTotal,
       descuento: widget.venta.descuento,
@@ -403,43 +423,54 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       tipoTarjeta: _tarjeta ? _tipoTarjetaSeleccionado : null,
       referenciaTarj: _tarjetaRefCtrl.text,
       referenciaTrans: _transRefCtrl.text,
-      recibidoMxn: _efectivoImporte!=0 ? (widget.venta.recibidoMxn??Decimal.zero) + Decimal.parse(_efectivoImporte.toString()) : widget.venta.recibidoMxn,
-      recibidoUs:_dolarImporte!=0 ? (widget.venta.recibidoUs??Decimal.zero) + Decimal.parse(_dolarImporte.toString()) : widget.venta.recibidoUs,
-      recibidoTarj:_tarjetaImporte!=0 ? (widget.venta.recibidoTarj??Decimal.zero) + Decimal.parse(_tarjetaImporte.toString()) : widget.venta.recibidoTarj,
-      recibidoTrans:_transferenciaImporte!=0 ? (widget.venta.recibidoTrans??Decimal.zero) + Decimal.parse(_transferenciaImporte.toString()) : widget.venta.recibidoTrans,
+      recibidoMxn: _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null,
+      recibidoUs:_dolarImporte!=0 ? Decimal.parse(_dolarImporte.toString()) : null,
+      recibidoTarj:_tarjetaImporte!=0 ? Decimal.parse(_tarjetaImporte.toString()) : null,
+      recibidoTrans:_transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null,
       recibidoTotal: widget.venta.recibidoTotal,
-      abonadoMxn: abonadoMx + (widget.venta.abonadoMxn ?? Decimal.zero),
-      abonadoUs: abonadoUs + (widget.venta.abonadoUs ?? Decimal.zero),
-      abonadoTarj: abonadoTarj + (widget.venta.abonadoTarj ?? Decimal.zero),
-      abonadoTrans: abonadoTrans + (widget.venta.abonadoTrans ?? Decimal.zero),
-      abonadoTotal: widget.venta.total,
-      cambio: widget.venta.cambio + Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),    
-      liquidado: true
+      abonadoMxn: abonadoMx,
+      abonadoUs: abonadoUs,
+      abonadoTarj: abonadoTarj,
+      abonadoTrans: abonadoTrans,
+      abonadoTotal: widget.venta.abonadoTotal,
+      cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),    
+      liquidado: true,
+      wasDeuda: true
     );
     deudaPagada.recibidoTotal = (deudaPagada.recibidoMxn??Decimal.zero) + (deudaPagada.recibidoUs??Decimal.zero) + (deudaPagada.recibidoTarj??Decimal.zero) + (deudaPagada.recibidoTrans??Decimal.zero);
+    deudaPagada.abonadoTotal = (deudaPagada.abonadoMxn??Decimal.zero) + (deudaPagada.abonadoUs??Decimal.zero) + (deudaPagada.abonadoTarj??Decimal.zero) + (deudaPagada.abonadoTrans??Decimal.zero);
     
-
-    Map<String, dynamic> pagoAnterior = {
-      "recibido_total": widget.venta.recibidoTotal,
-      //""
+    Map<String, double> datosDeuda = {
+      "deuda_recibido": deudaPagada.recibidoTotal.toDouble(),
+      "deuda_total": widget.deudaMonto,
+      "deuda_cambio": formatearEntrada(_cambioCtrl.text),
+      "anterior_recibido": widget.venta.recibidoTotal.toDouble()
     };
     
-    //Ventas? venta = await ventasServices.pagarDeuda(deudaPagada, widget.venta.id!);
-    String folio = 'las filipinas xd';//venta!.folio!;
+    //Realizar venta
+    Ventas? venta = await ventasServices.pagarDeuda(deudaPagada, widget.venta.id!);
+    if (venta==null) return;
 
+    //Guardar venta en corte
     if (!mounted) return;
-    //await Provider.of<ClientesServices>(context, listen: false).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
+    var corte = Provider.of<CajasServices>(context, listen: false)
+    .cortesDeCaja
+    .firstWhere((element) => element.id == CajasServices.corteActual!.id);
+    if (!corte.ventasIds.contains(venta.id!)) { corte.ventasIds.add(venta.id!); }
+    
+    if (!mounted) return;
+    await Provider.of<ClientesServices>(context, listen: false).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
 
     if (!mounted) return;
     Navigator.pop(context, true);
-
     
+    String folio = venta.folio!;
     await showDialog(
       context: context,
       builder: (context) => Stack(
         alignment: Alignment.topRight,
         children: [
-          VentaRealizadaDialog(venta: deudaPagada, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), isDeuda:true),
+          VentaRealizadaDialog(venta: deudaPagada, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), isDeuda:true, datosDeuda: datosDeuda),
           const WindowBar(overlay: true),
         ],
       )
@@ -966,23 +997,24 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
 class VentaRealizadaDialog extends StatelessWidget {
   const VentaRealizadaDialog({
-    super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false
+    super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false, this.datosDeuda
   });
 
   final Ventas venta;
   final String folio;
   final double adeudo;
   final bool isDeuda;
+  final Map<String, double>? datosDeuda;
 
   @override
   Widget build(BuildContext context) {
     FocusNode boton = FocusNode();
 
     //imprimir ticket, abrir caja
-    isDeuda ?
+    !isDeuda ?
     Ticket.imprimirTicketVenta(context, venta, folio)
     : 
-    Ticket.imprimirTicketDeudaPagada(context, venta, folio);
+    Ticket.imprimirTicketDeudaPagada(context, venta, folio, datosDeuda);
     
     Row formField(String mensaje, double value, InputDecoration decoration) {
       return Row(
@@ -1006,7 +1038,9 @@ class VentaRealizadaDialog extends StatelessWidget {
       );
     }
     
-    return AlertDialog(
+    
+    //si no es deuda
+    return !isDeuda ? AlertDialog(
       backgroundColor: AppTheme.containerColor2,
       title: Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
       content: Column(
@@ -1019,6 +1053,30 @@ class VentaRealizadaDialog extends StatelessWidget {
           venta.cambio.toDouble() == 0 
           ? formField('Adeudo:',  adeudo, AppTheme.inputDecorationWaringGrave)
           : formField('Cambio:', venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          autofocus: true,
+          style: AppTheme.botonSecundarioStyle,
+          focusNode: boton,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))
+        )
+      ],
+    ) 
+    : //Si si es deuda
+    AlertDialog(
+      backgroundColor: AppTheme.containerColor2,
+      title: Center(child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85))),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          formField('Recibido:', datosDeuda!["deuda_recibido"]!, AppTheme.inputDecorationSeccess),
+          const SizedBox(height: 15),
+          formField('Total:', datosDeuda!["deuda_total"]!, AppTheme.inputDecorationCustom), 
+          const SizedBox(height: 15),
+          formField('Cambio:', datosDeuda!["deuda_cambio"]!, AppTheme.inputDecorationWaring),           
         ],
       ),
       actions: [

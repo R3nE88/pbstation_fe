@@ -24,7 +24,7 @@ class _CajaScreenState extends State<CajaScreen> {
   @override
   void initState() {
     super.initState();
-    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActual != null) {
+    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActualId != null) {
       datosIniciales();
     }
   }
@@ -45,7 +45,7 @@ class _CajaScreenState extends State<CajaScreen> {
   Decimal sumarTotal (List<Ventas> ventas){
     Decimal sumaTotal = Decimal.zero;
     for (var venta in ventas) {
-      sumaTotal += venta.total;
+      sumaTotal += venta.abonadoTotal;
     }
     return sumaTotal;
   }
@@ -87,7 +87,7 @@ class _CajaScreenState extends State<CajaScreen> {
     return Consumer3<UsuariosServices, VentasServices, CajasServices>(
       builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
         
-        if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActual==null)){
+        if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
           return AbrirCaja(metodo: datosIniciales);
         }
 
@@ -408,18 +408,22 @@ class _TablaHeader extends StatelessWidget {
           topRight: Radius.circular(12),
         ),
       ),
-      child: const Row(
+      child:  Row(
         children: [
-          Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Abonado', textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
+          const Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+          const Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
+          const Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Tooltip(
+            message: 'El color amarillo indica que la cuenta aún está pendiente de pago,\nmientras que el verde señala que ya ha sido liquidada.',
+            waitDuration: Duration(milliseconds: 750),
+            child: Text('Pagado', textAlign: TextAlign.center)
+          )),
+          const Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -442,6 +446,17 @@ class _FilaVentas extends StatelessWidget {
     final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
     final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
     final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+    //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
+
+    late TextStyle estilo;
+    if (venta.liquidado && venta.wasDeuda){
+      estilo = TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
+    } else if (!venta.liquidado) {
+      estilo = AppTheme.warningStyle;
+    } else {
+      estilo = AppTheme.subtituloConstraste;
+    }
+
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -456,7 +471,7 @@ class _FilaVentas extends StatelessWidget {
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
         ],
       ),

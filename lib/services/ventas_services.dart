@@ -88,12 +88,9 @@ class VentasServices extends ChangeNotifier{
   }
 
   List<VentasPorProducto> consolidarVentasPorProducto(List<Ventas> ventas) {
-    // Mapa de acumulación: clave es productoId, valor es el objeto VentasPorProducto consolidado
     final Map<String, VentasPorProducto> acumulador = {};
 
-    // Iteramos sobre cada objeto de venta en la lista
     for (final venta in ventas) {
-      // Iteramos sobre cada detalle de venta dentro de la venta actual
       for (final detalle in venta.detalles) {
         final productoId = detalle.productoId;
 
@@ -128,7 +125,7 @@ class VentasServices extends ChangeNotifier{
   Future<Ventas?> createVenta(Ventas venta) async {
     isLoading = true;
     try {
-      final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}');
+      final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=false');
       final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
@@ -137,18 +134,16 @@ class VentasServices extends ChangeNotifier{
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final nuevo = Ventas.fromMap(data);
-        nuevo.id = data['id']?.toString();
+        final venta = Ventas.fromMap(data);
+        venta.id = data['id']?.toString();
 
-        ventasDeCaja.add(nuevo);
-        ventasDeCorteActual.add(nuevo);
-
-        //Añadir venta a corte actual
-        CajasServices.corteActual!.ventasIds.add(nuevo.id!);
+        ventasDeCaja.add(venta);
+        ventasDeCorteActual.add(venta);
+        CajasServices.corteActual!.ventasIds.add(venta.id!);
 
         isLoading = false;
         notifyListeners();
-        return nuevo;
+        return venta;
       } else {
         debugPrint('Error al crear venta: ${resp.statusCode} ${resp.body}');
         isLoading = false;
@@ -163,37 +158,32 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-  Future<Ventas?> pagarDeuda(Ventas venta, String id) async {
+  Future<Ventas?> pagarDeuda(Ventas venta, String ventaOriginalID) async {
     isLoading = true;
-    venta.id = id;
 
     try {
-      final url = Uri.parse('${_baseUrl}deuda');
-      final resp = await http.put(
+      final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=true');
+      final resp = await http.post(
         url,
         headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
         body: venta.toJson(),
       );
 
-      if (resp.statusCode == 200) {
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final updatedVenta = Ventas.fromMap(data);
-        updatedVenta.id = data['id']?.toString();
+        final ventaPagada = Ventas.fromMap(data);
+        ventaPagada.id = data['id']?.toString();
 
-        // Actualizar en ventasDeCaja y ventasDeCorteActual
-        final listasToUpdate = [ventasDeCaja, ventasDeCorteActual];
-        for (final lista in listasToUpdate) {
-          final index = lista.indexWhere((venta) => venta.id == updatedVenta.id);
-          if (index != -1) {
-            lista[index] = updatedVenta;
-          }
-        }
+        ventasDeCaja.add(ventaPagada);
+        ventasDeCorteActual.add(ventaPagada);
+        CajasServices.corteActual!.ventasIds.add(ventaPagada.id!);
 
-        // Remover de ventasConDeuda si existe
-        ventasConDeuda.removeWhere((venta) => venta.id == updatedVenta.id);
+        ventasConDeuda.removeWhere((ventaDeuda) => ventaDeuda.id == venta.id);
+
+        marcarDeudaComoPagada(ventaOriginalID);
 
         notifyListeners();
-        return updatedVenta;
+        return ventaPagada;
       }else {
         debugPrint('Error al actualizar venta: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
@@ -252,4 +242,61 @@ class VentasServices extends ChangeNotifier{
     adeudoLoading = false;
     notifyListeners();
   }
+
+  Future<Ventas?> marcarDeudaComoPagada(String ventaId) async {
+    isLoading = true;
+    
+    try {
+      final url = Uri.parse('$_baseUrl$ventaId/marcar-deuda');
+      final resp = await http.patch(
+        url,
+        headers: {"tkn": Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final ventaActualizada = Ventas.fromMap(data);
+        ventaActualizada.id = data['id']?.toString();
+
+        // Actualizar la venta en las listas locales si existe
+        _actualizarVentaEnListas(ventaActualizada);
+
+        isLoading = false;
+        notifyListeners();
+        return ventaActualizada;
+      } else {
+        debugPrint('Error al marcar venta como deuda: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en marcarVentaComoDeuda: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // Método helper para actualizar la venta en todas las listas locales
+  void _actualizarVentaEnListas(Ventas ventaActualizada) {
+    // Actualizar en ventasDeCaja
+    final indexCaja = ventasDeCaja.indexWhere((v) => v.id == ventaActualizada.id);
+    if (indexCaja != -1) {
+      ventasDeCaja[indexCaja] = ventaActualizada;
+    }
+
+    // Actualizar en ventasDeCorteActual
+    final indexCorte = ventasDeCorteActual.indexWhere((v) => v.id == ventaActualizada.id);
+    if (indexCorte != -1) {
+      ventasDeCorteActual[indexCorte] = ventaActualizada;
+    }
+
+    // Actualizar en ventasConDeuda si existe (no existe se elimina antes de llamar este metodo)
+    /*final indexDeuda = ventasConDeuda.indexWhere((v) => v.id == ventaActualizada.id);
+    if (indexDeuda != -1) {
+      ventasConDeuda[indexDeuda] = ventaActualizada;
+    }*/
+  }
+
 }

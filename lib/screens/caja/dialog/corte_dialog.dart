@@ -254,6 +254,8 @@ class _CorteDialogState extends State<CorteDialog> {
     await cajasSvc.actualizarCorte(corte, CajasServices.corteActualId!);
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
+    if (!mounted) return;
+    Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual.clear();
 
     //Cerrar Caja
     if (widget.cierre){
@@ -270,6 +272,11 @@ class _CorteDialogState extends State<CorteDialog> {
         tipoCambio: CajasServices.cajaActual!.tipoCambio
       );
       await cajasSvc.cerrarCaja(caja);
+      if (!mounted) return;
+      final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+      ventasSvc.ventasDeCaja.clear();
+      cajasSvc.cortesDeCaja.clear();
+      cajasSvc.movimientos.clear();
     }
   
     if (!mounted) return;
@@ -653,16 +660,7 @@ class _CorteDialogState extends State<CorteDialog> {
     //final ventaSvc = Provider.of<VentasServices>(context);
     final TextEditingController ctrl = TextEditingController();
 
-    if (CajasServices.corteActual==null) return SizedBox();
-
-    /*if (ventaSvc.ventasDeCorteLoading) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(color: Colors.white),
-        ],
-      );
-    }*/
+    if (CajasServices.corteActualId==null) return SizedBox();
 
     return SizedBox(
       width: 1000,
@@ -970,61 +968,70 @@ class ReporteFinalVenta extends StatelessWidget {
     
     return Expanded(
       flex: 10,
-      child: Column(
+      child: Stack(
+        alignment: AlignmentGeometry.bottomCenter,
         children: [
-          Separador(
-            texto: 'Ventas por Articulos',
-          ),
-          Container(
-            color: AppTheme.tablaColorHeader,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical : 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(flex: 3 , child: Center(child: Text('Cant'))),
-                  Expanded(flex: 10, child: Center(child: Text('Articulos'))),
-                  Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
-                  Expanded(flex: 8,  child: Center(child: Text('Iva'))),
-                  Expanded(flex: 8,  child: Center(child: Text('Total'))),
-                ],
+          Column(
+            children: [
+              Separador(
+                texto: 'Ventas por Articulos',
               ),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: AppTheme.tablaColor1,
-              child: ListView.builder(
-                itemCount: ventasPorProducto.length,
-                itemBuilder: (context, index) {
-                  Productos? producto = productos.obtenerProductoPorId(ventasPorProducto[index].productoId);
-                  
-                  return FilaProductos(
-                    cantidad: ventasPorProducto[index].cantidad, 
-                    articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
-                    iva: Decimal.parse(ventasPorProducto[index].iva.toString()), 
-                    subtotal: Decimal.parse(ventasPorProducto[index].subTotal.toString()), 
-                    total: Decimal.parse(ventasPorProducto[index].total.toString()), 
-                    color: index+1
-                  );
-                },
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(flex: 3 , child: Center(child: Text('Cant'))),
+                      Expanded(flex: 10, child: Center(child: Text('Articulos'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Iva'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Total'))),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          Container(
-            color: AppTheme.tablaColorHeader,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical : 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(flex: 13, child: Center(child: Text('Total:'))),
-                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
-                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
-                  Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
-                ],
+              Expanded(
+                child: Container(
+                  color: AppTheme.tablaColor1,
+                  child: ListView.builder(
+                    itemCount: ventasPorProducto.length,
+                    itemBuilder: (context, index) {
+                      Productos? producto = productos.obtenerProductoPorId(ventasPorProducto[index].productoId);
+                      
+                      return FilaProductos(
+                        cantidad: ventasPorProducto[index].cantidad, 
+                        articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
+                        iva: Decimal.parse(ventasPorProducto[index].iva.toString()), 
+                        subtotal: Decimal.parse(ventasPorProducto[index].subTotal.toString()), 
+                        total: Decimal.parse(ventasPorProducto[index].total.toString()), 
+                        color: index+1
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(flex: 13, child: Center(child: Text('Total:'))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
+                    ],
+                  ),
+                ),
+              ), //const SizedBox(height: 10,)
+            ],
+          ),
+          Transform.translate(
+            offset: Offset(0, 15),
+            child: Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
           ),
         ],
       )
@@ -1454,7 +1461,7 @@ class FilaDescuentos extends StatelessWidget {
             Expanded(flex: 6,  child: Center(child: Text(venta.folio!, style: AppTheme.subtituloConstraste))),
             Expanded(flex: 10, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
             Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste))),
           ],
         ),
       ),
@@ -1480,7 +1487,7 @@ class FilaPorVendedor extends StatelessWidget {
 
     Decimal total = Decimal.parse("0");
     for (var venta in ventas) {
-      total += venta.total;
+      total += venta.abonadoTotal;
     }
 
     return Container(

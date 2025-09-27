@@ -173,57 +173,85 @@ class FilaDeuda extends StatelessWidget {
     final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(deuda.sucursalId);
     final detalles = Provider.of<ProductosServices>(context, listen: false).obtenerDetallesComoTexto(deuda.detalles);
     Decimal? monto = obtenerMontoPendiente(deuda.id!);
+    Decimal abonadoTotal = (deuda.abonadoMxn??Decimal.zero) + (deuda.abonadoUs??Decimal.zero) + (deuda.abonadoTarj??Decimal.zero) + (deuda.abonadoTrans??Decimal.zero);
 
     void mostrarMenu(BuildContext context, Offset offset) async {
-      final String? seleccion;
+      late final String? seleccion;
 
-      seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
-        ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          PopupMenuItem(
-            value: 'pagar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.attach_money, color: AppTheme.letraClara, size: 17),
-                Text('  Pagar', style: AppTheme.subtituloPrimario),
-              ],
-            ),
+      if (Configuracion.esCaja) {
+        seleccion = await showMenu(
+          context: context,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy,
+            offset.dx,
+            offset.dy,
           ),
-          PopupMenuItem(
-            value: 'ver_completo',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-              ],
+          color: AppTheme.dropDownColor,
+          elevation: 2,
+          items: [
+            PopupMenuItem(
+              value: 'pagar',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.attach_money, color: AppTheme.letraClara, size: 17),
+                  Text('  Pagar', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
-          ),
-          PopupMenuItem(
-            value: 'eliminar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.delete, color: AppTheme.letraClara, size: 17),
-                Text('  Eliminar Deuda', style: AppTheme.subtituloPrimario),
-              ],
+            PopupMenuItem(
+              value: 'ver_completo',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
+            PopupMenuItem( //TODO eliminar 
+              value: 'eliminar',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete, color: AppTheme.letraClara, size: 17),
+                  Text('  Eliminar Deuda', style: AppTheme.subtituloPrimario),
+                ],
+              ),
+            ),
+          ],
+        );
+      } else {
+        seleccion = await showMenu(
+          context: context,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy,
+            offset.dx,
+            offset.dy,
           ),
-        ],
-      );
+          color: AppTheme.dropDownColor,
+          elevation: 2,
+          items: [
+            PopupMenuItem(
+              value: 'ver_completo',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+                ],
+              ),
+            ),
+          ],
+        );
+      }
+      
       
       if (seleccion != null) {
         if (seleccion == 'ver_completo') {
-          // Lógica para leer
+          // Lógica para leer //TODO ver completo
         } else if (seleccion == 'pagar') {
           // Lógica para pagar
           if(!context.mounted){ return; }
@@ -259,7 +287,7 @@ class FilaDeuda extends StatelessWidget {
             Expanded(child: Text(mostrarCampo(cliente), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(mostrarCampo(usuario), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(SucursalesServices.sucursalActualID!=null ? detalles : sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(deuda.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(monto!=null ? monto.toDouble() : 0), style: AppTheme.warningStyle, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(deuda.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],

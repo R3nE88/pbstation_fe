@@ -294,8 +294,6 @@ class _VentaFormState extends State<VentaForm> {
                 iva: formatearEntrada(_totalIvaController.text),
                 total: formatearEntrada(_totalController.text), 
                 recibidoTotal: Decimal.zero,
-                //abonadoTotal: Decimal.parse("0"),
-                //cambio: Decimal.parse("0"),
                 liquidado: false, 
               ),
               rebuild: widget.rebuild, 
@@ -307,9 +305,9 @@ class _VentaFormState extends State<VentaForm> {
         
       } 
     ).then((value) {
-      setState(() {
+      //setState(() { //TODO: verificar si esto funciona sin el setState
         _canFocus = true;
-      });
+      //});
     },);
   }
 

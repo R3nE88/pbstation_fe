@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:decimal/decimal.dart';
 
 class VentasPorProducto {
@@ -18,7 +17,7 @@ class VentasPorProducto {
   Decimal iva;
   Decimal total;  
 
-  factory VentasPorProducto.fromJson(String str) => VentasPorProducto.fromMap(json.decode(str));
+  /*factory VentasPorProducto.fromJson(String str) => VentasPorProducto.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
   factory VentasPorProducto.fromMap(Map<String, dynamic> json) => VentasPorProducto(
@@ -37,5 +36,5 @@ class VentasPorProducto {
     "subtotal": subTotal,
     "iva": iva,
     "total": total,
-  };
+  };*/
 }
