@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:provider/provider.dart';
 
 class CotizacionesServices extends ChangeNotifier{
@@ -166,11 +167,21 @@ class CotizacionesServices extends ChangeNotifier{
   Future<String> createCotizacion(Cotizaciones cotizacion) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: cotizacion.toJson(),   
       );
 

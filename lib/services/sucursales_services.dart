@@ -214,12 +214,22 @@ class SucursalesServices extends ChangeNotifier{
   Future<String> createSucursal(Sucursales sucursal) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: sucursal.toJson(),   
       );
 
@@ -249,12 +259,23 @@ class SucursalesServices extends ChangeNotifier{
 
   Future<bool> deleteSucursal(String id) async{
     Sucursales sucursal = sucursales.firstWhere((element) => element.id == id);
-     sucursal.id = id;
+    sucursal.id = id;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.delete(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: sucursal.toJson(),
       );
       if (resp.statusCode == 204){
@@ -279,11 +300,21 @@ class SucursalesServices extends ChangeNotifier{
     isLoading = true;
     sucursal.id = id;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: sucursal.toJson(),
       );
 

@@ -235,7 +235,6 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-
             PopupMenuItem(
               value: 'cambiar_psw',
               child: Row(
@@ -246,7 +245,6 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-
             PopupMenuItem(
               value: 'editar',
               child: Row(
@@ -257,7 +255,6 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-            
             PopupMenuItem(
               value: 'eliminar',
               child: Row(
@@ -295,7 +292,6 @@ class FilaUsuario extends StatelessWidget {
           ],
         );
       }
-
       if (seleccion != null) {
         if (seleccion == 'leer') {
           // Lógica para leer
@@ -312,10 +308,8 @@ class FilaUsuario extends StatelessWidget {
           );
         } else if (seleccion == 'cambiar_psw') {
           // Lógica para restablecer psw
-
           if(!context.mounted){ return; }
           final resp = await verificarAdminPsw(context);
-
           if (resp==true){
             if(!context.mounted){ return; }
             showDialog(
@@ -329,12 +323,10 @@ class FilaUsuario extends StatelessWidget {
               ),
             );
           }
-
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
           final resp = await verificarAdminPsw(context);
-
           if (resp==true){
             if(!context.mounted){ return; }
             showDialog(
@@ -348,10 +340,13 @@ class FilaUsuario extends StatelessWidget {
               ),
             ); 
           }
-
         }else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          onDelete();
+          if(!context.mounted){ return; }
+          final resp = await verificarAdminPsw(context);
+          if (resp==true){
+            onDelete();
+          }
         }
       }
     }

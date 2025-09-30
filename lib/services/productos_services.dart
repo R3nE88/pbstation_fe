@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ProductosServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
@@ -113,12 +114,20 @@ class ProductosServices extends ChangeNotifier{
   Future<String> createProducto(Productos producto) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
-
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: producto.toJson(),   
       );
 
@@ -149,10 +158,21 @@ class ProductosServices extends ChangeNotifier{
 
   Future<bool> deleteProducto(String id) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers
         );
       if (resp.statusCode == 204){
         productos.removeWhere((producto) => producto.id==id);
@@ -174,14 +194,23 @@ class ProductosServices extends ChangeNotifier{
 
   Future<String> updateProducto(Productos producto, String id) async {
     isLoading = true;
-
     producto.id = id;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
 
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: producto.toJson(),
       );
 

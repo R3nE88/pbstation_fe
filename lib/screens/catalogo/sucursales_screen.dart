@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/sucursales.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/sucursales_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -209,93 +210,93 @@ class FilaSucursales extends StatelessWidget {
       final String? seleccion;
       if (Login.admin) {
         seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
-        ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          sucursal.id != SucursalesServices.sucursalActualID ? PopupMenuItem(
-            value: 'vincular',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, color: AppTheme.letraClara, size: 17),
-                Text('  Vincular a esta Terminal', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          )
-          :
-          PopupMenuItem(
-            value: 'desvincular',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.remove, color: AppTheme.letraClara, size: 17),
-                Text('  Desvincular de esta terminal', style: AppTheme.subtituloPrimario),
-              ],
-            ),
+          context: context,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy,
+            offset.dx,
+            offset.dy,
           ),
-          PopupMenuItem(
-            value: 'leer',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-              ],
+          color: AppTheme.dropDownColor,
+          elevation: 2,
+          items: [
+            sucursal.id != SucursalesServices.sucursalActualID ? PopupMenuItem(
+              value: 'vincular',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add, color: AppTheme.letraClara, size: 17),
+                  Text('  Vincular a esta Terminal', style: AppTheme.subtituloPrimario),
+                ],
+              ),
+            )
+            :
+            PopupMenuItem(
+              value: 'desvincular',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.remove, color: AppTheme.letraClara, size: 17),
+                  Text('  Desvincular de esta terminal', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
-          ),
-          PopupMenuItem(
-            value: 'editar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
-                Text('  Editar', style: AppTheme.subtituloPrimario),
-              ],
+            PopupMenuItem(
+              value: 'leer',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
-          ),
-          PopupMenuItem(
-            value: 'eliminar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
-                Text('  Eliminar', style: AppTheme.subtituloPrimario),
-              ],
+            PopupMenuItem(
+              value: 'editar',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+                  Text('  Editar', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
-          ),
-        ],
-      );
-      } else {
-        seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
-        ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          PopupMenuItem(
-            value: 'leer',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-              ],
+            PopupMenuItem(
+              value: 'eliminar',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                  Text('  Eliminar', style: AppTheme.subtituloPrimario),
+                ],
+              ),
             ),
+          ],
+        );
+        } else {
+          seleccion = await showMenu(
+          context: context,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy,
+            offset.dx,
+            offset.dy,
           ),
-        ],
-      );
+          color: AppTheme.dropDownColor,
+          elevation: 2,
+          items: [
+            PopupMenuItem(
+              value: 'leer',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+                ],
+              ),
+            ),
+          ],
+        );
       }
 
       if (seleccion != null) {
@@ -361,22 +362,30 @@ class FilaSucursales extends StatelessWidget {
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                SucursalesFormDialog(sucEdit: sucursal),
-                const WindowBar(overlay: true),
-              ],
-            ),
-          );
+          final resp = await verificarAdminPsw(context);
+          if (resp==true){
+            if(!context.mounted){ return; }
+            showDialog(
+              context: context,
+              builder: (_) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  SucursalesFormDialog(sucEdit: sucursal),
+                  const WindowBar(overlay: true),
+                ],
+              ),
+            );
+          }
         } else if (seleccion == 'eliminar') {
-          onDelete();
+          // Lógica para eliminar
+          if(!context.mounted){ return; }
+          final resp = await verificarAdminPsw(context);
+          if (resp==true){
+            onDelete();
+          }
         }
       }
     }
-
 
     return GestureDetector(
       onSecondaryTapDown: (details) {

@@ -6,12 +6,10 @@ import 'package:web_socket_channel/io.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/services/services.dart';
 
-/// Singleton WebSocket service con fábrica parametrizada, reconexión automática y handlers dinámicos.
+/// Singleton WebSocket service con reconexión automática y handlers dinámicos.
 class WebSocketService with ChangeNotifier {
-  // Instancia singleton
   static final WebSocketService _instance = WebSocketService._internal();
 
-  /// Constructor de fábrica que inyecta dependencias y configura handlers.
   factory WebSocketService(
     ProductosServices productosService,
     ClientesServices clientesService,
@@ -23,7 +21,6 @@ class WebSocketService with ChangeNotifier {
     Configuracion configuracion,
     ImpresorasServices impresoraService
   ) {
-    // Guardamos servicios en la única instancia
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
     _instance._usuariosSvc     = usuariosServices;
@@ -34,7 +31,6 @@ class WebSocketService with ChangeNotifier {
     _instance._config          = configuracion;
     _instance._impresoraSvc    = impresoraService;
 
-    // Configuramos handlers según los servicios
     _instance._setupHandlers();
     return _instance;
   }
@@ -47,6 +43,9 @@ class WebSocketService with ChangeNotifier {
   bool isConnected = false;
   final List<String> mensajesRecibidos = [];
 
+  // NUEVO: ID único de esta conexión WebSocket asignado por el servidor
+  static String? connectionId;
+
   // Servicios inyectados
   late ProductosServices _productoSvc;
   late ClientesServices _clienteSvc;
@@ -58,7 +57,6 @@ class WebSocketService with ChangeNotifier {
   late Configuracion _config;
   late ImpresorasServices _impresoraSvc;
 
-  // Map de comandos a handlers
   final Map<String, void Function(String)> _handlers = {};
 
   static bool reconectandoSucursal = false;
@@ -67,11 +65,9 @@ class WebSocketService with ChangeNotifier {
   String _buildSocketUrl() {
     String baseUrl = 'ws:${Constantes.baseUrl}ws';
     
-    // Obtener sucursal actual
     String? sucursalId = SucursalesServices.sucursalActualID;
     
     if (sucursalId != null && sucursalId.isNotEmpty) {
-      // Agregar sucursal como query parameter
       baseUrl = '$baseUrl?sucursal_id=$sucursalId';
       if (kDebugMode) print('WebSocket conectando con sucursal: $sucursalId');
     } else {
@@ -86,6 +82,40 @@ class WebSocketService with ChangeNotifier {
     _handlers
       ..clear()
       ..addAll({
+        // NUEVO: Handler especial para recibir el connection_id del servidor
+        'connection_id': (id) {
+          connectionId = id;
+          if (kDebugMode) print('Connection ID asignado: $connectionId');
+          notifyListeners();
+        },
+        'put-configuracion': (_ ) => _config.loadConfiguracion(),
+        'post-product':      (id) => _productoSvc.loadAProducto(id),
+        'put-product':       (id) => _productoSvc.updateAProducto(id),
+        'delete-product':    (id) => _productoSvc.deleteAProducto(id),
+        'post-cliente':      (id) => _clienteSvc.loadACliente(id),
+        'put-cliente':       (id) => _clienteSvc.updateACliente(id),
+        'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
+        'post-usuario':      (id) => _usuariosSvc.loadAUsuario(id),
+        'put-usuario':       (id) => _usuariosSvc.updateAUsuario(id),
+        'delete-usuario':    (id) => _usuariosSvc.deleteAUsuario(id),
+        'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
+        'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
+        'delete-sucursal':   (id) => _sucursalSvc.deleteASucursal(id),
+        'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
+        'post-impresora':    (id) => _impresoraSvc.loadAImpresora(id),
+        'put-impresora':     (id) => _impresoraSvc.updateAImpresora(id),
+        'delete-impresora':  (id) => _impresoraSvc.deleteAImpresora(id),
+        'post-contadores':   (id) => _impresoraSvc.loadContador(id),
+        'put-contadores':    (id) => _impresoraSvc.loadContador(id),
+        'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
+        'delete-venta-deuda':   (id) => _ventaSvc.removeAVentaDeuda(id), //TODO: movimientos necesita? o corte? o caja?
+        'ventaenviada':      (id) {
+          if (id == SucursalesServices.sucursalActualID){
+            _ventaEnviadasSvc.recibirVenta();
+          }
+        },
+/*
+
         'put-configuracion': (_ ) => _config.loadConfiguracion(),
         'post-product':      (id) => _productoSvc.loadAProducto(id),
         'put-product':       (id) => _productoSvc.updateAProducto(id),
@@ -119,6 +149,7 @@ class WebSocketService with ChangeNotifier {
             _ventaEnviadasSvc.recibirVenta();
           }
         },
+*/
       });
   }
 
@@ -131,23 +162,18 @@ class WebSocketService with ChangeNotifier {
       _reconnectTimer?.cancel();
       _reconnectTimer = null;
 
-      // Aseguramos estado inicial
       _channel = null;
       isConnected = false;
+      connectionId = null;  // Limpiar el connection ID anterior
       notifyListeners();
 
-      // Construir URL con sucursal
       final socketUrl = _buildSocketUrl();
       
       if (kDebugMode) print('Intentando conectar WebSocket a $socketUrl ...');
 
-      // Esperamos al handshake. Timeout para evitar espera infinita.
       final socket = await WebSocket.connect(socketUrl).timeout(timeout);
-
-      // Si llegamos aquí, el handshake tuvo éxito: convertimos a IOWebSocketChannel
       _channel = IOWebSocketChannel(socket);
 
-      // Listener: recibe mensajes y detecta cierre/errores.
       _subscription = _channel!.stream.listen(
         _onMessage,
         onDone: () {
@@ -161,7 +187,6 @@ class WebSocketService with ChangeNotifier {
         cancelOnError: true,
       );
 
-      // Ya confirmado handshake, marcamos conectado
       isConnected = true;
       notifyListeners();
       if (kDebugMode) print('WebSocket conectado (handshake ok).');
@@ -177,12 +202,11 @@ class WebSocketService with ChangeNotifier {
     }
   }
 
-  /// Reconectar con nueva sucursal (útil cuando cambia la sucursal activa)
   Future<void> _reconectarConSucursal() async {
     if (kDebugMode) print('Reconectando WebSocket con nueva sucursal...');
     reconectandoSucursal = true;
     desconectar();
-    await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
+    await Future.delayed(Duration(milliseconds: 500));
     await conectar();
     reconectandoSucursal = false;
   }
@@ -191,15 +215,15 @@ class WebSocketService with ChangeNotifier {
     if (kDebugMode) print('Reconectando WebSocket...');
     reconectandoSucursal = true;
     desconectar();
-    await Future.delayed(Duration(milliseconds: 500)); // Pequeña pausa
+    await Future.delayed(Duration(milliseconds: 500));
     await conectar();
     reconectandoSucursal = false;
   }
 
-  /// Método estático para reconectar desde fuera de la clase
   static Future<void> reconectarConSucursal() async {
     return _instance._reconectarConSucursal();
   }
+  
   static Future<void> reconectarSinSucursal() async {
     return _instance._reconectarSinSucursal();
   }
@@ -229,7 +253,6 @@ class WebSocketService with ChangeNotifier {
   /// Maneja la desconexión y programa reconectar.
   void _onDisconnected() {
     if (kDebugMode) print('WebSocket desconectado');
-    // Aseguramos cerrar recursos
     _subscription?.cancel();
     _subscription = null;
     try {
@@ -238,6 +261,7 @@ class WebSocketService with ChangeNotifier {
     _channel = null;
 
     isConnected = false;
+    connectionId = null;  // Limpiar el connection ID
     notifyListeners();
 
     _scheduleReconnect();
@@ -254,6 +278,7 @@ class WebSocketService with ChangeNotifier {
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     isConnected = false;
+    connectionId = null;  // Limpiar el connection ID
     notifyListeners();
   }
 
@@ -264,7 +289,6 @@ class WebSocketService with ChangeNotifier {
         _channel!.sink.add(mensaje);
       } catch (e) {
         if (kDebugMode) print('Error al enviar mensaje: $e');
-        // Forzar reconexión si ocurre error al enviar
         _onDisconnected();
       }
     } else if (kDebugMode) {
@@ -282,13 +306,9 @@ class WebSocketService with ChangeNotifier {
     });
   }
 
-  /// Indica si la app debe bloquearse.
   bool isAppBlocked() => !isConnected;
 
-  /// Opcional: cuando el servicio ya no se use.
   void disposeService() {
     desconectar();
-    // no llames super.dispose() porque no es StatefullWidget, pero si lo usas como provider,
-    // podrías llamar notifyListeners() si hace falta.
   }
 }

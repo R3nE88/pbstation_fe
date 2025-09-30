@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class VentasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
@@ -161,11 +162,21 @@ class VentasServices extends ChangeNotifier{
   Future<Ventas?> pagarDeuda(Ventas venta, String ventaOriginalID) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=true');
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: venta.toJson(),
       );
 
@@ -177,11 +188,9 @@ class VentasServices extends ChangeNotifier{
         ventasDeCaja.add(ventaPagada);
         ventasDeCorteActual.add(ventaPagada);
         CajasServices.corteActual!.ventasIds.add(ventaPagada.id!);
-
-        ventasConDeuda.removeWhere((ventaDeuda) => ventaDeuda.id == venta.id);
+        ventasConDeuda.removeWhere((ventaDeuda) => ventaDeuda.id == ventaOriginalID);
 
         marcarDeudaComoPagada(ventaOriginalID);
-
         notifyListeners();
         return ventaPagada;
       }else {
@@ -298,5 +307,4 @@ class VentasServices extends ChangeNotifier{
       ventasConDeuda[indexDeuda] = ventaActualizada;
     }*/
   }
-
 }

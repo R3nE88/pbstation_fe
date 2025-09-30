@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class UsuariosServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}usuarios/';
@@ -121,12 +122,22 @@ class UsuariosServices extends ChangeNotifier{
   Future<String> createUsuario(Usuarios usuario) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: usuario.toJson(),   
       );
 
@@ -157,10 +168,21 @@ class UsuariosServices extends ChangeNotifier{
 
   Future<bool> deleteUsuario(String id) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers,
       );
       if (resp.statusCode == 204){
         usuarios.removeWhere((usuario) => usuario.id==id);
@@ -183,12 +205,22 @@ class UsuariosServices extends ChangeNotifier{
   Future<String> updateUsuario(Usuarios usuario, String id) async {
     isLoading = true;
     usuario.id = id;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
     
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: usuario.toJson(),
       );
 

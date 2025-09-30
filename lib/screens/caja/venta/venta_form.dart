@@ -359,7 +359,40 @@ class _VentaFormState extends State<VentaForm> {
     }
     _canFocus = false;
 
+    final bool continuar = await showDialog(
+      context: context, 
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.backgroundColor,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('¿Deseas continuar y guardar estos\ndatos de venta como una cotizacion?', textAlign: TextAlign.center),
+              const SizedBox(height: 15),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: (){
+                      Navigator.pop(context, false);
+                    }, child: Text('Regresar')
+                  ),
+                  ElevatedButton(
+                    onPressed: (){
+                      Navigator.pop(context, true);
+                    }, child: Text('Continuar')
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      } 
+    ) ?? false;
+    if (!continuar) return;
+
     //Realizar cotizacion///////////////////
+    if(!mounted) return;
     Loading.displaySpinLoading(context);
 
     final cotizacionSvc = Provider.of<CotizacionesServices>(context, listen: false);

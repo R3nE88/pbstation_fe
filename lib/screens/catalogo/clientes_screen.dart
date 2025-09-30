@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
@@ -289,18 +290,26 @@ class FilaCliente extends StatelessWidget {
         } else if (seleccion == 'editar') {
           // Lógica para editar
           if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                ClientesFormDialog(cliEdit: cliente),
-              ],
-            ),
-          );
+          final resp = await verificarAdminPsw(context);
+          if (resp==true){
+          if(!context.mounted){ return; }
+            showDialog(
+              context: context,
+              builder: (_) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  ClientesFormDialog(cliEdit: cliente),
+                ],
+              ),
+            );
+          }
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          onDelete();
+          if(!context.mounted){ return; }
+          final resp = await verificarAdminPsw(context);
+          if (resp==true){
+            onDelete();
+          }
         }
       }
     }

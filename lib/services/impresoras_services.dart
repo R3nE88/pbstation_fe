@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ImpresorasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}impresoras/';
@@ -15,7 +16,7 @@ class ImpresorasServices extends ChangeNotifier{
   bool isLoading = false;
   bool loaded = false;
 
-  Future<List<Impresoras>> loadImpresoras(bool loadContadores, {bool overLoad = false}) async {   
+  Future<List<Impresoras>> loadImpresoras(bool loadCont, {bool overLoad = false}) async {   
     if (loaded && !overLoad) return [];
     isLoading = true;
 
@@ -33,8 +34,8 @@ class ImpresorasServices extends ChangeNotifier{
         return imp;
       }).toList();
 
-      if (loadContadores){
-        await loadUltimosContadores();
+      if (loadCont){
+        await loadContadores();
       }
 
     } catch (e) {
@@ -75,17 +76,17 @@ class ImpresorasServices extends ChangeNotifier{
     }
   }
 
-  Future<void> loadUltimosContadores() async {
+  Future<void> loadContadores() async {
     ultimosContadoresLoaded = false;
     for (var impresora in impresoras){
-      await loadUltimoContador(impresora.id!);
+      await loadContador(impresora.id!);
     }
     ultimosContadoresLoaded = true;
   }
 
-  Future<void> loadUltimoContador(String impresoraId) async {
+  Future<void> loadContador(String impresoraId) async {
     try {
-      final url = Uri.parse('${_baseUrlContador}ultimo/$impresoraId');
+      final url = Uri.parse('$_baseUrlContador$impresoraId');
       final resp = await http.get(url, headers: {"tkn": Env.tkn});
       if (resp.statusCode == 200) {
         ultimosContadores[impresoraId] = Contadores.fromJson(resp.body);
@@ -96,16 +97,25 @@ class ImpresorasServices extends ChangeNotifier{
     }
   }
 
-  //Retorna el ID
   Future<String> createImpresora(Impresoras impresora) async {
     isLoading = true;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
 
     try {
       final url = Uri.parse(_baseUrl);
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: impresora.toJson(),   
       );
 
@@ -136,12 +146,22 @@ class ImpresorasServices extends ChangeNotifier{
   Future<String> createContador(Contadores contador) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrlContador${SucursalesServices.sucursalActualID}');
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: contador.toJson(),   
       );
 
@@ -172,10 +192,21 @@ class ImpresorasServices extends ChangeNotifier{
 
   Future<bool> deleteImpresora(String id) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id/${SucursalesServices.sucursalActualID}');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers
         );
       if (resp.statusCode == 204){
         await deleteContadores(id);
@@ -197,10 +228,21 @@ class ImpresorasServices extends ChangeNotifier{
 
   Future<bool> deleteContadores(String impresoraId) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrlContador$impresoraId/${SucursalesServices.sucursalActualID}');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers
         );
       if (resp.statusCode == 204){
         deleteAContador(impresoraId);
@@ -221,11 +263,21 @@ class ImpresorasServices extends ChangeNotifier{
     isLoading = true;
     impresora.id = id;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: impresora.toJson(),
       );
 
@@ -282,11 +334,21 @@ class ImpresorasServices extends ChangeNotifier{
   }
 
   Future<void> sumarContadorActual(String impresoraId, int contador) async{
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('${_baseUrlContador}actual/$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
       );
       debugPrint(resp.body);
     } catch (e) {
@@ -296,11 +358,21 @@ class ImpresorasServices extends ChangeNotifier{
   }
 
   Future<void> actualzarContador(String impresoraId, int contador) async{
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrlContador$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
       );
       debugPrint(resp.body);
     } catch (e) {

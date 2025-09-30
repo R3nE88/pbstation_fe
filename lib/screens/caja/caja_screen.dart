@@ -33,6 +33,7 @@ class _CajaScreenState extends State<CajaScreen> {
     final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
     ventasSvc.loadVentasDeCaja().whenComplete(
       () {
+        if (!mounted) return;
         _ventasParaMostrar = List.from(ventasSvc.ventasDeCaja);
         setState(() {});
       } 

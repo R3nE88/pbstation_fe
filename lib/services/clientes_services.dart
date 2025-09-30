@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ClientesServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
@@ -100,12 +101,22 @@ class ClientesServices extends ChangeNotifier{
   Future<String> createCliente(Clientes cliente) async {
     isLoading = true;
 
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse(_baseUrl);
 
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: cliente.toJson(),   
       );
 
@@ -136,10 +147,21 @@ class ClientesServices extends ChangeNotifier{
 
   Future<bool> deleteCliente(String id) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers
       );
       if (resp.statusCode == 204){
         clientes.removeWhere((cliente) => cliente.id==id);
@@ -162,12 +184,22 @@ class ClientesServices extends ChangeNotifier{
   Future<String> updateCliente(Clientes cliente, String id) async {
     isLoading = true;
     cliente.id = id;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
     
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: cliente.toJson(),
       );
 
@@ -230,11 +262,21 @@ class ClientesServices extends ChangeNotifier{
   }
 
   Future<void> adeudarCliente (String clienteId, Adeudos adeudo) async {
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$clienteId/adeudos');
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: headers,
         body: adeudo.toJson(),   
       );
 
@@ -254,14 +296,44 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  Future<void> quitarDeuda(String ventaId, String clienteId) async{
+  Future<void> quitarDeuda(String ventaId, String clienteId) async {
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$clienteId/adeudos/$ventaId');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, 
+        headers: headers
       );
-      if (resp.statusCode == 204){
-        clientesConAdeudo.firstWhere((cliente) => cliente.id == clienteId).adeudos.removeWhere((adeudo) => adeudo.ventaId == ventaId);
+      
+      if (resp.statusCode == 202) {      
+        // Función auxiliar para quitar adeudo de un cliente
+        void quitarAdeudoDeCliente(List<Clientes> lista) {
+          try {
+            final cliente = lista.firstWhere((c) => c.id == clienteId);
+            cliente.adeudos.removeWhere((adeudo) => adeudo.ventaId == ventaId);
+          } catch (e) {
+            // Cliente no encontrado en esta lista
+          }
+        }
+        
+        // Actualizar en todas las listas
+        quitarAdeudoDeCliente(clientes);
+        quitarAdeudoDeCliente(filteredClientes);
+        quitarAdeudoDeCliente(clientesConAdeudo);
+        
+        // Solo eliminar de clientesConAdeudo si ya no tiene adeudos
+        clientesConAdeudo.removeWhere((c) => 
+          c.id == clienteId && c.adeudos.isEmpty
+        );
       }
     } catch (e) {
       debugPrint('$e');

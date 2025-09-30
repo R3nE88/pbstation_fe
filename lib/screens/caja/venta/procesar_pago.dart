@@ -285,6 +285,9 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     if (!continuar) return;
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
+
+    CalculosDinero calculosDinero = CalculosDinero();
+    double dolaresEnPesos = calculosDinero.conversionADolar(_dolarImporte);
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -293,12 +296,12 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     if (_endeudar == true){
       //Si no liquido, significa que queda debiendo, asi que el importe = abonado
       abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-      abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+      abonadoUs = dolaresEnPesos!= 0 ?  Decimal.parse(dolaresEnPesos.toString()) : null;
       abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
       abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
     } else {
       //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
-      abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+      abonadoUs = dolaresEnPesos!= 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
       abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
       abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
       abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
@@ -323,7 +326,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       referenciaTarj: _tarjetaRefCtrl.text,
       referenciaTrans: _transRefCtrl.text,
       recibidoMxn:_efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null,
-      recibidoUs:_dolarImporte!=0 ? Decimal.parse(_dolarImporte.toString()) : null,
+      recibidoUs:dolaresEnPesos!=0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
       recibidoTarj:_tarjetaImporte!=0 ? Decimal.parse(_tarjetaImporte.toString()) : null,
       recibidoTrans:_transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null,
       recibidoTotal: widget.venta.recibidoTotal,
@@ -389,9 +392,12 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
   Future<void> procesarDeuda() async{
     if (!_formKey.currentState!.validate() || _porPagar){ return; }
-  
+
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
+
+    CalculosDinero calculosDinero = CalculosDinero();
+    double dolaresEnPesos = calculosDinero.conversionADolar(_dolarImporte);
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -399,7 +405,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     Decimal? abonadoTrans;
 
     //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
-    abonadoUs = _dolarImporte!= 0 ? Decimal.parse(_dolarImporte.toString()) : null;
+    abonadoUs = dolaresEnPesos!= 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
     abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
     abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
     abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
@@ -424,7 +430,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       referenciaTarj: _tarjetaRefCtrl.text,
       referenciaTrans: _transRefCtrl.text,
       recibidoMxn: _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null,
-      recibidoUs:_dolarImporte!=0 ? Decimal.parse(_dolarImporte.toString()) : null,
+      recibidoUs:dolaresEnPesos!=0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
       recibidoTarj:_tarjetaImporte!=0 ? Decimal.parse(_tarjetaImporte.toString()) : null,
       recibidoTrans:_transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null,
       recibidoTotal: widget.venta.recibidoTotal,
@@ -458,7 +464,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     .firstWhere((element) => element.id == CajasServices.corteActual!.id);
     if (!corte.ventasIds.contains(venta.id!)) { corte.ventasIds.add(venta.id!); }
     
-    if (!mounted) return;
     await Provider.of<ClientesServices>(context, listen: false).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
 
     if (!mounted) return;

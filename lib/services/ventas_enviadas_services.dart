@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
+import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class VentasEnviadasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas_enviadas/';
@@ -51,6 +52,16 @@ class VentasEnviadasServices extends ChangeNotifier{
 
   Future<String> enviarVenta(VentasEnviadas venta) async {
     isLoading = true;
+    
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
 
     try {
       final url = Uri.parse(_baseUrl);
@@ -61,11 +72,11 @@ class VentasEnviadasServices extends ChangeNotifier{
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
-        final Map<String, dynamic> data = json.decode(resp.body);
+        /*final Map<String, dynamic> data = json.decode(resp.body);
         final nuevo = VentasEnviadas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        ventas.add(nuevo);
+        ventas.add(nuevo);*/ //TODO no deberia guardar ventaporque si envio soy no caja, y solo la caja debe ver esta info
         if (kDebugMode) {
           print('venta enviada!');
         }
@@ -86,13 +97,24 @@ class VentasEnviadasServices extends ChangeNotifier{
 
   Future<bool> eliminarRecibida(String id, String sucursal) async{
     bool exito = false;
+
+    final connectionId = WebSocketService.connectionId;
+    final headers = {
+      'Content-Type': 'application/json', 
+      "tkn": Env.tkn
+    };
+    //Para notificar a los demas, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
     try {
       final url = Uri.parse('$_baseUrl$id?sucursal=$sucursal');
       final resp = await http.delete(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: headers
         );
       if (resp.statusCode == 204){
-        ventas.removeWhere((venta) => venta.id==id);
+        //ventas.removeWhere((venta) => venta.id==id); TODO lo mismo que arriba
         exito = true;
       }
     } catch (e) {
