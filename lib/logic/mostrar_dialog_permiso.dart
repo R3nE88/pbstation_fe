@@ -23,14 +23,14 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
     } else {
       showDialog(
         context: context,
-        builder: (context) => Stack(
+        builder: (context) => const Stack(
           alignment: Alignment.topRight,
           children: [
             CustomErrorDialog(
               titulo: '',
               respuesta: 'Correo o contraseña inválidos o\npermisos insuficientes.'
             ),
-            const WindowBar(overlay: true),
+            WindowBar(overlay: true),
           ],
         ),
       );

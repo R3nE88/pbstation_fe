@@ -14,7 +14,7 @@ class CustomErrorDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
-      title: Center(child: Text(titulo, textScaler: TextScaler.linear(0.85))),
+      title: Center(child: Text(titulo, textScaler: const TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -24,7 +24,7 @@ class CustomErrorDialog extends StatelessWidget {
       actions: [
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Center(child: const Text('Regresar'))
+          child: const Center(child: Text('Regresar'))
         )
       ],
     );

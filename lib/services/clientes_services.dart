@@ -49,14 +49,14 @@ class ClientesServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       clientes = listaJson.map<Clientes>((jsonElem) {
         final cli = Clientes.fromMap(jsonElem as Map<String, dynamic>);
-        cli.id = (jsonElem as Map)["id"]?.toString();
+        cli.id = (jsonElem as Map)['id']?.toString();
         return cli;
       }).toList();
       filteredClientes = clientes;
@@ -79,12 +79,12 @@ class ClientesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final cli = Clientes.fromMap(body as Map<String, dynamic>);
-        cli.id = (body as Map)["id"]?.toString();
+        cli.id = (body as Map)['id']?.toString();
         clientes.add(cli);
         filteredClientes = clientes;
 
@@ -104,7 +104,7 @@ class ClientesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -151,7 +151,7 @@ class ClientesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -188,7 +188,7 @@ class ClientesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -232,7 +232,7 @@ class ClientesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);
@@ -265,7 +265,7 @@ class ClientesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -300,7 +300,7 @@ class ClientesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {

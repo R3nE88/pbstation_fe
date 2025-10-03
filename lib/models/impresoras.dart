@@ -19,18 +19,18 @@ class Impresoras {
   String toJson() => json.encode(toMap());
 
   factory Impresoras.fromMap(Map<String, dynamic> json) => Impresoras(
-    id: json["id"]?.toString(),
-    numero: json["numero"],
-    modelo: json["modelo"].toString(),
-    serie: json["serie"].toString(),
-    sucursalId: json["sucursal_id"].toString()
+    id: json['id']?.toString(),
+    numero: json['numero'],
+    modelo: json['modelo'].toString(),
+    serie: json['serie'].toString(),
+    sucursalId: json['sucursal_id'].toString()
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "numero": numero,
-    "modelo": modelo,
-    "serie": serie,
-    "sucursal_id": sucursalId
+    'id': id,
+    'numero': numero,
+    'modelo': modelo,
+    'serie': serie,
+    'sucursal_id': sucursalId
   };
 }

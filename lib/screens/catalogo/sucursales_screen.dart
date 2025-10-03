@@ -44,14 +44,14 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Sucursales',
           style: AppTheme.tituloClaro,
           textScaler: TextScaler.linear(1.7),
         ),
 
         Transform.translate(
-          offset: Offset(37, 0),
+          offset: const Offset(37, 0),
           child: Container(
             height: 35, 
             decoration: BoxDecoration(
@@ -62,7 +62,6 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     sucursalesServices.sucursalActual != null ? 'Sucursal Asignada  '
@@ -70,10 +69,10 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                     style: AppTheme.subtituloPrimario.copyWith(
                       fontWeight: FontWeight.w700
                     ),
-                    textScaler: TextScaler.linear(0.9),
+                    textScaler: const TextScaler.linear(0.9),
                   ),
                   Transform.translate(
-                    offset: Offset(0, -1),
+                    offset: const Offset(0, -1),
                     child: Text(
                       sucursalesServices.sucursalActual != null ? sucursalesServices.sucursalActual!.nombre
                       :'', 
@@ -89,11 +88,11 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
         ElevatedButton(
           onPressed: () => showDialog(
             context: context,
-            builder: (_) => Stack(
+            builder: (_) => const Stack(
               alignment: Alignment.topRight,
               children: [
-                const SucursalesFormDialog(),
-                const WindowBar(overlay: true),
+                SucursalesFormDialog(),
+                WindowBar(overlay: true),
               ],
             ),
           ),
@@ -131,8 +130,8 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                 ),
                 color: AppTheme.tablaColorHeader,
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Expanded(child: Text('Sucursal', textAlign: TextAlign.center)),
                   Expanded(child: Text('Correo', textAlign: TextAlign.center)),
                   Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
@@ -220,7 +219,7 @@ class FilaSucursales extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            sucursal.id != SucursalesServices.sucursalActualID ? PopupMenuItem(
+            sucursal.id != SucursalesServices.sucursalActualID ? const PopupMenuItem(
               value: 'vincular',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -231,7 +230,7 @@ class FilaSucursales extends StatelessWidget {
               ),
             )
             :
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'desvincular',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -241,7 +240,7 @@ class FilaSucursales extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -251,7 +250,7 @@ class FilaSucursales extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'editar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -261,7 +260,7 @@ class FilaSucursales extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'eliminar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -285,7 +284,7 @@ class FilaSucursales extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -314,11 +313,11 @@ class FilaSucursales extends StatelessWidget {
             if(!context.mounted){ return; }
             showDialog(
               context: context,
-              builder: (_) => Stack(
+              builder: (_) => const Stack(
                 alignment: Alignment.topRight,
                 children: [
                   CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
-                  const WindowBar(overlay: true),
+                  WindowBar(overlay: true),
                 ],
               ),
             );
@@ -337,11 +336,11 @@ class FilaSucursales extends StatelessWidget {
             if(!context.mounted){ return; }
             showDialog(
               context: context,
-              builder: (_) => Stack(
+              builder: (_) => const Stack(
                 alignment: Alignment.topRight,
                 children: [
                   CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
-                  const WindowBar(overlay: true),
+                  WindowBar(overlay: true),
                 ],
               ),
             );

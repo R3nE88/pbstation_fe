@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/widgets/loading_widget.dart';
 export 'package:pbstation_frontend/widgets/body_padding.dart';
 export 'package:pbstation_frontend/widgets/windows_bar.dart';
 export 'package:pbstation_frontend/widgets/simple_loading.dart';

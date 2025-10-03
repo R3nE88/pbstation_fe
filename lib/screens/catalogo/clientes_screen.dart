@@ -75,7 +75,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 message: 'Nombre o RFC',
                 child: TextFormField(
                   controller: _searchController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                     hintText: 'Buscar Cliente',
                   ),
@@ -86,11 +86,11 @@ class _ClientesScreenState extends State<ClientesScreen> {
             Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => Stack(
+                builder: (_) => const Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    const ClientesFormDialog(),
-                    const WindowBar(overlay: true),
+                    ClientesFormDialog(),
+                    WindowBar(overlay: true),
                   ],
                 ),
               ),
@@ -130,8 +130,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
                 color: AppTheme.tablaColorHeader,
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Expanded(child: Text('Nombre', textAlign: TextAlign.center)),
                   Expanded(child: Text('Correo', textAlign: TextAlign.center)),
                   Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
@@ -215,7 +215,7 @@ class FilaCliente extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -225,7 +225,7 @@ class FilaCliente extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'editar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -235,7 +235,7 @@ class FilaCliente extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'eliminar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -259,7 +259,7 @@ class FilaCliente extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,

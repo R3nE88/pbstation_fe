@@ -69,7 +69,7 @@ class _ExpandableCardState extends State<ExpandableCard>
         decoration: BoxDecoration(
           color: AppTheme.tablaColorHeader,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
           ],
         ),

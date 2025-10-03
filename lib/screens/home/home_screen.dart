@@ -1,7 +1,10 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/home_state.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
+import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
@@ -69,8 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (!HomeState.init) {
       HomeState.init = true;
-      appWindow.minSize = Size(1024, 720);
-      appWindow.maxSize = Size(1920, 1080);
+      appWindow.minSize = const Size(1024, 720);
+      appWindow.maxSize = const Size(1920, 1080);
       appWindow.maximize();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         appWindow.maximize();
@@ -85,21 +88,23 @@ class _HomeScreenState extends State<HomeScreen> {
       return Scaffold(backgroundColor: AppTheme.backgroundColor);
     }
 
-    return Stack(
-      alignment: Alignment.topCenter,
-      children: [
-        
-        Scaffold(
-          backgroundColor: AppTheme.backgroundColor,
-          body: Column(
-            children: [
-              // Custom Window Bar
-              WindowBar(overlay: false),
-              
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
-                  child: screens.isNotEmpty
+    return Consumer<ChangeTheme>(
+      builder: (context, value, child) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            
+            Scaffold(
+              backgroundColor: AppTheme.backgroundColor,
+              body: Column(
+                children: [
+                  // Custom Window Bar
+                  WindowBar(overlay: false),
+                  
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                      child: screens.isNotEmpty
                       ? PageView.builder(
                           controller: _pageController,
                           physics: const NeverScrollableScrollPhysics(),
@@ -112,35 +117,37 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         )
                       : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
-                                textScaler: TextScaler.linear(1.5),
-                                style: TextStyle(
-                                  color: AppTheme.colorContraste.withAlpha(150),
-                                ),
-                                textAlign: TextAlign.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
+                              textScaler:  TextScaler.linear(1.5),
+                              style: TextStyle(
+                                color: AppTheme.colorContraste.withAlpha(150),
                               ),
-                            ],
-                          ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-
-        // Left and Right Menus
-        SideMenuLeft(),
-        SideMenuRight(height: height + 1),
-
-        UsuarioOverlay(),
-
-        // Connection Overlay
-        const ConnectionOverlay(),
-      ],
+            ),
+        
+            // Left and Right Menus
+            SideMenuLeft(),
+            SideMenuRight(height: height + 1),
+        
+            UsuarioOverlay(),
+        
+            // Connection Overlay
+            ConnectionOverlay()
+          ],
+        );
+      },
     );
   }
 }
@@ -171,18 +178,17 @@ class UsuarioOverlay extends StatelessWidget {
                   strokeAlign: BorderSide.strokeAlignOutside
                 )
               ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: const Radius.circular(15),
-                bottomRight: const Radius.circular(15)
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(15),
+                bottomRight: Radius.circular(15)
               )
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     'Sesión de ', 
                     textScaler: TextScaler.linear(0.8), 
                     style: TextStyle(
@@ -192,7 +198,7 @@ class UsuarioOverlay extends StatelessWidget {
                   ),
                   Text(
                     Login.usuarioLogeado.nombre,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                     )
                   ),

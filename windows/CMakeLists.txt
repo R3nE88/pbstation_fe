@@ -10,6 +10,53 @@ set(BINARY_NAME "pbstation_frontend")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# ==============================================
+# OPTIMIZACIONES DE RENDIMIENTO
+# ==============================================
+
+# Compatibilidad con PCs viejas (CPUs x64 desde ~2005)
+set(CMAKE_SYSTEM_PROCESSOR "x86_64")
+
+# Optimizaciones agresivas para Release
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_CONFIGURATION_TYPES MATCHES "Release")
+    # Flags del compilador MSVC:
+    # /O2: Optimización máxima de velocidad
+    # /GL: Whole Program Optimization (optimiza entre archivos)
+    # /Oi: Genera funciones intrínsecas (funciones CPU directas, más rápidas)
+    # /Gy: Permite al linker eliminar funciones no usadas por separado
+    # /GS-: Desactiva buffer security check (pequeña ganancia de velocidad, considera el riesgo)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /GL /Oi /Gy")
+    
+    # Flags del linker:
+    # /LTCG: Link-Time Code Generation (va con /GL)
+    # /OPT:REF: Elimina funciones/datos no referenciados
+    # /OPT:ICF: Fusiona funciones idénticas (reduce tamaño)
+    # /INCREMENTAL:NO: Desactiva linking incremental para Release
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /arch:AVX2")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /OPT:REF /OPT:ICF")
+endif()
+
+# Optimizaciones para Profile (similares pero con algo de debug info)
+if(CMAKE_BUILD_TYPE STREQUAL "Profile" OR CMAKE_CONFIGURATION_TYPES MATCHES "Profile")
+    set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} /O2 /Oi")
+    set(CMAKE_EXE_LINKER_FLAGS_PROFILE "${CMAKE_EXE_LINKER_FLAGS_PROFILE} /OPT:REF /INCREMENTAL:NO")
+    set(CMAKE_SHARED_LINKER_FLAGS_PROFILE "${CMAKE_SHARED_LINKER_FLAGS_PROFILE} /OPT:REF")
+endif()
+
+# ==============================================
+# OPTIMIZACIONES DE MEMORIA Y SEGURIDAD
+# ==============================================
+
+# /DYNAMICBASE: Address Space Layout Randomization (seguridad sin overhead)
+# /NXCOMPAT: Data Execution Prevention (seguridad sin overhead)
+# /LARGEADDRESSAWARE: Permite usar más de 2GB de RAM si está disponible
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DYNAMICBASE /NXCOMPAT /LARGEADDRESSAWARE")
+
+# ==============================================
+# CONFIGURACIÓN ESTÁNDAR
+# ==============================================
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
@@ -23,11 +70,6 @@ else()
       "Debug" "Profile" "Release")
   endif()
 endif()
-# Define settings for the Profile build mode.
-set(CMAKE_EXE_LINKER_FLAGS_PROFILE "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-set(CMAKE_SHARED_LINKER_FLAGS_PROFILE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}")
-set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
@@ -106,3 +148,5 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+set_target_properties(${BINARY_NAME} PROPERTIES OUTPUT_NAME "PrinterBoy")

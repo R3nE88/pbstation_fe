@@ -62,7 +62,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           'Productos & Servicios',
           style: AppTheme.tituloClaro,
           textScaler: TextScaler.linear(1.7),
@@ -77,7 +77,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 message: 'Codigo o Descripcion',
                 child: TextFormField(
                   controller: _searchController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                     hintText: 'Buscar Producto',
                   ),
@@ -88,11 +88,11 @@ class _ProductosScreenState extends State<ProductosScreen> {
             Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => Stack(
+                builder: (_) => const Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    const ProductoFormDialog(),
-                    const WindowBar(overlay: true),
+                    ProductoFormDialog(),
+                    WindowBar(overlay: true),
                   ],
                 ),
               ),
@@ -132,8 +132,8 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 ),
                 color: AppTheme.tablaColorHeader,
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Expanded(child: Text('Codigo', textAlign: TextAlign.center)),
                   Expanded(flex: 2, child: Text('Descripcion', textAlign: TextAlign.center)),
                   Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
@@ -219,7 +219,7 @@ class FilaProducto extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -229,7 +229,7 @@ class FilaProducto extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'editar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -239,7 +239,7 @@ class FilaProducto extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'eliminar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -263,7 +263,7 @@ class FilaProducto extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -332,7 +332,7 @@ class FilaProducto extends StatelessWidget {
             Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: const TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),

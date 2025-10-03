@@ -16,16 +16,14 @@ class SideMenuRight extends StatelessWidget {
     final hasSub = subModulos.length > 1;  
 
     return HoverSideMenu(
-      side: MenuSide.right,
       height: height,
       enabled: hasSub,
       collapsedWidth: hasSub ? 66 : 15,
       menuContentColapsed: hasSub
           ? Column(
             children: [
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Row(
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Column(
                     mainAxisSize: MainAxisSize.min,

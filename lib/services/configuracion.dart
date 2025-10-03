@@ -26,7 +26,7 @@ class Configuracion extends ChangeNotifier{
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
       final archivo = json.decode(resp.body);
       dolar = (archivo['precio_dolar'] as num).toDouble();

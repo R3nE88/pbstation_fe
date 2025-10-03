@@ -52,17 +52,17 @@ class AppTheme{
       : const Color.fromARGB(255, 75, 164, 248);
 
   static Color get backgroundWidgetFormColor1 => changeThemeInstance?.isDarkTheme == true
-      ? Color.fromARGB(0, 195, 195, 195)
-      : Color.fromARGB(30, 99, 180, 255);
+      ? const Color.fromARGB(0, 195, 195, 195)
+      : const Color.fromARGB(30, 99, 180, 255);
   static Color get backgroundWidgetFormColor2 => changeThemeInstance?.isDarkTheme == true
-      ? Color.fromARGB(53, 0, 0, 0)
-      : Color.fromARGB(123, 32, 103, 255);
+      ? const Color.fromARGB(53, 0, 0, 0)
+      : const Color.fromARGB(123, 32, 103, 255);
   static Color get backgroundWidgetFormColor3 => changeThemeInstance?.isDarkTheme == true
-      ? Color.fromARGB(11, 42, 42, 42)
-      : Color.fromARGB(50, 63, 162, 255);
+      ? const Color.fromARGB(11, 42, 42, 42)
+      : const Color.fromARGB(50, 63, 162, 255);
   static Color get backgroundWidgetFormColor4 => changeThemeInstance?.isDarkTheme == true
-      ? Color.fromARGB(28, 146, 146, 146)
-      : Color.fromARGB(167, 73, 158, 255);
+      ? const Color.fromARGB(28, 146, 146, 146)
+      : const Color.fromARGB(167, 73, 158, 255);
     
   static Color get botonPrincipal => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 89, 89, 89)
@@ -70,15 +70,15 @@ class AppTheme{
 
   static Color get botonPrincipalFocus => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 61, 61, 61)
-      : AppTheme.secundario1;
+      : const Color.fromARGB(255, 31, 139, 227);
     
-  static Color get botonSecundario => changeThemeInstance?.isDarkTheme == true
+  static Color get _botonSecundario => changeThemeInstance?.isDarkTheme == true
       ? AppTheme.letraClara
       : AppTheme.letraClara;
 
-  static Color get botonSecundarioFocus => changeThemeInstance?.isDarkTheme == true
+  static Color get _botonSecundarioFocus => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 165, 165, 165)
-      : const Color.fromARGB(255, 205, 205, 210);
+      : const Color.fromARGB(255, 220, 238, 255);
 
   static Color get tablaColorHeader => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 78, 78, 78)
@@ -105,8 +105,8 @@ class AppTheme{
       : letraOscura;
 
   static Color get colorError => changeThemeInstance?.isDarkTheme == true
-      ? Color.fromARGB(255, 228, 15, 0)
-      : Color.fromRGBO(235, 16, 0, 1);
+      ? const Color.fromARGB(255, 228, 15, 0)
+      : const Color.fromRGBO(235, 16, 0, 1);
   
   static TextStyle get subtituloConstraste => TextStyle(
     color: changeThemeInstance?.isDarkTheme == true ? letraClara : const Color.fromARGB(255, 38, 38, 38)
@@ -133,8 +133,8 @@ class AppTheme{
     fontSize: 13,
   );
 
-  static final TextStyle warningStyle = TextStyle(
-    color: const Color.fromARGB(255, 255, 163, 4), 
+  static const TextStyle warningStyle = TextStyle(
+    color: Color.fromARGB(255, 255, 163, 4), 
     fontWeight: FontWeight.bold
   );
 
@@ -152,16 +152,6 @@ class AppTheme{
     foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
   );
 
-  static final botonSecundarioStyle = ButtonStyle(
-    backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-        if (states.contains(WidgetState.focused)) {
-          return AppTheme.letra70; // Color cuando está enfocado
-        }
-        return AppTheme.letraClara; // Color normal
-      }
-    ),
-    foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-  );
 
   static final ButtonStyle botonGuardar = ButtonStyle(
     backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
@@ -223,17 +213,17 @@ class AppTheme{
     ),
   );
 
-  static final InputDecoration inputError = InputDecoration(
+  static const InputDecoration inputError = InputDecoration(
       enabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.red),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
+        borderRadius: BorderRadius.all(Radius.circular(30))
       ),
     );
 
-  static final InputDecoration inputNormal = InputDecoration(
+  static const InputDecoration inputNormal = InputDecoration(
     enabledBorder: OutlineInputBorder(
       borderSide: BorderSide(color: Colors.white),
-      borderRadius: const BorderRadius.all(Radius.circular(30))
+      borderRadius: BorderRadius.all(Radius.circular(30))
     ),
   );
 
@@ -248,7 +238,7 @@ class AppTheme{
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
     checkboxTheme: CheckboxThemeData(
-      side: BorderSide(color: AppTheme.letraClara),
+      side: const BorderSide(color: AppTheme.letraClara),
       checkColor: WidgetStateProperty.all(AppTheme.containerColor1),
       fillColor: WidgetStateProperty.all(AppTheme.letraClara),
     ),
@@ -257,7 +247,7 @@ class AppTheme{
       seedColor: AppTheme.primario2, // Cambia aquí tu color base
     ),
 
-    dialogTheme: DialogThemeData(
+    dialogTheme: const DialogThemeData(
       surfaceTintColor: Colors.transparent
     ),
      
@@ -267,7 +257,7 @@ class AppTheme{
       ),
     ),
 
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Colors.white
     ),
 
@@ -275,15 +265,15 @@ class AppTheme{
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
           if (states.contains(WidgetState.focused)) {
-            return AppTheme.botonSecundarioFocus; // Color cuando está enfocado
+            return AppTheme._botonSecundarioFocus; // Color cuando está enfocado
           }
-          return AppTheme.botonSecundario; // Color normal
+          return AppTheme._botonSecundario; // Color normal
         }),
         foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-        shape: WidgetStateProperty.all(StadiumBorder()),
+        shape: WidgetStateProperty.all(const StadiumBorder()),
         elevation: WidgetStateProperty.all(1),
         textStyle: WidgetStateProperty.all(
-          TextStyle(
+          const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             height: 1.5
@@ -292,30 +282,30 @@ class AppTheme{
       ),
     ),
 
-    textTheme: TextTheme(
+    textTheme: const TextTheme(
       bodyMedium: TextStyle(color: AppTheme.letraClara), // texto principal del campo
     ),
 
-    inputDecorationTheme: InputDecorationTheme(
+    inputDecorationTheme: const InputDecorationTheme(
       contentPadding: EdgeInsets.only(left: 10),
       floatingLabelStyle: TextStyle(color: Colors.white, fontSize: 15),
 
       enabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.white),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
+        borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
       disabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.white),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
+        borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
-      hintStyle: const TextStyle(
+      hintStyle: TextStyle(
         color: Color.fromARGB(255, 209, 240, 255),
         fontSize: 15,
       ),
 
-      labelStyle: const TextStyle(
+      labelStyle: TextStyle(
         color: Color.fromARGB(255, 209, 240, 255),
         fontSize: 15,
       ),
@@ -325,12 +315,12 @@ class AppTheme{
         borderRadius: BorderRadius.all(Radius.circular(30)),
       ),
 
-      errorBorder: const OutlineInputBorder(
+      errorBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
         borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
-      focusedErrorBorder: const OutlineInputBorder(
+      focusedErrorBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
         borderRadius: BorderRadius.all(Radius.circular(30))
       ),
@@ -345,7 +335,7 @@ class AppTheme{
 
   static final ThemeData customThemeDark = ThemeData.dark().copyWith(
     checkboxTheme: CheckboxThemeData(
-      side: BorderSide(color: AppTheme.letraClara),
+      side: const BorderSide(color: AppTheme.letraClara),
       checkColor: WidgetStateProperty.all(AppTheme.containerColor1),
       fillColor: WidgetStateProperty.all(AppTheme.letraClara),
     ),
@@ -354,7 +344,7 @@ class AppTheme{
       seedColor: Colors.white // Cambia aquí tu color base
     ),
 
-    dialogTheme: DialogThemeData(
+    dialogTheme: const DialogThemeData(
       surfaceTintColor: Colors.transparent
     ),
      
@@ -364,7 +354,7 @@ class AppTheme{
       ),
     ),
 
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Colors.white
     ),
 
@@ -372,15 +362,15 @@ class AppTheme{
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
           if (states.contains(WidgetState.focused)) {
-            return AppTheme.botonSecundarioFocus; // Color cuando está enfocado
+            return AppTheme._botonSecundarioFocus; // Color cuando está enfocado
           }
-          return AppTheme.botonSecundario; // Color normal
+          return AppTheme._botonSecundario; // Color normal
         }),
         foregroundColor: WidgetStateProperty.all(AppTheme.containerColor1),
-        shape: WidgetStateProperty.all(StadiumBorder()),
+        shape: WidgetStateProperty.all(const StadiumBorder()),
         elevation: WidgetStateProperty.all(1),
         textStyle: WidgetStateProperty.all(
-          TextStyle(
+          const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             height: 1.5
@@ -389,48 +379,48 @@ class AppTheme{
       ),
     ),
 
-    textSelectionTheme: TextSelectionThemeData(
-      selectionColor: const Color.fromARGB(65, 255, 255, 255),// Fondo de selección
+    textSelectionTheme: const TextSelectionThemeData(
+      selectionColor: Color.fromARGB(65, 255, 255, 255),// Fondo de selección
       cursorColor: Colors.white, // Cursor (también se puede poner individualmente en cada TextField)
     ),
 
     dropdownMenuTheme: DropdownMenuThemeData(
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppTheme.filledColor,
-        border: const OutlineInputBorder(
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
       ),
       menuStyle: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(AppTheme.primario1), // Fondo del menú
-        elevation: WidgetStatePropertyAll(4), // Sombra
+        elevation: const WidgetStatePropertyAll(4), // Sombra
         shape: WidgetStatePropertyAll(RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         )), // Bordes redondeados
       ),
     ),
 
-    inputDecorationTheme: InputDecorationTheme(
+    inputDecorationTheme: const InputDecorationTheme(
       contentPadding: EdgeInsets.only(left: 10),
       floatingLabelStyle: TextStyle(color: Colors.white, fontSize: 15),
 
       enabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.white),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
+        borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
       disabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.white),
-        borderRadius: const BorderRadius.all(Radius.circular(30))
+        borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
-      hintStyle: const TextStyle(
+      hintStyle: TextStyle(
         color: Color.fromARGB(255, 224, 224, 224),
         fontSize: 15,
       ),
 
-      labelStyle: const TextStyle(
+      labelStyle: TextStyle(
         color: Color.fromARGB(255, 209, 240, 255),
         fontSize: 15,
       ),
@@ -440,12 +430,12 @@ class AppTheme{
         borderRadius: BorderRadius.all(Radius.circular(30)),
       ),
 
-      errorBorder: const OutlineInputBorder(
+      errorBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
         borderRadius: BorderRadius.all(Radius.circular(30))
       ),
 
-      focusedErrorBorder: const OutlineInputBorder(
+      focusedErrorBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Color.fromARGB(255, 248, 14, 14)),
         borderRadius: BorderRadius.all(Radius.circular(30))
       ),

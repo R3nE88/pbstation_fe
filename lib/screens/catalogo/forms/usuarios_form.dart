@@ -43,7 +43,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       _controllers['nombre']!.text = usuario.nombre;
       _controllers['correo']!.text = usuario.correo;
       _controllers['telefono']!.text = '${usuario.telefono ?? ''}';
-      _administrator = usuario.rol=="admin";
+      _administrator = usuario.rol=='admin';
     }
   }
 

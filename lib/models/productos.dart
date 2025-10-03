@@ -30,28 +30,28 @@ class Productos {
   String toJson() => json.encode(toMap());
 
   factory Productos.fromMap(Map<String, dynamic> json) => Productos(
-    id: json["id"]?.toString(),
-    codigo: json["codigo"],
-    descripcion: json["descripcion"],
-    tipo: json["tipo"].toString(),
-    categoria: json["categoria"].toString(),
-    precio: Decimal.parse(json["precio"]),
-    inventariable: json["inventariable"] as bool,
-    imprimible: json["imprimible"] as bool,
-    valorImpresion: json["valor_impresion"] as int,
-    requiereMedida: json["requiere_medida"] as bool,
+    id: json['id']?.toString(),
+    codigo: json['codigo'],
+    descripcion: json['descripcion'],
+    tipo: json['tipo'].toString(),
+    categoria: json['categoria'].toString(),
+    precio: Decimal.parse(json['precio']),
+    inventariable: json['inventariable'] as bool,
+    imprimible: json['imprimible'] as bool,
+    valorImpresion: json['valor_impresion'] as int,
+    requiereMedida: json['requiere_medida'] as bool,
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "codigo": codigo,
-    "descripcion": descripcion,
-    "tipo": tipo,
-    "categoria": categoria,
-    "precio": precio,
-    "inventariable": inventariable,
-    "imprimible": imprimible,
-    "valor_impresion": valorImpresion,
-    "requiere_medida": requiereMedida,
+    'id': id,
+    'codigo': codigo,
+    'descripcion': descripcion,
+    'tipo': tipo,
+    'categoria': categoria,
+    'precio': precio,
+    'inventariable': inventariable,
+    'imprimible': imprimible,
+    'valor_impresion': valorImpresion,
+    'requiere_medida': requiereMedida,
   };
 }

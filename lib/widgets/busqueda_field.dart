@@ -3,19 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 
 class BusquedaField<T extends Object> extends StatefulWidget {
-  final List<T> items;
-  final Function(T?) onItemSelected;
-  final Function() onItemUnselected;
-  final T? selectedItem;
-  final String Function(T) displayStringForOption;
-  final String Function(T)? secondaryDisplayStringForOption; // Hacerlo opcional
-  final bool normalBorder;
-  final IconData icono;
-  final bool defaultFirst;
-  final String hintText;
-  final LogicalKeyboardKey? teclaFocus;
-  final bool error;
-
   const BusquedaField({
     super.key,
     required this.items,
@@ -30,7 +17,22 @@ class BusquedaField<T extends Object> extends StatefulWidget {
     required this.hintText, 
     this.teclaFocus,
     required this.error, 
+    this.showSecondaryFirst = true,
   });
+
+  final List<T> items;
+  final Function(T?) onItemSelected;
+  final Function() onItemUnselected;
+  final T? selectedItem;
+  final String Function(T) displayStringForOption;
+  final String Function(T)? secondaryDisplayStringForOption; // Hacerlo opcional
+  final bool normalBorder;
+  final IconData icono;
+  final bool defaultFirst;
+  final String hintText;
+  final LogicalKeyboardKey? teclaFocus;
+  final bool error;
+  final bool showSecondaryFirst;
 
   @override
   State<BusquedaField<T>> createState() => _BusquedaFieldState<T>();
@@ -44,12 +46,12 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   int _highlightedIndex = 0;
   T? _selectedItem;
 
-  final BorderRadius borde = BorderRadius.only(
+  BorderRadius borde = const BorderRadius.only(
     topLeft: Radius.circular(30),
     bottomLeft: Radius.circular(30),
   );
 
-  final BorderRadius bordeNormal = BorderRadius.all(
+  BorderRadius bordeNormal = const BorderRadius.all(
     Radius.circular(30),
   );
 
@@ -156,7 +158,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
             if (secondary.isEmpty) {
               return widget.displayStringForOption(option);
             }
-            return "$secondary - ${widget.displayStringForOption(option)}";
+            return '$secondary - ${widget.displayStringForOption(option)}';
           },
           onSelected: (T selected) {
             _controller.text = widget.displayStringForOption(selected);
@@ -270,7 +272,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
           },
           optionsViewBuilder: (context, onSelected, options) {
             return Transform.translate(
-              offset: Offset(30, 0),
+              offset: const Offset(30, 0),
               child: Align(
                 alignment: Alignment.topLeft,
                 child: Material(
@@ -289,7 +291,10 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                             : '';
                         final displayText = secondary.isEmpty
                             ? widget.displayStringForOption(option)
-                            : "$secondary - ${widget.displayStringForOption(option)}";
+                            : widget.showSecondaryFirst? 
+                            '$secondary - ${widget.displayStringForOption(option)}'
+                            :
+                            '${widget.displayStringForOption(option)} - $secondary';
         
                         return Container(
                           color: isHighlighted ? AppTheme.secundario1 : AppTheme.primario1,
@@ -297,7 +302,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                             title: Text(
                               displayText,
                               style: AppTheme.subtituloPrimario,
-                              textScaler: TextScaler.linear(0.9),
+                              textScaler: const TextScaler.linear(0.9),
                             ),
                             onTap: () {
                               _controller.text = widget.displayStringForOption(option);

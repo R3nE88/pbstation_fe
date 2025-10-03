@@ -28,31 +28,31 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
     super.dispose();
   }
 
+  void submit() async{
+    if (formKey.currentState!.validate()){
+      Loading.displaySpinLoading(context);  
+      MovimientosCajas movimiento = MovimientosCajas(
+        usuarioId: Login.usuarioLogeado.id!, 
+        monto:  double.parse(_montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
+        motivo: _motivoCtrl.text, 
+        fecha: DateTime.now().toIso8601String(), 
+        tipo: widget.isRetiro ? 'retiro' : 'entrada', 
+      );
+      final cajaSvc = Provider.of<CajasServices>(context, listen: false);
+      await cajaSvc.agregarMovimiento(movimiento);
+      if(!mounted) return;
+      Navigator.pop(context);
+      Navigator.pop(context);
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
-    void submit() async{
-      if (formKey.currentState!.validate()){
-        Loading.displaySpinLoading(context);  
-        MovimientosCajas movimiento = MovimientosCajas(
-          usuarioId: Login.usuarioLogeado.id!, 
-          monto:  double.parse(_montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
-          motivo: _motivoCtrl.text, 
-          fecha: DateTime.now().toIso8601String(), 
-          tipo: widget.isRetiro ? 'retiro' : 'entrada', 
-        );
-        final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-        await cajaSvc.agregarMovimiento(movimiento);
-        if(!context.mounted) return;
-        Navigator.pop(context);
-        Navigator.pop(context);
-      }
-    }
-
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       title: Text(
         widget.isRetiro ?
-        "Retirar Efectivo" : "Agregar Efectivo"
+        'Retirar Efectivo' : 'Agregar Efectivo'
       ),
       content: SizedBox(
         width: 350,
@@ -68,7 +68,7 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
                 inputFormatters: [ PesosInputFormatter() ],
                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                 maxLength: 12,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Monto',
                   labelStyle: AppTheme.labelStyle,
                 ),
@@ -82,7 +82,7 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
               ), const SizedBox(height: 15),
               TextFormField(
                 controller: _motivoCtrl,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Motivo',
                   labelStyle: AppTheme.labelStyle,
                 ),
@@ -99,7 +99,7 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
                 onPressed: () async{
                   submit();
                 }, 
-                child: Text('Aceptar')
+                child: const Text('Aceptar')
               )
             ],
           )

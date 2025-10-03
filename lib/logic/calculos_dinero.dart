@@ -42,10 +42,10 @@ class CalculosDinero {
   }
 
   Map<String, double> calcularTotal(List<DetallesVenta> detallesVenta){
-    Decimal subtotal = Decimal.parse("0");
-    Decimal totalDescuento = Decimal.parse("0");
-    Decimal totalIva = Decimal.parse("0");
-    Decimal total = Decimal.parse("0");
+    Decimal subtotal = Decimal.parse('0');
+    Decimal totalDescuento = Decimal.parse('0');
+    Decimal totalIva = Decimal.parse('0');
+    Decimal total = Decimal.parse('0');
 
     for (var detalle in detallesVenta) {
       subtotal += detalle.subtotal-detalle.iva+detalle.descuentoAplicado;
@@ -62,10 +62,17 @@ class CalculosDinero {
     };
   }
 
-  double conversionADolar(double importe){
+  double dolarAPesos(double importe){
     Decimal imp = Decimal.parse(importe.toString());
     Decimal precioDolar = Decimal.parse(Configuracion.dolar.toString());
     Decimal total = (imp * precioDolar).round(scale: 2);
+    return total.toDouble();
+  }
+
+  double pesosADolar(double importe){
+    Decimal imp = Decimal.parse(importe.toString());
+    Decimal precioDolar = Decimal.parse(Configuracion.dolar.toString());
+    Decimal total = (imp / precioDolar).toDecimal();
     return total.toDouble();
   }
 

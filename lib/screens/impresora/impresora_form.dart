@@ -33,13 +33,12 @@ class ImpresoraForm extends StatelessWidget {
           'Agregar Impresora al Sistema'
           :
           'Modificar Impresora', 
-          textScaler: TextScaler.linear(0.85), textAlign: TextAlign.center),
+          textScaler: const TextScaler.linear(0.85), textAlign: TextAlign.center),
         content: SizedBox(
           width: 360,
           child: Form(
             key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Necesitas asignar tu sucursal a esta terminal.\nLa impresora que agregues se asociara a esta sucursal.', textAlign: TextAlign.center)
@@ -58,7 +57,7 @@ class ImpresoraForm extends StatelessWidget {
         'Agregar Impresora al Sistema'
         :
         'Modificar Impresora', 
-        textScaler: TextScaler.linear(0.85)),
+        textScaler: const TextScaler.linear(0.85)),
       content: SizedBox(
         width: 470,
         child: Form(
@@ -74,8 +73,8 @@ class ImpresoraForm extends StatelessWidget {
                       controller: numeroCtrl,
                       autofocus: true,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        labelText: "Numero",
+                      decoration: const InputDecoration(
+                        labelText: 'Numero',
                         labelStyle: AppTheme.labelStyle,
                       ),
                       validator: (value) {
@@ -92,8 +91,8 @@ class ImpresoraForm extends StatelessWidget {
                   flex: 2,
                     child: TextFormField(
                       controller: modeloCtrl,
-                      decoration: InputDecoration(
-                        labelText: "Modelo",
+                      decoration: const InputDecoration(
+                        labelText: 'Modelo',
                         labelStyle: AppTheme.labelStyle,
                       ),
                       validator: (value) {
@@ -113,8 +112,8 @@ class ImpresoraForm extends StatelessWidget {
                   Expanded( //Serie
                     child: TextFormField(
                       controller: serieCtrl,
-                      decoration: InputDecoration(
-                        labelText: "Serie",
+                      decoration: const InputDecoration(
+                        labelText: 'Serie',
                         labelStyle: AppTheme.labelStyle,
                       ),
                       validator: (value) {
@@ -134,8 +133,8 @@ class ImpresoraForm extends StatelessWidget {
                       maxLength: 10,
                       buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                       inputFormatters: [ NumericFormatter() ],
-                      decoration: InputDecoration(
-                        labelText: "Contador Inicial",
+                      decoration: const InputDecoration(
+                        labelText: 'Contador Inicial',
                         labelStyle: AppTheme.labelStyle,
                       ),
                       validator: (value) {
@@ -171,7 +170,7 @@ class ImpresoraForm extends StatelessWidget {
 
                         Contadores contador = Contadores( //Crear contador
                           impresoraId: impresoraId, 
-                          cantidad: int.parse(contadorCtrl.text.replaceAll(",", "")), 
+                          cantidad: int.parse(contadorCtrl.text.replaceAll(',', '')), 
                         );
                         await impresoraSvc.createContador(contador);
 
@@ -195,7 +194,7 @@ class ImpresoraForm extends StatelessWidget {
                         //Provider.of<ImpresorasServices>(context, listen: false).loadUltimoContador(impresora.id!);
                       }
                     }, 
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [

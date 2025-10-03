@@ -1,6 +1,8 @@
 
 // ignore: unused_element
 class _Documentacion {
+  //TODO: IMPORTANTE CREAR LA BUILD ASI: flutter build windows --release --obfuscate --split-debug-info=build/debug-info --tree-shake-icons
+
   //Lugares donde se formatea dinero
   //VENTA.dart (ninguno de estos usa el inputFormatter, cada uno se formateo desde el metodo que hace los calculos)
     ///precioController

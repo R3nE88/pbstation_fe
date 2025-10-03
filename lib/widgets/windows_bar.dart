@@ -6,7 +6,6 @@ import 'package:pbstation_frontend/widgets/window_buttons.dart';
 
 class WindowBar extends StatelessWidget {
   const WindowBar({super.key, required this.overlay});
-
   final bool overlay;
 
   @override
@@ -28,7 +27,7 @@ class WindowBar extends StatelessWidget {
                 ],
               )
             ),
-            WindowButtons(),
+            const WindowButtons(),
           ],
         ),
       ),

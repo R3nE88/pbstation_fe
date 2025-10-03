@@ -23,14 +23,14 @@ class ImpresorasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}sucursal/${SucursalesServices.sucursalActualID}');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       impresoras = listaJson.map<Impresoras>((jsonElem) {
         final imp = Impresoras.fromMap(jsonElem as Map<String, dynamic>);
-        imp.id = (jsonElem as Map)["id"]?.toString();
+        imp.id = (jsonElem as Map)['id']?.toString();
         return imp;
       }).toList();
 
@@ -56,12 +56,12 @@ class ImpresorasServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final obj = Impresoras.fromMap(body as Map<String, dynamic>);
-        obj.id = (body as Map)["id"]?.toString();
+        obj.id = (body as Map)['id']?.toString();
         
         impresoras.add(obj);
         //await loadUltimoContador(obj.id!);
@@ -87,7 +87,7 @@ class ImpresorasServices extends ChangeNotifier{
   Future<void> loadContador(String impresoraId) async {
     try {
       final url = Uri.parse('$_baseUrlContador$impresoraId');
-      final resp = await http.get(url, headers: {"tkn": Env.tkn});
+      final resp = await http.get(url, headers: {'tkn': Env.tkn});
       if (resp.statusCode == 200) {
         ultimosContadores[impresoraId] = Contadores.fromJson(resp.body);
         notifyListeners();
@@ -103,7 +103,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -149,7 +149,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -196,7 +196,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -232,7 +232,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -266,7 +266,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -309,7 +309,7 @@ class ImpresorasServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);
@@ -329,31 +329,38 @@ class ImpresorasServices extends ChangeNotifier{
 
   Future<void> sumarContadores(List<Map<String, dynamic>> contadores) async{
     for (var contador in contadores) {
-      await sumarContadorActual(contador['impresora'], contador['cantidad']);
+      await sumarContador(contador['impresora'], contador['cantidad']);
     }
   }
 
-  Future<void> sumarContadorActual(String impresoraId, int contador) async{
+  Future<void> sumarContador(String impresoraId, int contador) async{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
       headers['X-Connection-Id'] = connectionId;
     }
-
     try {
-      final url = Uri.parse('${_baseUrlContador}actual/$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
+      final url = Uri.parse('${_baseUrlContador}sumar/$impresoraId/${SucursalesServices.sucursalActualID}/$contador');
       final resp = await http.put(
         url,
         headers: headers,
       );
-      debugPrint(resp.body);
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final actualizado = Contadores.fromMap(data);
+        actualizado.id = data['id']?.toString();
+
+        ultimosContadores[impresoraId] = actualizado;
+        notifyListeners();
+      } else {
+        debugPrint('Error al sumar contador: ${resp.statusCode} ${resp.body}');
+      }
     } catch (e) {
       debugPrint('Exception en actualzarContadorActual: $e');
-    } finally {
     }
   }
 
@@ -361,7 +368,7 @@ class ImpresorasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -374,7 +381,16 @@ class ImpresorasServices extends ChangeNotifier{
         url,
         headers: headers,
       );
-      debugPrint(resp.body);
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final actualizado = Contadores.fromMap(data);
+        actualizado.id = data['id']?.toString();
+
+        ultimosContadores[impresoraId] = actualizado;
+        notifyListeners();
+      } else {
+        debugPrint('Error al actualizar contador: ${resp.statusCode} ${resp.body}');
+      }
     } catch (e) {
       debugPrint('Exception en actualzarContadorActual: $e');
     } finally {

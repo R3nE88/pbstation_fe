@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/screens/screens.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -72,32 +71,24 @@ class _LoginScreenState extends State<LoginScreen> {
           
                 const BarraW(),
 
-                NumberedFrameAnimation(
-                  basePath: 'assets/frames/',
-                  extension: '.png',
-                  frameCount: 177,
-                  startIndex: 1,
-                  fps: 50,
-                  loop: true,
-                  autoPlay: true, // ← Ahora funciona correctamente
-                  height: 300,
+                FrameAnimationWidget(
                   onAnimationComplete: () {
                     if (_servicesLoaded){
                       //Cargar Home Screen
                       if (!context.mounted) return;
                       Navigator.of(context).pushReplacement(
                         PageRouteBuilder(
-                          transitionDuration: Duration.zero, // Sin duración de transición
-                          reverseTransitionDuration: Duration.zero, // Sin duración de transición reversa
-                          pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                          pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
                           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            return child; // Sin animación, solo retorna el widget directamente
+                            return child;
                           },
                         ),
                       );
                     }
                   },
-                ),
+                ),               
           
                 const SizedBox(height: 20),
                 
@@ -149,20 +140,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     :  SizedBox(
                       height: double.infinity,
                       child: suc.sucursalError ?
-                        Column(
+                        const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text('Error de Configuracion. Reinstale el programa o llame a soporte tecnico: (653)146-3159', textAlign: TextAlign.center),
                             Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: EdgeInsets.all(8.0),
                               child: LinearProgressIndicator(
-                                color: const Color.fromARGB(255, 255, 191, 42)
+                                color: Color.fromARGB(255, 255, 191, 42)
                               ),
                             ),
                             SizedBox(height: 70)
                           ],
                         )
-                       : Center(
+                       : const Center(
                         child: CircularProgressIndicator(
                           color: AppTheme.letraClara
                         ),
@@ -202,14 +193,7 @@ class BarraW extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.secundario1,
       ),
-      child: WindowTitleBarBox(
-        child: Row(
-          children: [
-            Expanded(child: MoveWindow()),
-            WindowButtons()
-          ],
-        ),
-      ),
+      child: const WindowBar(overlay: false)
     );
   }
 }
@@ -246,7 +230,6 @@ class _LoginFieldsState extends State<LoginFields> {
       child: Form(
         key: _formKey,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             TextFormField(
               controller: _email,
@@ -256,7 +239,7 @@ class _LoginFieldsState extends State<LoginFields> {
               decoration: const InputDecoration(
                 alignLabelWithHint: false,
                 hintText: 'Correo / Telefono',
-                counterText: "",
+                counterText: '',
                   errorStyle: TextStyle(
                   fontSize: 0,
                   height: 0,
@@ -282,7 +265,7 @@ class _LoginFieldsState extends State<LoginFields> {
               decoration: const InputDecoration(
                 alignLabelWithHint: true,
                 hintText: 'Contraseña',
-                counterText: "",
+                counterText: '',
                   errorStyle: TextStyle(
                   fontSize: 0,
                   height: 0,

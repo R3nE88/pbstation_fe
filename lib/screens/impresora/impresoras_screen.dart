@@ -29,7 +29,7 @@ class ImpresorasScreen extends StatelessWidget {
                   crossAxisCount: screenSize < 1300 ? 3 : 4,
                   childAspectRatio: 3,
                   children: List.generate(value.impresoras.length+1, (index) {
-                    if (index==0 && Login.admin) return AgregarImpresora();
+                    if (index==0 && Login.admin) return const AgregarImpresora();
                     final contador = value.ultimosContadores[value.impresoras[index-1].id];
                     return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
                   })
@@ -43,7 +43,7 @@ class ImpresorasScreen extends StatelessWidget {
   }
 
   Row _buildHeader() {
-    return Row( //Header
+    return const Row( //Header
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
@@ -82,11 +82,11 @@ class _AgregarImpresoraState extends State<AgregarImpresora> {
           child: GestureDetector(
             onTap: () => showDialog(
               context: context, 
-              builder: ( _ ) => Stack(
+              builder: ( _ ) => const Stack(
                 alignment: Alignment.topRight,
                 children: [
                   ImpresoraForm(),
-                  const WindowBar(overlay: true),
+                  WindowBar(overlay: true),
                 ],
               )
             ),
@@ -96,11 +96,11 @@ class _AgregarImpresoraState extends State<AgregarImpresora> {
                 border: Border.all(color: AppTheme.letraClara, width: 3),
                 color: AppTheme.letraClara.withAlpha(10)
               ),
-              child: Center(
+              child: const Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Añadir impresora '),
+                    Text('Añadir impresora '),
                     Icon(Icons.add, color: AppTheme.letraClara, size: 50),
                   ],
                 )
@@ -133,8 +133,8 @@ class ImpresorasCards extends StatelessWidget {
           children: [
             AlertDialog(
               backgroundColor: AppTheme.containerColor1,
-              title: Center(child: Text('¿Desea continuar?', textScaler: TextScaler.linear(0.85))),
-              content: Column(
+              title: const Center(child: Text('¿Desea continuar?', textScaler: TextScaler.linear(0.85))),
+              content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Si continua se eliminara cualquier registro de esta impresora', textAlign: TextAlign.center),
@@ -173,7 +173,7 @@ class ImpresorasCards extends StatelessWidget {
         color: AppTheme.dropDownColor,
         elevation: 2,
         items: [
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'modificar',
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -183,7 +183,7 @@ class ImpresorasCards extends StatelessWidget {
               ],
             ),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'eliminar',
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -234,15 +234,15 @@ class ImpresorasCards extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Serie: ', style: TextStyle(color: AppTheme.letra70)),
-                      Text(impresora.serie, style: TextStyle(letterSpacing: 1)),
+                      const Text('Serie: ', style: TextStyle(color: AppTheme.letra70)),
+                      Text(impresora.serie, style: const TextStyle(letterSpacing: 1)),
                     ],
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Contador: ', style: TextStyle(color: AppTheme.letra70)),
-                      Text(Formatos.numero.format(contador), style: TextStyle(letterSpacing: 1)),
+                      const Text('Contador: ', style: TextStyle(color: AppTheme.letra70)),
+                      Text(Formatos.numero.format(contador), style: const TextStyle(letterSpacing: 1)),
                     ],
                   ),
                 ],
@@ -255,14 +255,14 @@ class ImpresorasCards extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("#${impresora.numero}", style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.15)),
+                Text('#${impresora.numero}', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.15)),
                 Login.admin ? MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     onTapDown: (details) {
                       mostrarMenu(context, details.globalPosition);
                     },
-                    child: Icon(Icons.more_vert, color: AppTheme.letraClara, size: 20)
+                    child: const Icon(Icons.more_vert, color: AppTheme.letraClara, size: 20)
                   )
                 ) : const SizedBox(),
               ],

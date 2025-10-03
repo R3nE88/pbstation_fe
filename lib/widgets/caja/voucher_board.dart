@@ -21,32 +21,30 @@ class _VoucherBoardState extends State<VoucherBoard> {
   @override
   void initState() {
     super.initState();
-    // Darle focus al contenedor global
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       FocusScope.of(context).requestFocus(_boardFocus);
-
-      // Agregar el handler de teclado
       HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     });
   }
 
   @override
   void dispose() {
-    // Eliminar el handler de teclado al destruir el widget
-    _boardFocus.dispose();
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _boardFocus.dispose();
     super.dispose();
   }
 
   bool _handleKeyEvent(KeyEvent event) {
+    if (!mounted) return false;
+    
     if (event is KeyDownEvent && widget.focusButton.hasFocus) {
       final key = event.logicalKey;
       if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
-        // Bloquear las flechas horizontales cuando focusButton está activo
-        return true; // Devuelve true para indicar que el evento fue manejado
+        return true;
       }
     }
-    return false; // Devuelve false para que el evento siga su curso normal
+    return false;
   }
 
   void _notifyControllers() {
@@ -72,9 +70,10 @@ class _VoucherBoardState extends State<VoucherBoard> {
           actions: <Type, Action<Intent>>{
             DirectionIntent: CallbackAction<DirectionIntent>(
               onInvoke: (intent) {
+                if (!mounted) return null;
+                
                 if (widget.focusButton.hasFocus) {
                   if (intent.direction == 'left' || intent.direction == 'right') {
-                    // Bloquear las flechas izquierda y derecha cuando focusButton está activo
                     return null;
                   }
                   if (intent.direction == 'enter'){
@@ -109,15 +108,15 @@ class _VoucherBoardState extends State<VoucherBoard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _VoucherSection(key: _debitoKey, title: "Débito", autoFocus: true),
-              _VoucherSection(key: _creditoKey, title: "Crédito", autoFocus: false),
-              _VoucherSection(key: _transferenciasKey, title: "Transferencias", autoFocus: false),
+              _VoucherSection(key: _debitoKey, title: 'Débito', autoFocus: true),
+              _VoucherSection(key: _creditoKey, title: 'Crédito', autoFocus: false),
+              _VoucherSection(key: _transferenciasKey, title: 'Transferencias', autoFocus: false),
               ElevatedButton(
                 focusNode: widget.focusButton,
                 onPressed: () {
                   siguiente();
                 },
-                child: Text('Continuar')
+                child: const Text('Continuar')
               )
             ],
           ),
@@ -137,8 +136,6 @@ class DirectionIntent extends Intent {
   const DirectionIntent(this.direction);
 }
 
-
-/// Sección con título y un carrusel de vouchers
 class _VoucherSection extends StatefulWidget {
   const _VoucherSection({required this.title, super.key, required this.autoFocus});
 
@@ -155,48 +152,78 @@ class _VoucherSectionState extends State<_VoucherSection> {
   final List<FocusNode> _focusNodes = [FocusNode()];
   int _currentIndex = 0;
   double _total = 0;
+  bool _disposed = false;
 
   @override
   void initState() {
     super.initState();
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
 
-    //Autofocus solo al primer formfield
     WidgetsBinding.instance.addPostFrameCallback((_) {
-    if(widget.autoFocus){ _focusNodes[0].requestFocus();}
-  });
+      if (!mounted || _disposed) return;
+      if(widget.autoFocus) { 
+        _focusNodes[0].requestFocus();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    
+    // CRÍTICO: Remover handler primero
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
-    _page.dispose();
-    for (final c in _controllers) {
-      c.dispose();
-    }
+    
+    // Quitar focus de todos los nodos para cancelar operaciones pendientes
     for (final f in _focusNodes) {
-      f.dispose();
+      if (f.hasFocus) {
+        f.unfocus();
+      }
     }
+    
+    // Esperar un frame para que se completen los microtasks pendientes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Dispose después del frame
+      _page.dispose();
+      for (final c in _controllers) {
+        c.dispose();
+      }
+      for (final f in _focusNodes) {
+        f.dispose();
+      }
+    });
+    
     super.dispose();
   }
 
+  @override
+  void deactivate() {
+    // Unfocus cuando el widget se desactiva (antes de dispose)
+    for (final f in _focusNodes) {
+      if (f.hasFocus) {
+        f.unfocus();
+      }
+    }
+    super.deactivate();
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
+    if (!mounted || _disposed) return false;
+    
     if (event is! KeyDownEvent) {
-      return false; // No es un evento de tecla presionada, no lo manejamos
+      return false;
     }
     final key = event.logicalKey;
 
     final idx = _focusNodes.indexWhere((n) => n.hasFocus);
     if (idx == -1) {
-      return false; // Ningún campo de texto en esta sección tiene foco
+      return false;
     }
 
-    // ← retroceder
     if (key == LogicalKeyboardKey.arrowLeft && idx > 0) {
       _goTo(idx - 1);
       return true;
     }
-    // → avanzar
     if (key == LogicalKeyboardKey.arrowRight) {
       _advanceFrom(idx);
       return true;
@@ -205,16 +232,24 @@ class _VoucherSectionState extends State<_VoucherSection> {
   }
 
   bool hasFocus() {
+    if (_disposed) return false;
     return _focusNodes.any((node) => node.hasFocus);
   }
 
   void focusCurrent() {
+    if (_disposed || !mounted) return;
     if (_currentIndex < _focusNodes.length) {
-      FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
+      // Usar scheduleMicrotask en lugar de requestFocus directo
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed && mounted && _currentIndex < _focusNodes.length) {
+          FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
+        }
+      });
     }
   }
 
   void _ensureNextBlank() {
+    if (_disposed) return;
     if (_controllers.isEmpty || _controllers.last.text.trim().isNotEmpty) {
       _controllers.add(TextEditingController());
       _focusNodes.add(FocusNode());
@@ -222,6 +257,7 @@ class _VoucherSectionState extends State<_VoucherSection> {
   }
 
   void _recomputeTotal() {
+    if (_disposed) return;
     double sum = 0;
     final lastIsEmpty = _controllers.isNotEmpty && _controllers.last.text.trim().isEmpty;
     final len = lastIsEmpty ? _controllers.length - 1 : _controllers.length;
@@ -231,41 +267,62 @@ class _VoucherSectionState extends State<_VoucherSection> {
       final v = double.tryParse(txt.replaceAll(',', '.')) ?? 0;
       sum += v;
     }
-    setState(() => _total = sum);
+    if (mounted) {
+      setState(() => _total = sum);
+    }
   }
 
   Future<void> _advanceFrom(int index) async {
+    if (_disposed || !mounted) return;
+    
     if (index >= _controllers.length - 1) {
       _controllers.add(TextEditingController());
       _focusNodes.add(FocusNode());
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
     final next = index + 1;
-    await _page.animateToPage(
-      next,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeInOut,
-    );
+    
+    if (!_disposed && _page.hasClients) {
+      await _page.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+      );
+    }
+    
+    if (_disposed || !mounted) return;
+    
     setState(() => _currentIndex = next);
 
-    Future.delayed(const Duration(milliseconds: 50), () {
+    // Usar addPostFrameCallback en lugar de Future.delayed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed || !mounted) return;
       if (next < _focusNodes.length) {
-        if (!mounted)return;
         FocusScope.of(context).requestFocus(_focusNodes[next]);
       }
     });
   }
 
   Future<void> _goTo(int index) async {
-    await _page.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-    );
+    if (_disposed || !mounted) return;
+    
+    if (_page.hasClients) {
+      await _page.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+    
+    if (_disposed || !mounted) return;
+    
     setState(() => _currentIndex = index);
-    Future.delayed(const Duration(milliseconds: 50), () {
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed || !mounted) return;
       if (index < _focusNodes.length) {
-        if (!mounted)return;
         FocusScope.of(context).requestFocus(_focusNodes[index]);
       }
     });
@@ -317,7 +374,6 @@ class _VoucherSectionState extends State<_VoucherSection> {
     final enteredCount = _controllers.where((c) => c.text.trim().isNotEmpty).length;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(widget.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
@@ -327,10 +383,16 @@ class _VoucherSectionState extends State<_VoucherSection> {
             controller: _page,
             physics: const BouncingScrollPhysics(),
             onPageChanged: (i) {
+              if (_disposed || !mounted) return;
+              
               setState(() => _currentIndex = i);
-              Future.microtask(() {
-                if (!context.mounted)return;
-                if (i < _focusNodes.length) FocusScope.of(context).requestFocus(_focusNodes[i]);
+              
+              // Usar addPostFrameCallback consistentemente
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_disposed || !mounted) return;
+                if (i < _focusNodes.length) {
+                  FocusScope.of(context).requestFocus(_focusNodes[i]);
+                }
               });
               _ensureNextBlank();
             },
@@ -340,7 +402,7 @@ class _VoucherSectionState extends State<_VoucherSection> {
         ),
         const SizedBox(height: 4),
         Text(
-          "Total: ${Formatos.pesos.format(_total)}   (Vouchers: $enteredCount)",
+          'Total: ${Formatos.pesos.format(_total)}   (Vouchers: $enteredCount)',
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 25),

@@ -33,29 +33,29 @@ class DetallesVenta {
 
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
     //id: json["id"]?.toString(),
-    productoId: json["producto_id"],
-    cantidad: json["cantidad"],
-    ancho: json["ancho"],
-    alto: json["alto"],
-    comentarios: json["comentarios"],
-    descuento: json["descuento"],
-    descuentoAplicado: Decimal.parse(json["descuento_aplicado"].toString()),
-    iva: Decimal.parse(json["iva"].toString()),
-    subtotal: Decimal.parse(json["subtotal"].toString()),
-    cotizacionPrecio: json["cotizacion_precio"]!=null ? Decimal.tryParse(json["cotizacion_precio"].toString()) : null,
+    productoId: json['producto_id'],
+    cantidad: json['cantidad'],
+    ancho: json['ancho'],
+    alto: json['alto'],
+    comentarios: json['comentarios'],
+    descuento: json['descuento'],
+    descuentoAplicado: Decimal.parse(json['descuento_aplicado'].toString()),
+    iva: Decimal.parse(json['iva'].toString()),
+    subtotal: Decimal.parse(json['subtotal'].toString()),
+    cotizacionPrecio: json['cotizacion_precio']!=null ? Decimal.tryParse(json['cotizacion_precio'].toString()) : null,
   );
 
   Map<String, dynamic> toMap() => {
     //"id": id,
-    "producto_id": productoId,
-    "cantidad": cantidad,
-    "ancho": ancho,
-    "alto": alto,
-    "comentarios": comentarios,
-    "descuento": descuento,
-    "descuento_aplicado": descuentoAplicado,
-    "iva": iva,
-    "subtotal": subtotal,
-    "cotizacion_precio": cotizacionPrecio
+    'producto_id': productoId,
+    'cantidad': cantidad,
+    'ancho': ancho,
+    'alto': alto,
+    'comentarios': comentarios,
+    'descuento': descuento,
+    'descuento_aplicado': descuentoAplicado,
+    'iva': iva,
+    'subtotal': subtotal,
+    'cotizacion_precio': cotizacionPrecio
   };
 }

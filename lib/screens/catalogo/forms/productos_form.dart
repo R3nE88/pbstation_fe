@@ -177,7 +177,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(_titulo),
-            Text('IVA: ${Configuracion.iva}%', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.7)),
+            Text('IVA: ${Configuracion.iva}%', style: AppTheme.labelStyle, textScaler: const TextScaler.linear(0.7)),
           ],
         ),
         content: SizedBox(
@@ -264,7 +264,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             inputFormatters: [ PesosInputFormatter() ],
                             buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                             maxLength: 12,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Precio con IVA',
                               labelStyle: AppTheme.labelStyle,
                             ),
@@ -277,8 +277,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             autovalidateMode: AutovalidateMode.onUserInteraction,
                             onChanged: (value) {
                               if (value.isNotEmpty){
-                                String valueForm = value.replaceAll("MX\$", "").replaceAll(",", "");
-                                if (valueForm!=".") {
+                                String valueForm = value.replaceAll('MX\$', '').replaceAll(',', '');
+                                if (valueForm!='.') {
                                   _precioSinIva = CalculosDinero().calcularSinIva(Decimal.parse(valueForm));//CalculosDinero().calcularConIva(Decimal.parse(valueForm)).toDouble();
                                   _controllers['precio_iva']!.text = Formatos.pesos.format(_precioSinIva.toDouble());
                                 }
@@ -294,13 +294,12 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     Expanded(
                       flex: 2,
                       child: IgnorePointer(
-                        ignoring: true,
                         child: TextFormField(
                           readOnly: true,
                           canRequestFocus: false,
                           controller: _controllers['precio_iva']!,
                           inputFormatters: [ PesosInputFormatter() ],
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Precio sin IVA',
                             labelStyle: AppTheme.labelStyle,
                           ),
@@ -372,21 +371,20 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                               keyboardType: TextInputType.number,
                               inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
                               readOnly: _imprimible==false?true : _onlyRead, //si esta marcado el checkbox habilitar
-                              maxLines: 1,
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 3,
                               textAlign: TextAlign.center,
                               decoration: InputDecoration(
                                 isDense: true,
-                                errorStyle: TextStyle(height: 0),
+                                errorStyle: const TextStyle(height: 0),
                                 contentPadding: EdgeInsets.zero,
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
-                                  borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                                  borderSide: const BorderSide(color: AppTheme.letraClara),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
-                                  borderSide: BorderSide(color: AppTheme.letraClara, width: 1),
+                                  borderSide: const BorderSide(color: AppTheme.letraClara),
                                 ),
                               ),
                               validator: (value) {

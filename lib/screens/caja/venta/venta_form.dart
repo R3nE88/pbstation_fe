@@ -124,7 +124,7 @@ class _VentaFormState extends State<VentaForm> {
   
   //Metodos
   Decimal formatearEntrada(String entrada){
-    return Decimal.parse(entrada.replaceAll("MX\$", "").replaceAll(",", "")); 
+    return Decimal.parse(entrada.replaceAll('MX\$', '').replaceAll(',', '')); 
   }
 
   void calcularSubtotal(){
@@ -188,7 +188,7 @@ class _VentaFormState extends State<VentaForm> {
                 width: MediaQuery.of(context).size.height * 0.5,
                 child: Theme(
                   data: Theme.of(context).copyWith(
-                    textTheme: TextTheme(
+                    textTheme: const TextTheme(
                       bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
                     ),
                     colorScheme: ColorScheme.light(
@@ -217,11 +217,11 @@ class _VentaFormState extends State<VentaForm> {
     final TimeOfDay? selectedTime = await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Stack(
+        return const Stack(
           alignment: Alignment.topRight,
           children: [
             SeleccionadorDeHora(),
-            const WindowBar(overlay: true),
+            WindowBar(overlay: true),
           ],
         );
       },
@@ -375,12 +375,12 @@ class _VentaFormState extends State<VentaForm> {
                   ElevatedButton(
                     onPressed: (){
                       Navigator.pop(context, false);
-                    }, child: Text('Regresar')
+                    }, child: const Text('Regresar')
                   ),
                   ElevatedButton(
                     onPressed: (){
                       Navigator.pop(context, true);
-                    }, child: Text('Continuar')
+                    }, child: const Text('Continuar')
                   ),
                 ],
               ),
@@ -435,19 +435,19 @@ class _VentaFormState extends State<VentaForm> {
           children: [
             AlertDialog(
               backgroundColor: AppTheme.containerColor2,
-              title: Center(child: const Text('  ¡Cotizacion guardada!  ')),
+              title: const Center(child: Text('  ¡Cotizacion guardada!  ')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "La cotización será válida hasta el último\ndía del mes en curso.", 
+                  const Text(
+                    'La cotización será válida hasta el último\ndía del mes en curso.', 
                     style: TextStyle(color: Colors.white38),
                     textAlign: TextAlign.center,
                   ), const SizedBox(height: 10),
                   const Text('Vigencia:', textScaler: TextScaler.linear(1.1)),
-                  Text(vigencia, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.25)),
+                  Text(vigencia, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.25)),
                   const SizedBox(height: 10),
-                  SelectableText('Folio: $folio', textScaler: TextScaler.linear(1.1)),
+                  SelectableText('Folio: $folio', textScaler: const TextScaler.linear(1.1)),
                   
                   const SizedBox(height: 25),
                   Column(
@@ -459,7 +459,7 @@ class _VentaFormState extends State<VentaForm> {
                           children: [
                             const Icon(Icons.print, color: Colors.transparent),
                             Transform.translate(
-                              offset: Offset(0, -1.5),
+                              offset: const Offset(0, -1.5),
                               child: const Text('  Imprimir')
                             ),
                             const Icon(Icons.print),
@@ -473,7 +473,7 @@ class _VentaFormState extends State<VentaForm> {
                           children: [
                             const Icon(Icons.send, color: Colors.transparent),
                             Transform.translate(
-                              offset: Offset(0, -1.5),
+                              offset: const Offset(0, -1.5),
                               child:  const Text('  Enviar por WhatsApp'),
                             ),
                             const Icon(Icons.send),
@@ -487,7 +487,7 @@ class _VentaFormState extends State<VentaForm> {
                           children: [
                             const Icon(Icons.email, color: Colors.transparent),
                             Transform.translate(
-                              offset: Offset(0, -1.5),
+                              offset: const Offset(0, -1.5),
                               child: const Text('  Enviar por Correo'),
                             ),
                             const Icon(Icons.email),
@@ -530,7 +530,7 @@ class _VentaFormState extends State<VentaForm> {
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.containerColor1,
-          borderRadius: BorderRadius.only(topRight: Radius.circular(15), bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
+          borderRadius: const BorderRadius.only(topRight: Radius.circular(15), bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(15),
@@ -546,7 +546,6 @@ class _VentaFormState extends State<VentaForm> {
                       
                       Expanded(
                         child: Column( //Formulario de clientes
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -569,6 +568,8 @@ class _VentaFormState extends State<VentaForm> {
                                       debugPrint('No se selecciono nada!');
                                     },
                                     displayStringForOption: (cliente) => cliente.nombre, 
+                                    secondaryDisplayStringForOption: (cliente) => cliente.telefono.toString(), 
+                                    showSecondaryFirst: false,
                                     normalBorder: false, 
                                     icono: Icons.perm_contact_cal_sharp, 
                                     defaultFirst: false, 
@@ -579,7 +580,7 @@ class _VentaFormState extends State<VentaForm> {
                                 Container(
                                   height: 40,
                                   width: 42,
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: AppTheme.letraClara,
                                     borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
                                   ),
@@ -601,7 +602,6 @@ class _VentaFormState extends State<VentaForm> {
                       const SizedBox(width: 15),
                       
                       Column( //Fecha de Entrega
-                        mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -612,7 +612,7 @@ class _VentaFormState extends State<VentaForm> {
                             decoration: BoxDecoration(
                               color: const Color.fromARGB(43, 255, 255, 255),
                               border: Border.all(color: AppTheme.letraClara),
-                              borderRadius: BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
+                              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(3),
@@ -644,7 +644,6 @@ class _VentaFormState extends State<VentaForm> {
                       ),
                       
                       Column( 
-                        mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -673,7 +672,7 @@ class _VentaFormState extends State<VentaForm> {
                                       ),
                                       SizedBox(
                                         width: 140,
-                                        child: _fechaEntrega==null ? Text(
+                                        child: _fechaEntrega==null ? const Text(
                                           'Entregar en otro día  '
                                         ) :
                                         Center(
@@ -690,7 +689,7 @@ class _VentaFormState extends State<VentaForm> {
                               Container(
                                 height: 40,
                                 width: 120,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: AppTheme.letraClara,
                                   borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
                                 ),
@@ -731,7 +730,6 @@ class _VentaFormState extends State<VentaForm> {
                       
                       Expanded(
                         child: Column( //Formulario de Producto
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -766,7 +764,6 @@ class _VentaFormState extends State<VentaForm> {
                       const SizedBox(width: 15),
                       
                       Column( //Precio por unidad
-                        mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -787,7 +784,6 @@ class _VentaFormState extends State<VentaForm> {
                       const SizedBox(width: 15),
                       
                       Column( //Precio por unidad
-                        mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -816,9 +812,6 @@ class _VentaFormState extends State<VentaForm> {
                                     calcularSubtotal();
                                   });
                                 },
-                                onTap: () {
-                                  _cantidadController.text = '';
-                                },
                               ),
                             ),
                           )
@@ -830,7 +823,6 @@ class _VentaFormState extends State<VentaForm> {
                       _productoSelected?.requiereMedida==true ? Row(
                         children: [
                           Column( //Precio por unidad
-                            mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -844,11 +836,8 @@ class _VentaFormState extends State<VentaForm> {
                                   maxLength: 4,
                                   controller: _anchoController,
                                   inputFormatters: [ DecimalInputFormatter() ],
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                  onTap: () {
-                                    _anchoController.text = '';
-                                  },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
@@ -862,11 +851,11 @@ class _VentaFormState extends State<VentaForm> {
                                     
                                     //No exeder el limite de anchura
                                     if (value.isNotEmpty){
-                                      if (value=="."){
-                                        value="";
+                                      if (value=='.'){
+                                        value='';
                                         return;
                                       }
-                                      if (double.parse(value.replaceAll(",", "")) > Constantes.anchoMaximo ){
+                                      if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
                                         _anchoController.text = Constantes.anchoMaximo.toString();
                                       }
                                     }
@@ -887,7 +876,6 @@ class _VentaFormState extends State<VentaForm> {
                           const SizedBox(width: 15),
                 
                           Column( //Precio por unidad
-                            mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -901,11 +889,8 @@ class _VentaFormState extends State<VentaForm> {
                                   maxLength: 4,
                                   controller: _altoController,
                                   inputFormatters: [ DecimalInputFormatter() ],
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                  onTap: () {
-                                    _altoController.text = '';
-                                  },
                                   onChanged: (value) {
                                     if (value.isNotEmpty && value != '0') {
                                       setState(() {
@@ -919,11 +904,11 @@ class _VentaFormState extends State<VentaForm> {
 
                                     //No exeder el limite de altura
                                     if (value.isNotEmpty){
-                                      if (value=="."){
-                                        value="";
+                                      if (value=='.'){
+                                        value='';
                                         return;
                                       }
-                                      if (double.parse(value.replaceAll(",", "")) > Constantes.altoMaximo ){
+                                      if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
                                         _altoController.text = Constantes.altoMaximo.toString();
                                       }
                                     }
@@ -954,7 +939,6 @@ class _VentaFormState extends State<VentaForm> {
                       Expanded(
                         flex: 2,
                         child: Column( //Formulario de Producto
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -964,7 +948,7 @@ class _VentaFormState extends State<VentaForm> {
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 100,
                               controller: _comentarioController,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                 isDense: true,
                                 prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
                               ),
@@ -977,7 +961,6 @@ class _VentaFormState extends State<VentaForm> {
                       
                       Expanded(
                         child: Column( //Formulario de Producto
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1010,11 +993,11 @@ class _VentaFormState extends State<VentaForm> {
                                         FilteringTextInputFormatter.digitsOnly,
                                       ],
                                       decoration: _permisoDeAdmin 
-                                      ? InputDecoration(
+                                      ? const InputDecoration(
                                         isDense: true,
                                         prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
                                       )
-                                      : InputDecoration(
+                                      : const InputDecoration(
                                         isDense: true,
                                         prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
                                         enabledBorder: OutlineInputBorder(
@@ -1054,7 +1037,7 @@ class _VentaFormState extends State<VentaForm> {
                                 : Container(
                                   height: 40,
                                   width: 42,
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.only(
                                       topRight: Radius.circular(30),
@@ -1076,7 +1059,7 @@ class _VentaFormState extends State<VentaForm> {
                                         }
                                       }, 
                                       icon: Transform.translate(
-                                        offset: Offset(-2.5, 0),
+                                        offset: const Offset(-2.5, 0),
                                         child: Icon(
                                           Icons.lock, 
                                           color: AppTheme.containerColor2, 
@@ -1096,7 +1079,6 @@ class _VentaFormState extends State<VentaForm> {
                       
                       Expanded(
                         child: Column( //Formulario de Producto
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1120,7 +1102,6 @@ class _VentaFormState extends State<VentaForm> {
                       
                       Expanded(
                         child: Column( //Formulario de Producto
-                          mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1146,8 +1127,8 @@ class _VentaFormState extends State<VentaForm> {
                           if (_productoSelected == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Center(child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 15),
+                                content: const Center(child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 15),
                                   child: Text('Seleccione un producto antes de agregarlo.'),
                                 )),
                                 backgroundColor: Colors.red.withAlpha(100),
@@ -1204,7 +1185,6 @@ class _VentaFormState extends State<VentaForm> {
                             );
                           });             
                         }, 
-                        style: AppTheme.botonSecundarioStyle,
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text('Agregar Producto', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700) ),
@@ -1237,14 +1217,14 @@ class _VentaFormState extends State<VentaForm> {
                             ),
                             color: AppTheme.tablaColorHeader,
                           ),
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Expanded(child: Text('Cantidad', textAlign: TextAlign.center)),
                               Expanded(flex: 4, child: Text('Producto', textAlign: TextAlign.center)),
                               Expanded(flex: 2, child: Text('Precio/Unidad', textAlign: TextAlign.center)),
                               Expanded(flex: 2, child: Text('Subtotal', textAlign: TextAlign.center)),
                               Expanded(flex: 2, child: Text('Descuento', textAlign: TextAlign.center)),
-                              Expanded(flex: 1, child: Text('IVA', textAlign: TextAlign.center)),
+                              Expanded(child: Text('IVA', textAlign: TextAlign.center)),
                               Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center)),
                             ],
                           ),
@@ -1294,7 +1274,7 @@ class _VentaFormState extends State<VentaForm> {
                                   },
                                 );
                               },
-                            ) : FilaDetalles(index: -1),
+                            ) : const FilaDetalles(index: -1),
                           ),
                         ),
                       ],
@@ -1313,18 +1293,18 @@ class _VentaFormState extends State<VentaForm> {
                           maxLength: 250,
                           controller: _comentariosController,
                           maxLines: 5,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'Comentarios de la venta',
                             hintStyle: TextStyle(color: AppTheme.letra70),
                             isDense: true,
-                            contentPadding: const EdgeInsets.only(left: 10, top: 20),
+                            contentPadding: EdgeInsets.only(left: 10, top: 20),
                             enabledBorder: OutlineInputBorder(
                               borderSide: BorderSide(color: Colors.white),
-                              borderRadius: const BorderRadius.all(Radius.circular(12))
+                              borderRadius: BorderRadius.all(Radius.circular(12))
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
-                              borderRadius: const BorderRadius.all(Radius.circular(12))
+                              borderRadius: BorderRadius.all(Radius.circular(12))
                             ),
                           ),
                         ),
@@ -1343,7 +1323,7 @@ class _VentaFormState extends State<VentaForm> {
                                       procesarPago();
                                     },
                                     style: AppTheme.botonPrincipalStyle,
-                                    child: Text('      Procesar Pago  (F8)     ', 
+                                    child: const Text('      Procesar Pago  (F8)     ', 
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
                                   ) : ElevatedButton(
@@ -1352,17 +1332,19 @@ class _VentaFormState extends State<VentaForm> {
                                       procesarEnvio();
                                     },
                                     style: AppTheme.botonPrincipalStyle,
-                                    child: Text('      Enviar a Caja  (F8)     ', 
+                                    child: const Text('      Enviar a Caja  (F8)     ', 
                                       style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  ElevatedButton(
-                                    onPressed: (){
-                                      procesarCotizacion();
-                                    },
-                                    style: AppTheme.botonSecundarioStyle,
-                                    child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
+                                  Tooltip( 
+                                    message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
+                                    child: ElevatedButton(
+                                      onPressed: (){
+                                        //procesarCotizacion(); TODO: deshabilitado
+                                      },
+                                      child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1434,7 +1416,7 @@ class _VentaFormState extends State<VentaForm> {
                                         canRequestFocus: false,
                                         readOnly: true,
                                         decoration: totalDecoration,
-                                        style: TextStyle(fontSize: 22),
+                                        style: const TextStyle(fontSize: 22),
                                       )
                                     )
                                   ],
@@ -1480,7 +1462,7 @@ class FilaDetalles extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.tablaColor1
             ),
-            child: Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
+            child: const Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
           ),
         ],
       );
@@ -1503,7 +1485,7 @@ class FilaDetalles extends StatelessWidget {
         color: AppTheme.dropDownColor,
         elevation: 2,
         items: [
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'modificar',
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1513,7 +1495,7 @@ class FilaDetalles extends StatelessWidget {
               ],
             ),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'eliminar',
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1552,7 +1534,7 @@ class FilaDetalles extends StatelessWidget {
             Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 1, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),

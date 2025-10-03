@@ -32,6 +32,16 @@ class _CorteDialogState extends State<CorteDialog> {
   final Map<String, TextEditingController> impresoraControllers = {};
 
   final List<VentasPorProducto> _ventasPorProducto = [];
+  final List<Ventas> _ventasConDescuentos = [];
+  final Map<String, List<Ventas>> _ventasPorUsuario = {};
+  Decimal _subtotal = Decimal.zero;
+  Decimal _iva = Decimal.zero;
+  Decimal _total = Decimal.zero;
+  Decimal _abonadoMxn = Decimal.zero;
+  Decimal _abonadoUs = Decimal.zero;
+  Decimal _abonadoTarjD = Decimal.zero;
+  Decimal _abonadoTarjC = Decimal.zero;
+  Decimal _abonadoTrans = Decimal.zero;
 
   // Denominaciones: ahora con tipo ('billete' | 'moneda') y valor
   final List<Map<String, dynamic>> denominacionesMxn = [
@@ -101,13 +111,58 @@ class _CorteDialogState extends State<CorteDialog> {
   void initState() {
     super.initState();
     //formatear fecha
-    fechaAperturaFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaApertura);
+    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
     CajasServices.corteActual!.fechaCorte = fechaCorte.toIso8601String();
     CajasServices.corteActual!.usuarioIdCerro = Login.usuarioLogeado.id!;
-    fechaCorteFormatted = DateFormat("dd-MMM-yyyy hh:mm a", "es_MX").format(fechaCorte);
+    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
   
     final ventasSvc = Provider.of<VentasServices>(context, listen: false);
     _ventasPorProducto.addAll(ventasSvc.consolidarVentasPorProducto(ventasSvc.ventasDeCorteActual));
+
+    //ReporteFinalDescuentosYVendedores
+    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
+    for (var venta in ventaSvc.ventasDeCorteActual) {
+      //Descuento
+      if (venta.descuento > Decimal.parse('0')){
+        _ventasConDescuentos.add(venta);
+      }
+      // Agrupar por usuario_id
+      final usuarioId = venta.usuarioId; 
+      _ventasPorUsuario.putIfAbsent(usuarioId, () => []);
+      _ventasPorUsuario[usuarioId]!.add(venta);
+    }
+
+    //ReporteFinalVenta
+    for (var venta in _ventasPorProducto) {
+      _subtotal += venta.subTotal;
+    }
+    for (var venta in _ventasPorProducto) {
+      _iva += venta.iva;
+    }
+    for (var venta in _ventasPorProducto) {
+      _total += venta.total;
+    }
+
+    //ReporteFinalMovimientos
+    final ventas = Provider.of<VentasServices>(context, listen: false);
+    for (var venta in ventas.ventasDeCorteActual) {
+      if (venta.abonadoMxn!=null){
+        _abonadoMxn += venta.abonadoMxn!;
+      }
+      if (venta.abonadoUs!=null){
+        _abonadoUs += venta.abonadoUs!;
+      }
+      if (venta.abonadoTarj!=null){
+        if (venta.tipoTarjeta == 'debito'){
+          _abonadoTarjD += venta.abonadoTarj!;
+        } else if(venta.tipoTarjeta == 'credito'){
+          _abonadoTarjC += venta.abonadoTarj!;
+        }
+      }
+      if (venta.abonadoTrans!=null){
+        _abonadoTrans += venta.abonadoTrans!;
+      }
+    }
 
     // inicializa controladores de denominación (debe coincidir con denominaciones.length)
     for (var _ in denominacionesMxn) {
@@ -121,13 +176,6 @@ class _CorteDialogState extends State<CorteDialog> {
       denominacionesDolarFocus.add(FocusNode());
     }
 
-    //Segundos para mostrar mensaje
-    //segundosRestantes = segundosTotales;
-
-    // Cargar impresoras (si tu servicio devuelve async)
-    /*WidgetsBinding.instance.addPostFrameCallback((_) {
-      
-    });*/
     final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
     setState(() => loadingImpresoras = true);
     impresoraSvc.loadImpresoras(true).whenComplete(() {
@@ -141,16 +189,25 @@ class _CorteDialogState extends State<CorteDialog> {
     if (impresoraControllers.length != svc.impresoras.length) {
       impresoraControllers.clear();
       for (var impresora in svc.impresoras) {
-        //impresoraControllers.add({"impresora_id":impresora.id!, "controller":TextEditingController()});
         impresoraControllers[impresora.id!] = TextEditingController();
       }
     }
   }
 
-  @override
-  void dispose() {
+@override
+void dispose() {
+  //FocusScope.of(context).unfocus(); //TODO: me dio error: FlutterError (Looking up a deactivated widget's ancestor is unsafe. At this point the state of the widget's element tree is no longer stable. To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.)
+  _voucherButtonFocus.unfocus();
+  
+  for (var node in denominacionesDolarFocus) {
+    if (node.hasFocus) {
+      node.unfocus();
+    }
+  }
+  
+  // Esperar un frame antes de dispose
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     for (var c in impresoraControllers.values) {
-      //c["controller"].dispose();
       c.dispose();
     }
     for (var c in denomControllersMxn) {
@@ -159,20 +216,19 @@ class _CorteDialogState extends State<CorteDialog> {
     for (var c in denomControllersDlls) {
       c.dispose();
     }
-    //proximoFondoCtrl.dispose();
 
     for (var i = 0; i < denominacionesDolarFocus.length; i++) {
       denominacionesDolarFocus[i].dispose();
     }
-
     _voucherButtonFocus.dispose();
+  });
 
-    super.dispose();
-  }
+  super.dispose();
+}
 
-  Cortes nuevoCorte(String comentario){
+  Cortes _corte(String comentario){
     //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(efectivoDolares).toString());
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(efectivoDolares).toString());
     Decimal contadoPesos = Decimal.parse(efectivoPesos.toString());
     Decimal contadoDolares = Decimal.parse(efectivoDolares.toString());
     Decimal contadoDebito = contarVouchers(debitoControllers);
@@ -182,12 +238,12 @@ class _CorteDialogState extends State<CorteDialog> {
 
     //Venta
     final ventas = Provider.of<VentasServices>(context, listen: false);
-    Decimal abonadoMxn = Decimal.parse("0");
-    Decimal abonadoUs = Decimal.parse("0");
-    Decimal abonadoTarjD = Decimal.parse("0");
-    Decimal abonadoTarjC = Decimal.parse("0");
-    Decimal abonadoTrans = Decimal.parse("0");
-    for (var venta in ventas.ventasDeCaja) {
+    Decimal abonadoMxn = Decimal.parse('0');
+    Decimal abonadoUs = Decimal.parse('0');
+    Decimal abonadoTarjD = Decimal.parse('0');
+    Decimal abonadoTarjC = Decimal.parse('0');
+    Decimal abonadoTrans = Decimal.parse('0');
+    for (var venta in ventas.ventasDeCorteActual) {
       if (venta.abonadoMxn!=null){
         abonadoMxn += venta.abonadoMxn!;
       }
@@ -195,9 +251,9 @@ class _CorteDialogState extends State<CorteDialog> {
         abonadoUs += venta.abonadoUs!;
       }
       if (venta.abonadoTarj!=null){
-        if (venta.tipoTarjeta == "debito"){
+        if (venta.tipoTarjeta == 'debito'){
           abonadoTarjD += venta.abonadoTarj!;
-        } else if(venta.tipoTarjeta == "credito"){
+        } else if(venta.tipoTarjeta == 'credito'){
           abonadoTarjC += venta.abonadoTarj!;
         }
       }
@@ -205,11 +261,11 @@ class _CorteDialogState extends State<CorteDialog> {
         abonadoTrans += venta.abonadoTrans!;
       }
     }
-    Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    Decimal ventaTotal = abonadoMxn + abonadoUsCnv + abonadoTarjD + abonadoTarjC + abonadoTrans;
+    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    Decimal ventaTotal = abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
 
     //Diferencia
-    Decimal diferencia = Decimal.parse("0");
+    Decimal diferencia = Decimal.parse('0');
 
     Cortes corte = Cortes(
       id: CajasServices.corteActualId,
@@ -228,13 +284,13 @@ class _CorteDialogState extends State<CorteDialog> {
       conteoTransf: contadoTransf, 
       conteoTotal: totalContado,
       ventaPesos: abonadoMxn,
-      ventaDolares: abonadoUsCnv,
+      ventaDolares: abonadoUs,
       ventaDebito: abonadoTarjD,
       ventaCredito: abonadoTarjC,
       ventaTransf: abonadoTrans,
       ventaTotal: ventaTotal,
       diferencia: (diferencia + ventaTotal) - totalContado,
-      movimientoCaja: CajasServices.corteActual!.movimientoCaja,
+      movimientosCaja: CajasServices.corteActual!.movimientosCaja,
       desglosePesos: mapearDesglose(true),
       desgloseDolares: mapearDesglose(false),
       ventasIds: CajasServices.corteActual!.ventasIds,
@@ -246,12 +302,13 @@ class _CorteDialogState extends State<CorteDialog> {
   }
 
   void terminarCorte(String comentario) async{
+    FocusScope.of(context).unfocus();
     Loading.displaySpinLoading(context);
 
     //Cerrar Corte
-    Cortes corte = nuevoCorte(comentario);
+    Cortes corte = _corte(comentario);
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
-    await cajasSvc.actualizarCorte(corte, CajasServices.corteActualId!);
+    await cajasSvc.actualizarDatosCorte(corte, CajasServices.corteActualId!);
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
     if (!mounted) return;
@@ -259,6 +316,11 @@ class _CorteDialogState extends State<CorteDialog> {
 
     //Cerrar Caja
     if (widget.cierre){
+      Decimal ventaTotal = Decimal.zero;
+      for (var corteCaja in cajasSvc.cortesDeCaja) {
+        ventaTotal += corteCaja.ventaTotal ?? Decimal.zero;
+      }
+
       Cajas caja = Cajas(
         id: CajasServices.cajaActualId,
         folio: CajasServices.cajaActual!.folio,
@@ -266,7 +328,7 @@ class _CorteDialogState extends State<CorteDialog> {
         sucursalId: CajasServices.cajaActual!.sucursalId, 
         fechaApertura: CajasServices.cajaActual!.fechaApertura, 
         fechaCierre: corte.fechaCorte,
-        ventaTotal: corte.ventaTotal,
+        ventaTotal: ventaTotal,
         estado: 'cerrada', 
         cortesIds: CajasServices.cajaActual!.cortesIds, 
         tipoCambio: CajasServices.cajaActual!.tipoCambio
@@ -276,7 +338,7 @@ class _CorteDialogState extends State<CorteDialog> {
       final ventasSvc = Provider.of<VentasServices>(context, listen: false);
       ventasSvc.ventasDeCaja.clear();
       cajasSvc.cortesDeCaja.clear();
-      cajasSvc.movimientos.clear();
+      //cajasSvc.movimientos.clear();
     }
   
     if (!mounted) return;
@@ -324,50 +386,7 @@ class _CorteDialogState extends State<CorteDialog> {
           stage = StepStage.esperandoRetiro;
           }
         );
-        /*for (var i = 0; i < segundosTotales; i++) {
-            await Future.delayed(const Duration(seconds: 1));
-            if (performingRetiro==false){
-              return;
-            }
-            setState(() {
-              segundosRestantes--;
-            });
-          }
-          if (performingRetiro==true){
-            setState(() {
-              performingRetiro = false;
-              stage = StepStage.conteoPesos;
-            });
-          }*/
         break;
-      /*case StepStage.fondo:
-        if(proximoFondoCtrl.text.isNotEmpty){
-          setState(() {
-            performingRetiro = true;
-            stage = StepStage.esperandoRetiro;
-          });
-          for (var i = 0; i < segundosTotales; i++) {
-            await Future.delayed(const Duration(seconds: 1));
-            if (performingRetiro==false){
-              return;
-            }
-            setState(() {
-              segundosRestantes--;
-            });
-          }
-          if (performingRetiro==true){
-            setState(() {
-              performingRetiro = false;
-              stage = StepStage.conteoPesos;
-            });
-          }
-        } else {
-          setState(() {
-            performingRetiro = false;
-            stage = StepStage.conteoPesos;
-          });
-        }
-        break;*/
       case StepStage.esperandoRetiro:
         break;
       case StepStage.conteoPesos:
@@ -375,16 +394,21 @@ class _CorteDialogState extends State<CorteDialog> {
         denominacionesDolarFocus.first.requestFocus();
         break;
       case StepStage.conteoDolares:
-      setState(() => stage = StepStage.voucher);
+        for (var node in denominacionesDolarFocus) {
+          if (node.hasFocus) {
+            node.unfocus();
+          }
+        }
+        setState(() => stage = StepStage.voucher);
         break;
+
       case StepStage.voucher:
-      setState(() => stage = StepStage.terminado);
+        _voucherButtonFocus.unfocus();
+        setState(() => stage = StepStage.terminado);
         break;
       case StepStage.terminado:
         if(reporteFinalPage==2){
-          setState(() {
-            //reporteFinalPage=2;
-          });
+          setState(() {});
         }
         break;
     }
@@ -440,40 +464,6 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  /*Widget _buildFondoStep() {
-    return SizedBox(
-      width: 340,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('¿Cuánto dinero quieres dejar en caja?', style: AppTheme.labelStyle),
-          const SizedBox(height: 8),
-          KeyboardListener(
-            onKeyEvent: (event) {
-              if (event.logicalKey == LogicalKeyboardKey.enter && event is KeyDownEvent) {
-                _nextStage();
-              }
-            },
-            focusNode: FocusNode(
-              canRequestFocus: false
-            ),
-            child: TextFormField(
-              controller: proximoFondoCtrl,
-              textAlign: TextAlign.center,
-              inputFormatters: [PesosInputFormatter()],
-              keyboardType: TextInputType.number,
-              maxLength: 11,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Fondo (MXN)'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(onPressed: _nextStage, child: const Text('Siguiente')),
-        ],
-      ),
-    );
-  }*/
-
   Widget _buildEsperandoRetiro() {
     final impresoraSvc = Provider.of<ImpresorasServices>(context);
 
@@ -488,9 +478,9 @@ class _CorteDialogState extends State<CorteDialog> {
               //mainAxisAlignment: MainAxisAlignment.center,
               alignment: WrapAlignment.center,
               children: [
-                Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+                const Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
                 Text(Formatos.pesos.format(CajasServices.corteActual!.fondoInicial.toDouble()), style: AppTheme.tituloClaro.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-                Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+                const Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
               ],
             ),
           ),
@@ -506,7 +496,7 @@ class _CorteDialogState extends State<CorteDialog> {
                   Navigator.pop(context);
                 }, 
                 //child: Text('Continuar ($segundosRestantes)')
-                child: Text('Regresar')
+                child: const Text('Regresar')
               ) : const SizedBox(),
 
               ElevatedButton(
@@ -518,7 +508,7 @@ class _CorteDialogState extends State<CorteDialog> {
                   });
                 }, 
                 //child: Text('Continuar ($segundosRestantes)')
-                child: Text('Continuar')
+                child: const Text('Continuar')
               ),
             ],
           )
@@ -558,7 +548,7 @@ class _CorteDialogState extends State<CorteDialog> {
                   inputFormatters: [NumericFormatter()],
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = "0"; }
+                    if(value.isEmpty){ ctrl.text = '0'; }
                     setState(() { efectivoPesos = calculateTotalMxn(); });
                   },
                 ),
@@ -611,10 +601,10 @@ class _CorteDialogState extends State<CorteDialog> {
                   inputFormatters: [NumericFormatter()],
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = "0"; }
+                    if(value.isEmpty){ ctrl.text = '0'; }
                     setState(() {
                       efectivoDolares = calculateTotalDolares();
-                      efectivoDolaresAPeso = CalculosDinero().conversionADolar(efectivoDolares);
+                      efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares);
                     });
                   },
                 ),
@@ -655,12 +645,24 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  Widget buildReporteFinal(int page, List<VentasPorProducto> ventas){
+  Widget buildReporteFinal(
+    int page, 
+    List<VentasPorProducto> ventas, 
+    List<Ventas> ventasConDescuentos,
+    Map<String, List<Ventas>> ventasPorUsuario, 
+    Decimal subtotal, 
+    Decimal iva, 
+    Decimal total,
+    Decimal abonadoMxn,
+    Decimal abonadoUs,
+    Decimal abonadoTarjD,
+    Decimal abonadoTarjC,
+    Decimal abonadoTrans
+    ){
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
-    //final ventaSvc = Provider.of<VentasServices>(context);
     final TextEditingController ctrl = TextEditingController();
 
-    if (CajasServices.corteActualId==null) return SizedBox();
+    if (CajasServices.corteActualId==null) return const SizedBox();
 
     return SizedBox(
       width: 1000,
@@ -676,13 +678,13 @@ class _CorteDialogState extends State<CorteDialog> {
             children: [
               Row(
                 children: [
-                  Text('#Corte: '),
+                  const Text('#Corte: '),
                   Text(CajasServices.corteActual?.folio ?? 'error', style: AppTheme.tituloClaro),
                 ],
               ),
               Row(
                 children: [
-                  Text('Tipo de cambio: '),
+                  const Text('Tipo de cambio: '),
                   Text(Formatos.pesos.format(Configuracion.dolar), style: AppTheme.tituloClaro),
                 ],
               ),
@@ -695,17 +697,17 @@ class _CorteDialogState extends State<CorteDialog> {
             children: [
               Row(
                 children: [
-                  Text('Abierta: '),
+                  const Text('Abierta: '),
                   Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  Text(' por '),
+                  const Text(' por '),
                   Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId), style: AppTheme.tituloClaro),
                 ],
               ),
               Row(
                 children: [
-                  Text('Hora del corte: '),
+                  const Text('Hora del corte: '),
                   Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  Text(' por '),
+                  const Text(' por '),
                   Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioIdCerro!), style: AppTheme.tituloClaro),
                 ],
               ),
@@ -716,9 +718,11 @@ class _CorteDialogState extends State<CorteDialog> {
           page==1 ?Expanded(
             child: Row(
               children: [
-                ReporteFinalVenta(ventasPorProducto: ventas,),
+                ReporteFinalVenta(ventasPorProducto: ventas, subtotal: subtotal, iva: iva, total: total,),
                 const SizedBox(width: 10),
                 ReporteFinalDescuentosYVendedores(
+                  ventasConDescuentos: ventasConDescuentos,
+                  ventasPorUsuario: ventasPorUsuario,
                   callback: (){
                     reporteFinalPage=2;
                     _nextStage();
@@ -736,12 +740,16 @@ class _CorteDialogState extends State<CorteDialog> {
                 Row(
                   children: [
                     ReporteFinalMovimientos(
-                      //proximoFondo: proximoFondoCtrl.text.isNotEmpty ? Decimal.parse(proximoFondoCtrl.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0"), 
                       contadoPesos: Decimal.parse(efectivoPesos.toString()), 
                       contadoDolares: Decimal.parse(efectivoDolares.toString()), 
                       contadoDebito: contarVouchers(debitoControllers), 
                       contadoCredito: contarVouchers(creditoControllers), 
                       contadoTransf: contarVouchers(transferenciaControllers), 
+                      abonadoMxn: abonadoMxn, 
+                      abonadoUs: abonadoUs, 
+                      abonadoTarjD: abonadoTarjD, 
+                      abonadoTarjC: abonadoTarjC, 
+                      abonadoTrans: abonadoTrans, 
                     ),
                     const SizedBox(width: 10),
                     ReporteFinalDesgloseDinero(
@@ -755,8 +763,29 @@ class _CorteDialogState extends State<CorteDialog> {
                 
                 //Botones finales
                 Row( 
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          reporteFinalPage=1;
+                          //page=1;
+                        });
+                        
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Transform.translate(
+                            offset: const Offset(-8, 1.5),
+                            child: const Icon(Icons.chevron_left_outlined, size: 25)
+                          ),
+                          const Text('Regresar'),
+                        ],
+                      )
+                    ), const SizedBox(width: 20),
+
                     Tooltip(
                       message: 'Funcion En Desarrollo...',
                       child: ElevatedButton(
@@ -765,10 +794,10 @@ class _CorteDialogState extends State<CorteDialog> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Descargar PDF'),
+                            const Text('Descargar PDF'),
                             Transform.translate(
-                              offset: Offset(8, 1.5),
-                              child: Icon(Icons.picture_as_pdf_outlined, size: 25)
+                              offset: const Offset(8, 1.5),
+                              child: const Icon(Icons.picture_as_pdf_outlined, size: 25)
                             )
                           ],
                         )
@@ -783,10 +812,10 @@ class _CorteDialogState extends State<CorteDialog> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Enviar Por Correo'),
+                            const Text('Enviar Por Correo'),
                             Transform.translate(
-                              offset: Offset(8, 1.5),
-                              child: Icon(Icons.email_outlined, size: 25)
+                              offset: const Offset(8, 1.5),
+                              child: const Icon(Icons.email_outlined, size: 25)
                             )
                           ],
                         )
@@ -794,15 +823,15 @@ class _CorteDialogState extends State<CorteDialog> {
                     ), const SizedBox(width: 20),
 
                     ElevatedButton(
-                      onPressed: () => Ticket.imprimirTicketCorte(context, nuevoCorte(ctrl.text), impresoraControllers),
+                      onPressed: () => Ticket.imprimirTicketCorte(context, _corte(ctrl.text), impresoraControllers),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Imprimir Ticket'),
+                          const Text('Imprimir Ticket'),
                           Transform.translate(
-                            offset: Offset(8, 1.5),
-                            child: Icon(Icons.print_outlined, size: 25)
+                            offset: const Offset(8, 1.5),
+                            child: const Icon(Icons.print_outlined, size: 25)
                           )
                         ],
                       )
@@ -816,8 +845,8 @@ class _CorteDialogState extends State<CorteDialog> {
                         children: [
                           Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
                           Transform.translate(
-                            offset: Offset(8, 1.5),
-                            child: Icon(Icons.done, size: 25)
+                            offset: const Offset(8, 1.5),
+                            child: const Icon(Icons.done, size: 25)
                           )
                         ],
                       ), 
@@ -838,16 +867,16 @@ class _CorteDialogState extends State<CorteDialog> {
     if (pesos) {
       for (var i = 0; i < denominacionesMxn.length; i++) {
         if (denomControllersMxn[i].text.isNotEmpty) {
-          double denominacion = denominacionesMxn[i]["value"] as double;
-          int cantidad = int.parse(denomControllersMxn[i].text.replaceAll(",", ""));
+          double denominacion = denominacionesMxn[i]['value'] as double;
+          int cantidad = int.parse(denomControllersMxn[i].text.replaceAll(',', ''));
           lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
         }
       }
     } else {
       for (var i = 0; i < denominacionesDlls.length; i++) {
         if (denomControllersDlls[i].text.isNotEmpty) {
-          double denominacion = denominacionesDlls[i]["value"] as double;
-          int cantidad = int.parse(denomControllersDlls[i].text.replaceAll(",", ""));
+          double denominacion = denominacionesDlls[i]['value'] as double;
+          int cantidad = int.parse(denomControllersDlls[i].text.replaceAll(',', ''));
           lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
         }
       }
@@ -856,9 +885,9 @@ class _CorteDialogState extends State<CorteDialog> {
   }
 
   Decimal contarVouchers(List<TextEditingController> lista){
-    Decimal total = Decimal.parse("0");
+    Decimal total = Decimal.parse('0');
     for (var item in lista) {
-      total += item.text.isNotEmpty ? Decimal.parse(item.text.replaceAll("MX\$", "").replaceAll(",", "")) : Decimal.parse("0");
+      total += item.text.isNotEmpty ? Decimal.parse(item.text.replaceAll('MX\$', '').replaceAll(',', '')) : Decimal.parse('0');
     }
     return total;
   }
@@ -906,7 +935,20 @@ class _CorteDialogState extends State<CorteDialog> {
         break;
       case StepStage.terminado:
         title = '';
-        content = buildReporteFinal(reporteFinalPage, _ventasPorProducto);
+        content = buildReporteFinal(
+          reporteFinalPage,
+          _ventasPorProducto,
+          _ventasConDescuentos,
+          _ventasPorUsuario,
+          _subtotal,
+          _iva,
+          _total,
+          _abonadoMxn,
+          _abonadoUs,
+          _abonadoTarjD,
+          _abonadoTarjC,
+          _abonadoTrans
+          );
         break;
     }
 
@@ -920,8 +962,8 @@ class _CorteDialogState extends State<CorteDialog> {
           Text(title),
           stage == StepStage.voucher ? 
           Transform.translate(
-            offset: Offset(0, -10),
-            child: Tooltip(
+            offset: const Offset(0, -10),
+            child: const Tooltip(
               mouseCursor: SystemMouseCursors.click,
               message: 
 '''TAB -> Siguiente
@@ -944,27 +986,20 @@ con las flechas.''',
 class ReporteFinalVenta extends StatelessWidget {
   const ReporteFinalVenta({
     super.key, 
-    required this.ventasPorProducto,
+    required this.ventasPorProducto, 
+    required this.subtotal, 
+    required this.iva, 
+    required this.total,
   });
 
   final List<VentasPorProducto> ventasPorProducto;
+  final Decimal subtotal;
+  final Decimal iva;
+  final Decimal total;
 
   @override
   Widget build(BuildContext context) {
     final productos = Provider.of<ProductosServices>(context, listen: false);
-
-    Decimal subtotal = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      subtotal += venta.subTotal;
-    }
-    Decimal iva = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      iva += venta.iva;
-    }
-    Decimal total = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      total += venta.total;
-    }
     
     return Expanded(
       flex: 10,
@@ -973,13 +1008,13 @@ class ReporteFinalVenta extends StatelessWidget {
         children: [
           Column(
             children: [
-              Separador(
+              const Separador(
                 texto: 'Ventas por Articulos',
               ),
               Container(
                 color: AppTheme.tablaColorHeader,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical : 2),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical : 2),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1019,7 +1054,7 @@ class ReporteFinalVenta extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(flex: 13, child: Center(child: Text('Total:'))),
+                      const Expanded(flex: 13, child: Center(child: Text('Total:'))),
                       Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
                       Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
                       Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
@@ -1030,8 +1065,8 @@ class ReporteFinalVenta extends StatelessWidget {
             ],
           ),
           Transform.translate(
-            offset: Offset(0, 15),
-            child: Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
+            offset: const Offset(0, 15),
+            child: const Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
           ),
         ],
       )
@@ -1041,40 +1076,29 @@ class ReporteFinalVenta extends StatelessWidget {
 
 class ReporteFinalDescuentosYVendedores extends StatelessWidget {
   const ReporteFinalDescuentosYVendedores({
-    super.key, required this.callback,
+    super.key, 
+    required this.ventasConDescuentos,
+    required this.ventasPorUsuario,
+    required this.callback,
   });
+  final List<Ventas> ventasConDescuentos;
+  final Map<String, List<Ventas>> ventasPorUsuario;
   final Function callback;
 
   @override
-  Widget build(BuildContext context) {
-    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-    final List<Ventas> ventasConDescuentos = [];    
-    final Map<String, List<Ventas>> ventasPorUsuario = {};
-    
-    for (var venta in ventaSvc.ventasDeCorteActual) {
-      //Descuento
-      if (venta.descuento > Decimal.parse("0")){
-        ventasConDescuentos.add(venta);
-      }
-
-      // Agrupar por usuario_id
-      final usuarioId = venta.usuarioId; 
-      ventasPorUsuario.putIfAbsent(usuarioId, () => []);
-      ventasPorUsuario[usuarioId]!.add(venta);
-    }
-
+  Widget build(BuildContext context) {    
     final usuariosQueVendieron = ventasPorUsuario.keys.toList();
-    
+
     return Expanded(
       flex: 10,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Separador(texto: "Ventas con Descuentos"),
+          const Separador(texto: 'Ventas con Descuentos'),
           Container(
             color: AppTheme.tablaColorHeader,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical : 2),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical : 2),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1099,16 +1123,16 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
             )
           ),
           const SizedBox(height: 10),
-          Separador(texto: "Ventas por Vendedor"),
+          const Separador(texto: 'Ventas por Vendedor'),
           Container(
             color: AppTheme.tablaColorHeader,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical : 2),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical : 2),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(flex: 3, child: Center(child: Text('Vendedor'))),
-                  Expanded(flex: 1, child: Center(child: Text('Ventas'))),
+                  Expanded(child: Center(child: Text('Ventas'))),
                   Expanded(flex: 2, child: Center(child: Text('Total'))),
                 ],
               ),
@@ -1138,10 +1162,10 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
           }, child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Siguiente'),
+              const Text('Siguiente'),
               Transform.translate(
-                offset: Offset(8, 1.5),
-                child: Icon(Icons.chevron_right_sharp, size: 25)
+                offset: const Offset(8, 1.5),
+                child: const Icon(Icons.chevron_right_sharp, size: 25)
               )
             ],
           ))
@@ -1154,99 +1178,84 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
 class ReporteFinalMovimientos extends StatelessWidget {
   const ReporteFinalMovimientos({
     super.key, 
-   /* required this.proximoFondo, */
     required this.contadoPesos, 
     required this.contadoDolares, 
     required this.contadoDebito, 
     required this.contadoCredito, 
-    required this.contadoTransf,
+    required this.contadoTransf, 
+    required this.abonadoMxn, 
+    required this.abonadoUs, 
+    required this.abonadoTarjD, 
+    required this.abonadoTarjC, 
+    required this.abonadoTrans,
   });
 
-  //final Decimal proximoFondo;
   final Decimal contadoPesos;
   final Decimal contadoDolares;
   final Decimal contadoDebito;
   final Decimal contadoCredito;
   final Decimal contadoTransf;
+  final Decimal abonadoMxn;
+  final Decimal abonadoUs;
+  final Decimal abonadoTarjD;
+  final Decimal abonadoTarjC;
+  final Decimal abonadoTrans;
 
   @override
   Widget build(BuildContext context) {
     //Calcular Movimientos
-    final ventas = Provider.of<VentasServices>(context, listen: false);
     Cortes corte = CajasServices.corteActual!;
-    //Decimal fondo = corte.fondoInicial;
-    Decimal entrada = Decimal.parse("0");
-    Decimal salida = Decimal.parse("0");
+    Decimal entrada = Decimal.parse('0');
+    Decimal salida = Decimal.parse('0');
 
-    for (var movimiento in corte.movimientoCaja) {
-      if (movimiento.tipo=="entrada"){
+    for (var movimiento in corte.movimientosCaja) {
+      if (movimiento.tipo=='entrada'){
         entrada += Decimal.parse(movimiento.monto.toString());
-      } else if (movimiento.tipo=="retiro"){
+      } else if (movimiento.tipo=='retiro'){
         salida += Decimal.parse(movimiento.monto.toString());
       }
     } 
 
-    Decimal abonadoMxn = Decimal.parse("0");
-    Decimal abonadoUs = Decimal.parse("0");
-    Decimal abonadoTarjD = Decimal.parse("0");
-    Decimal abonadoTarjC = Decimal.parse("0");
-    Decimal abonadoTrans = Decimal.parse("0");
-    for (var venta in ventas.ventasDeCorteActual) {
-      if (venta.abonadoMxn!=null){
-        abonadoMxn += venta.abonadoMxn!;
-      }
-      if (venta.abonadoUs!=null){
-        abonadoUs += venta.abonadoUs!;
-      }
-      if (venta.abonadoTarj!=null){
-        if (venta.tipoTarjeta == "debito"){
-          abonadoTarjD += venta.abonadoTarj!;
-        } else if(venta.tipoTarjeta == "credito"){
-          abonadoTarjC += venta.abonadoTarj!;
-        }
-      }
-      if (venta.abonadoTrans!=null){
-        abonadoTrans += venta.abonadoTrans!;
-      }
-    }
-    Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    Decimal total = /*fondo - proximoFondo +*/ entrada - salida + abonadoMxn + abonadoUsCnv + abonadoTarjD + abonadoTarjC + abonadoTrans;
+    //sistema
+    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble());
+    Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
 
     //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(contadoDolares.toDouble()).toString());
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble()).toString());
     Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
 
     //diferencia
     Decimal diferencia = total - totalContado;
 
+    double mx = abonadoMxn.toDouble();
+
     return Expanded(
       flex: 2,
       child: Column(
         children: [
-          Separador(texto: 'Movimientos De Caja'),
-          //Fila(texto: 'Fondo', precio: "+${Formatos.pesos.format(fondo.toDouble())}", color: 2),
-          //Fila(texto: 'Proximo Fondo', precio: "-${Formatos.pesos.format(proximoFondo.toDouble())}", color: 1),
-          Fila(texto: 'Entrada de dinero', precio: "+${Formatos.pesos.format(entrada.toDouble())}", color: 2),
-          Fila(texto: 'Salida de dinero', precio: "-${Formatos.pesos.format(salida.toDouble())}", color: 1),
-          Fila(texto: 'Efectivo (MX)', precio: "+${Formatos.pesos.format(abonadoMxn.toDouble())}", color: 2),
-          Fila(texto: 'Efectivo (US)', precio: "+${Formatos.pesos.format(abonadoUsCnv.toDouble())}", dolar: Formatos.dolares.format(abonadoUs.toDouble()), color: 1),
-          Fila(texto: 'Tarjeta de Debito', precio: "+${Formatos.pesos.format(abonadoTarjD.toDouble())}", color: 2),
-          Fila(texto: 'Tarjeta de Credito', precio: "+${Formatos.pesos.format(abonadoTarjC.toDouble())}", color: 1),
-          Fila(texto: 'Transferencia', precio: "+${Formatos.pesos.format(abonadoTrans.toDouble())}", color: 2),
+          const Separador(texto: 'Movimientos De Caja'),
+          Fila(texto: 'Entrada de dinero', precio: '+${Formatos.pesos.format(entrada.toDouble())}', color: 2),
+          Fila(texto: 'Salida de dinero', precio: '-${Formatos.pesos.format(salida.toDouble())}', color: 1),
+          Fila(texto: 'Efectivo (MX)', precio: mx < 0 ? Formatos.pesos.format(mx) : '+${Formatos.pesos.format(mx)}', color: 2),
+          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(abonadoUs.toDouble())}', dolar: Formatos.dolares.format(abonadoMxToUsd), color: 1),
+          Fila(texto: 'Tarjeta de Debito', precio: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', color: 2),
+          Fila(texto: 'Tarjeta de Credito', precio: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', color: 1),
+          Fila(texto: 'Transferencia', precio: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', color: 2),
           Fila(texto: 'Total', precio: Formatos.pesos.format(total.toDouble()), color: 0),
           const SizedBox(height: 15),
-          Separador(texto: 'Dinero Entregado'),
+          const Separador(texto: 'Dinero Entregado'),
           Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
-          Fila(texto: 'Efectivo (US)', precio: "+${Formatos.pesos.format(contadoUsCnv.toDouble())}", dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
+          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
           Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
           Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
           Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
           Fila(texto: 'Total', precio: Formatos.pesos.format(totalContado.toDouble()), color: 0),
           const SizedBox(height: 15),
-          Separador(texto: 'Diferencia'),
+          const Separador(texto: 'Diferencia'),
           Fila(texto: 'Movimientos de Caja', precio: Formatos.pesos.format(total.toDouble()), color: 1),
           Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
-          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse("0") ? "Faltante: ${Formatos.pesos.format(diferencia.toDouble())}" : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
+          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse('0') ? 'Faltante: ${Formatos.pesos.format(diferencia.toDouble())}' : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
         ],
       )
     );
@@ -1259,30 +1268,26 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
     required this.desglosePesos, 
     required this.desgloseDolares, 
     required this.impresoraControllers, 
-    //required this.callback, 
     required this.ctrl,
   });
 
   final List<Desglose> desglosePesos;
   final List<Desglose> desgloseDolares;
   final Map<String, TextEditingController> impresoraControllers;
-  //final Function() callback;
   final TextEditingController ctrl;
 
   @override
   Widget build(BuildContext context) {
-    
-
     return Expanded(
       flex: 3,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Separador(texto: 'Desglose Dinero Entregado', reducido: true),
-          Row(
+          const Separador(texto: 'Desglose Dinero Entregado', reducido: true),
+          const Row(
             children: [
               Expanded(child: Fila(texto: 'Pesos', precio: '', color: 0)),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(child: Fila(texto: 'Dolares', precio: '', color: 0)),
             ],
           ),
@@ -1300,7 +1305,8 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
                         return FilaDesglose(
                           denominacion: d.denominacion,
                           cantidad: d.cantidad,
-                          color: index + 1
+                          color: index + 1,
+                          dolar: false
                         );
                       },
                     )
@@ -1317,7 +1323,8 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
                         return FilaDesglose(
                           denominacion: d.denominacion,
                           cantidad: d.cantidad,
-                          color: index + 1
+                          color: index + 1,
+                          dolar: true
                         );
                       },
                     )
@@ -1327,20 +1334,20 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
             ),
           ), const SizedBox(height: 10),
           
-          Separador(texto: 'Contadores'),
+          const Separador(texto: 'Contadores'),
           Expanded(
             flex: 6,
             child: ReporteFinalContadores(impresoraControllers: impresoraControllers)
           ), const SizedBox(height: 10),
 
-          Separador(texto: 'Comentarios'),
+          const Separador(texto: 'Comentarios'),
           TextFormField(
             controller: ctrl,
             maxLines: 2,
             decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: const Color.fromARGB(159, 255, 255, 255), width: 2)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white, width: 2)),
-              contentPadding: EdgeInsets.all(8),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color.fromARGB(159, 255, 255, 255), width: 2)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white, width: 2)),
+              contentPadding: const EdgeInsets.all(8),
             ),
           ),
 
@@ -1365,8 +1372,8 @@ class ReporteFinalContadores extends StatelessWidget {
       children: [
         Container(
           color: AppTheme.tablaColorHeader,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 2),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1385,7 +1392,7 @@ class ReporteFinalContadores extends StatelessWidget {
                 child: ListView.builder(
                   itemCount: value.impresoras.length,
                   itemBuilder: (context, index) {
-                    int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(",","")??'hubo un problema') ?? 0;
+                    int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
                     return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1);
                   },
                 ),
@@ -1485,7 +1492,7 @@ class FilaPorVendedor extends StatelessWidget {
   Widget build(BuildContext context) {
     final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
 
-    Decimal total = Decimal.parse("0");
+    Decimal total = Decimal.parse('0');
     for (var venta in ventas) {
       total += venta.abonadoTotal;
     }
@@ -1498,7 +1505,7 @@ class FilaPorVendedor extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(flex: 3, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 1, child: Center(child: Text(ventas.length.toString(), style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(ventas.length.toString(), style: AppTheme.subtituloConstraste))),
             Expanded(flex: 2,child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: AppTheme.subtituloConstraste))),
           ],
         ),
@@ -1535,7 +1542,7 @@ class Fila extends StatelessWidget {
             Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
             Row(
               children: [
-                Text("(${dolar!})", style: TextStyle(color: AppTheme.colorContraste.withAlpha(220)), textScaler: TextScaler.linear(0.9)),
+                Text('+(${dolar!})', style: TextStyle(color: AppTheme.colorContraste.withAlpha(220)), textScaler: const TextScaler.linear(0.9)),
                 Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
               ],
             ),
@@ -1549,13 +1556,14 @@ class Fila extends StatelessWidget {
 
 class FilaDesglose extends StatelessWidget {
   const FilaDesglose({
-    super.key, required this.denominacion, required this.cantidad, required this.color,
+    super.key, required this.denominacion, required this.cantidad, required this.color, required this.dolar,
   });
 
   final double denominacion;
   final int cantidad;
   final int color;
-
+  final bool dolar;
+  
   @override
   Widget build(BuildContext context) {
     double total = denominacion * cantidad;
@@ -1567,8 +1575,8 @@ class FilaDesglose extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(flex: 2, child: Center(child: Text('${denominacion}x', style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 1, child: Center(child: Text(cantidad.toString(), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 3, child: Center(child: Text(Formatos.pesos.format(total), style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(cantidad.toString(), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 3, child: Center(child: Text(dolar?Formatos.dolares.format(total):Formatos.pesos.format(total), style: AppTheme.subtituloConstraste))),
           ],
         ),
       ),
@@ -1602,7 +1610,7 @@ class FilaContadores extends StatelessWidget {
             Expanded(flex: 8, child: Center(child: Text(impresora.modelo, style: AppTheme.subtituloConstraste))),
             Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
             Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll("-", ""), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))),
           ],
         ),
       ),

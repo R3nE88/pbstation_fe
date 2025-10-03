@@ -25,6 +25,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
     final clientesConAdeudo = Provider.of<ClientesServices>(context, listen:false).loadAdeudos();
     Provider.of<VentasServices>(context, listen:false).adeudoLoading = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Provider.of<VentasServices>(context, listen:false).loadAdeudos(clientesConAdeudo, SucursalesServices.sucursalActualID);
     });
   }
@@ -33,7 +34,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
   Widget build(BuildContext context) {
     final ventaSvc = Provider.of<VentasServices>(context);
     if (ventaSvc.adeudoLoading){
-      return SimpleLoading();
+      return const SimpleLoading();
     }
 
     return BodyPadding(
@@ -54,7 +55,6 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
     }
      
     return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         const Text(
@@ -65,7 +65,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
         Text(
           sucursal ?? '',
           style: AppTheme.labelStyle,
-          textScaler: TextScaler.linear(1.2),
+          textScaler: const TextScaler.linear(1.2),
         ),
       ],
     );
@@ -190,7 +190,7 @@ class FilaDeuda extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'pagar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -200,7 +200,7 @@ class FilaDeuda extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'ver_completo',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -210,7 +210,7 @@ class FilaDeuda extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem( //TODO eliminar 
+            const PopupMenuItem( //TODO eliminar 
               value: 'eliminar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -234,7 +234,7 @@ class FilaDeuda extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'ver_completo',
               child: Row(
                 mainAxisSize: MainAxisSize.min,

@@ -40,7 +40,7 @@ class CustomDropDown<T> extends StatelessWidget {
               child: DropdownButton<T>(
                 value: value,
                 hint: Text(hintText, style: AppTheme.labelStyle),
-                icon: Icon(Icons.arrow_drop_down, color: AppTheme.letraClara, size: 25),
+                icon: const Icon(Icons.arrow_drop_down, color: AppTheme.letraClara, size: 25),
                 style: AppTheme.subtituloPrimario,
                 dropdownColor: AppTheme.containerColor1,
                 onChanged: isReadOnly ? (w){} : onChanged,

@@ -206,7 +206,7 @@ class WebSocketService with ChangeNotifier {
     if (kDebugMode) print('Reconectando WebSocket con nueva sucursal...');
     reconectandoSucursal = true;
     desconectar();
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     await conectar();
     reconectandoSucursal = false;
   }
@@ -215,7 +215,7 @@ class WebSocketService with ChangeNotifier {
     if (kDebugMode) print('Reconectando WebSocket...');
     reconectandoSucursal = true;
     desconectar();
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     await conectar();
     reconectandoSucursal = false;
   }
@@ -301,7 +301,7 @@ class WebSocketService with ChangeNotifier {
     if (_reconnectTimer?.isActive ?? false) return;
     const delay = 5;
     if (kDebugMode) print('Reintentando conexión en $delay s');
-    _reconnectTimer = Timer(Duration(seconds: delay), () {
+    _reconnectTimer = Timer(const Duration(seconds: delay), () {
       conectar();
     });
   }

@@ -98,7 +98,7 @@ class CotizacionesServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
@@ -110,7 +110,7 @@ class CotizacionesServices extends ChangeNotifier{
       for (var jsonElem in listaJson) {
         final data = jsonElem as Map<String, dynamic>;
         final cotizacion = Cotizaciones.fromMap(data);
-        cotizacion.id = data["id"]?.toString();
+        cotizacion.id = data['id']?.toString();
 
         if (cotizacion.vigente == false) {
           vencidas.add(cotizacion);
@@ -139,12 +139,12 @@ class CotizacionesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final prod = Cotizaciones.fromMap(body as Map<String, dynamic>);
-        prod.id = (body as Map)["id"]?.toString();
+        prod.id = (body as Map)['id']?.toString();
         
         if (prod.vigente==false){
           vencidas.add(prod);
@@ -170,7 +170,7 @@ class CotizacionesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {

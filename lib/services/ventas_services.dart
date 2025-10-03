@@ -18,6 +18,10 @@ class VentasServices extends ChangeNotifier{
   bool ventasCorteActualLoaded = false;
   bool ventasDeCorteLoading = false;
 
+  //VentasDeCajaHistorial
+  bool isLoadingHistorial = false;
+  List<Ventas> ventasDeCajaHistorial = [];
+
   Future<void> loadVentasDeCaja() async {
     if (CajasServices.cajaActualId==null) return;
     
@@ -27,7 +31,7 @@ class VentasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}caja/${CajasServices.cajaActualId}');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
@@ -35,7 +39,7 @@ class VentasServices extends ChangeNotifier{
       ventasDeCaja.clear();
       ventasDeCaja = listaJson.map<Ventas>((jsonElem) {
         final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
+        x.id = (jsonElem as Map)['id']?.toString();
         return x;
       }).toList();
 
@@ -49,6 +53,33 @@ class VentasServices extends ChangeNotifier{
     notifyListeners();
   }
 
+  Future<void> loadVentasDeCajaHistorial(String cajaId) async {
+    isLoadingHistorial = true;
+
+    try {
+      final url = Uri.parse('${_baseUrl}caja/$cajaId');
+      final resp = await http.get(
+        url, headers: {'tkn': Env.tkn}
+      );
+
+      final List<dynamic> listaJson = json.decode(resp.body);
+
+      ventasDeCajaHistorial.clear();
+      ventasDeCajaHistorial = listaJson.map<Ventas>((jsonElem) {
+        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+        x.id = (jsonElem as Map)['id']?.toString();
+        return x;
+      }).toList();
+
+    } catch (e) {
+      isLoadingHistorial = false;
+      notifyListeners();
+    }
+    
+    isLoadingHistorial = false;
+    notifyListeners();
+  }
+
   Future<void> loadVentasDeCorteActual() async {
     if (CajasServices.corteActualId==null) return;
 
@@ -59,7 +90,7 @@ class VentasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}corte/${CajasServices.corteActualId}');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
@@ -67,7 +98,7 @@ class VentasServices extends ChangeNotifier{
       ventasDeCorteActual.clear();
       ventasDeCorteActual = listaJson.map<Ventas>((jsonElem) {
         final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
+        x.id = (jsonElem as Map)['id']?.toString();
         return x;
       }).toList();
     } catch (e) {
@@ -129,7 +160,7 @@ class VentasServices extends ChangeNotifier{
       final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=false');
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
         body: venta.toJson(),   
       );
 
@@ -165,7 +196,7 @@ class VentasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -232,15 +263,15 @@ class VentasServices extends ChangeNotifier{
       final resp = await http.post(
         url, 
         headers: {
-          "tkn": Env.tkn, 
-          "Content-Type": "application/json",
+          'tkn': Env.tkn, 
+          'Content-Type': 'application/json',
         }, 
         body: json.encode(ventasIds)
       );
       final List<dynamic> listaJson = json.decode(resp.body);
       ventasConDeuda = listaJson.map<Ventas>((jsonElem) {
         final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
+        x.id = (jsonElem as Map)['id']?.toString();
         return x;
       }).toList();
     } catch (e) {
@@ -259,7 +290,7 @@ class VentasServices extends ChangeNotifier{
       final url = Uri.parse('$_baseUrl$ventaId/marcar-deuda');
       final resp = await http.patch(
         url,
-        headers: {"tkn": Env.tkn},
+        headers: {'tkn': Env.tkn},
       );
 
       if (resp.statusCode == 200) {

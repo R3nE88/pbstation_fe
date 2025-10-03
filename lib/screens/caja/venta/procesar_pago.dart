@@ -89,7 +89,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       for (var detalle in widget.venta.detalles) {
         Productos producto = Provider.of<ProductosServices>(context, listen: false).productos.firstWhere((element) => element.id == detalle.productoId);
         if (producto.imprimible){
-          _articuloImprimible.add({"valor_impresion":producto.valorImpresion, "cantidad":detalle.cantidad, "producto": producto.descripcion});
+          _articuloImprimible.add({'valor_impresion':producto.valorImpresion, 'cantidad':detalle.cantidad, 'producto': producto.descripcion});
         }
       }
       final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
@@ -153,7 +153,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     double entrada = 0;
     if (_efectivo){
       entrada += _efectivoImporte;
-      entrada += CalculosDinero().conversionADolar(_dolarImporte);
+      entrada += CalculosDinero().dolarAPesos(_dolarImporte);
     }
     if (_tarjeta){
       entrada += _tarjetaImporte;
@@ -246,7 +246,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           children: [
             AlertDialog(
               backgroundColor: AppTheme.containerColor1,
-              title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: TextScaler.linear(0.85))),
+              title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: const TextScaler.linear(0.85))),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -287,7 +287,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.conversionADolar(_dolarImporte);
+    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte);
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -305,7 +305,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
       abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
       abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-      abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+      abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''));
       abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
     }
 
@@ -397,7 +397,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.conversionADolar(_dolarImporte);
+    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte);
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -409,7 +409,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
     abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
     abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-    abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll("MX\$", "").replaceAll(",", ""));
+    abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''));
     abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
     
     Ventas deudaPagada = Ventas(
@@ -447,10 +447,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     deudaPagada.abonadoTotal = (deudaPagada.abonadoMxn??Decimal.zero) + (deudaPagada.abonadoUs??Decimal.zero) + (deudaPagada.abonadoTarj??Decimal.zero) + (deudaPagada.abonadoTrans??Decimal.zero);
     
     Map<String, double> datosDeuda = {
-      "deuda_recibido": deudaPagada.recibidoTotal.toDouble(),
-      "deuda_total": widget.deudaMonto,
-      "deuda_cambio": formatearEntrada(_cambioCtrl.text),
-      "anterior_recibido": widget.venta.recibidoTotal.toDouble()
+      'deuda_recibido': deudaPagada.recibidoTotal.toDouble(),
+      'deuda_total': widget.deudaMonto,
+      'deuda_cambio': formatearEntrada(_cambioCtrl.text),
+      'anterior_recibido': widget.venta.recibidoTotal.toDouble()
     };
     
     //Realizar venta
@@ -484,8 +484,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
    if (!mounted) return;
     Navigator.pop(context);
   }
-
-
   @override
   Widget build(BuildContext context) {
     const int milliseconds = 300;
@@ -494,7 +492,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     //Para notificar contadores
     if (!widget.isDeuda){
       if (impresoraSvc.isLoading){
-        return SimpleLoading();
+        return const SimpleLoading();
       } else if (!_opcionesInited && impresoraSvc.impresoras.isNotEmpty) {
         _opciones
           ..clear()
@@ -513,7 +511,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('¿Con qué impresora se imprimió el siguiente articulo?', style: AppTheme.tituloPrimario),
+              const Text('¿Con qué impresora se imprimió el siguiente articulo?', style: AppTheme.tituloPrimario),
               const SizedBox(height: 10),
               Text("${_articuloImprimible[0]["cantidad"]} x ${_articuloImprimible[0]["producto"]}"),
               const SizedBox(height: 10),
@@ -537,7 +535,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                     }).toList(),
                     onChanged: (val) => setState(() => _opcionSeleccionada = val),
                     dropdownColor: AppTheme.containerColor1,
-                    style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
                     iconEnabledColor: Colors.white,
                   ),
                 ),
@@ -546,14 +544,14 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
               ElevatedButton(
                 onPressed: (){
                   if (_opcionSeleccionada==null) return;
-                  int cantidad = _articuloImprimible[0]["cantidad"] * _articuloImprimible[0]["valor_impresion"];
+                  int cantidad = _articuloImprimible[0]['cantidad'] * _articuloImprimible[0]['valor_impresion'];
                   setState(() {
                     _notificarContadores.add(_articuloImprimible.first);
-                    _notificarContadores.last.addAll({"impresora":_opcionSeleccionada!.id, "cantidad": cantidad});
+                    _notificarContadores.last.addAll({'impresora':_opcionSeleccionada!.id, 'cantidad': cantidad});
                     _articuloImprimible.removeAt(0);
                   });
                 }, 
-                child: Text('Siguiente')
+                child: const Text('Siguiente')
               )
             ],
           ),
@@ -614,7 +612,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     autofocus: true,
                                     focusNode: _focusEfectivo,
                                     canRequestFocus: _efectivo,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Importe (MXN)',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
@@ -640,7 +638,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     autofocus: true,
                                     focusNode: _focusDolar,
                                     canRequestFocus: _efectivo,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Importe (US)',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
@@ -678,7 +676,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               }
                             },
                             title: 'Tarjeta',
-                            initiallyExpanded: false,
                             expandedContent: Padding(
                               padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
                               child: Column(
@@ -691,7 +688,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     inputFormatters: [ PesosInputFormatter() ],
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                     maxLength: 10,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Importe',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
@@ -719,7 +716,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                           inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
                                           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                           maxLength: 30,
-                                          decoration: InputDecoration(
+                                          decoration: const InputDecoration(
                                             labelText: 'Referencia',
                                             labelStyle: AppTheme.labelStyle,
                                           ),
@@ -772,7 +769,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                                 _tipoEmpty = false;
                                                 _tipoTarjetaSeleccionado = val!;
                                               }),
-                                            ) : SizedBox(),
+                                            ) : const SizedBox(),
                                           ],
                                         ),
                                       ),
@@ -797,7 +794,6 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                               }
                             },
                             title: 'Transferencia',
-                            initiallyExpanded: false,
                             expandedContent: Padding(
                               padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
                               child: Column(
@@ -810,7 +806,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     inputFormatters: [ PesosInputFormatter() ],
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                     maxLength: 30,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Importe',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
@@ -835,7 +831,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     inputFormatters: [ DecimalInputFormatter() ],
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                     //maxLength: 10,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Referencia',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
@@ -868,7 +864,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                     ),
                   ), 
             
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
             
                   Expanded(
                     flex: 4,
@@ -1047,7 +1043,7 @@ class VentaRealizadaDialog extends StatelessWidget {
     //si no es deuda
     return !isDeuda ? AlertDialog(
       backgroundColor: AppTheme.containerColor2,
-      title: Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
+      title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1063,7 +1059,6 @@ class VentaRealizadaDialog extends StatelessWidget {
       actions: [
         ElevatedButton(
           autofocus: true,
-          style: AppTheme.botonSecundarioStyle,
           focusNode: boton,
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))
@@ -1073,24 +1068,23 @@ class VentaRealizadaDialog extends StatelessWidget {
     : //Si si es deuda
     AlertDialog(
       backgroundColor: AppTheme.containerColor2,
-      title: Center(child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85))),
+      title: const Center(child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', datosDeuda!["deuda_recibido"]!, AppTheme.inputDecorationSeccess),
+          formField('Recibido:', datosDeuda!['deuda_recibido']!, AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
-          formField('Total:', datosDeuda!["deuda_total"]!, AppTheme.inputDecorationCustom), 
+          formField('Total:', datosDeuda!['deuda_total']!, AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),
-          formField('Cambio:', datosDeuda!["deuda_cambio"]!, AppTheme.inputDecorationWaring),           
+          formField('Cambio:', datosDeuda!['deuda_cambio']!, AppTheme.inputDecorationWaring),           
         ],
       ),
       actions: [
         ElevatedButton(
           autofocus: true,
-          style: AppTheme.botonSecundarioStyle,
           focusNode: boton,
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))
+          child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
         )
       ],
     );

@@ -20,21 +20,21 @@ class Login {
       final resp = await http.post(
         url,
         headers: {
-          "Content-Type": "application/json",
-          "tkn": Env.tkn
+          'Content-Type': 'application/json',
+          'tkn': Env.tkn
         },
         body: jsonEncode({
-          "correo": correo,
-          "psw": psw,
+          'correo': correo,
+          'psw': psw,
         }),
       );
 
       if (resp.statusCode == 200) {
         try {
           usuarioLogeado = Usuarios.fromJson(resp.body);
-          usuarioLogeado.id = json.decode(resp.body)["id"];
+          usuarioLogeado.id = json.decode(resp.body)['id'];
 
-          admin = usuarioLogeado.rol == "admin";
+          admin = usuarioLogeado.rol == 'admin';
           success = true;
         } catch (e) {
           if (kDebugMode) {
@@ -63,19 +63,19 @@ class Login {
       final resp = await http.post(
         url,
         headers: {
-          "Content-Type": "application/json",
-          "tkn": Env.tkn
+          'Content-Type': 'application/json',
+          'tkn': Env.tkn
         },
         body: jsonEncode({
-          "correo": correo,
-          "psw": psw,
+          'correo': correo,
+          'psw': psw,
         }),
       );
 
       if (resp.statusCode == 200) {
         try {
           Usuarios user = Usuarios.fromJson(resp.body);
-          if (user.rol=="admin"){
+          if (user.rol=='admin'){
             return true;
           }
         } catch (e) {

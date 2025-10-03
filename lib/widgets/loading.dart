@@ -6,10 +6,9 @@ class Loading{
 
   static void displaySpinLoading(BuildContext context){
     showDialog(
-      barrierDismissible: true,
       context: context, 
       builder: (context){    
-        return Stack(
+        return const Stack(
           alignment: Alignment.topRight,
           children: [
             PopScope(
@@ -18,7 +17,7 @@ class Loading{
                 child: CircularProgressIndicator(),
               ),
             ),
-            const WindowBar(overlay: true),
+            WindowBar(overlay: true),
           ],
         );
       }
@@ -30,7 +29,7 @@ class Loading{
     context: context,
     barrierDismissible: false, // Evita que se cierre al hacer clic fuera
     builder: (BuildContext context) {
-      Future.delayed(Duration(seconds: 1), () {
+      Future.delayed(const Duration(seconds: 1), () {
         if (!context.mounted) return;
         Navigator.of(context).pop(); // Cierra el cuadro después de 2 segundos
       });
@@ -40,14 +39,14 @@ class Loading{
         children: [
           Center(
             child: Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppTheme.containerColor2,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 mensaje,
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: const TextStyle(color: Colors.white, fontSize: 18),
                 textAlign: TextAlign.center,
               ),
             ),

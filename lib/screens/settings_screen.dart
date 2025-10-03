@@ -60,9 +60,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Column(
           children: [
             Text('Modo Oscuro', style: AppTheme.subtituloConstraste,),
-            Switch(value: changeTheme.isDarkTheme, onChanged: ( value ){
-              changeTheme.isDarkTheme = value;
-            }),
+            Switch(value: changeTheme.isDarkTheme, onChanged: ( value ) async{
+              changeTheme.setIsDarkTheme(value, true);
+                final prefs = await SharedPreferences.getInstance();
+                prefs.setBool('isDarkTheme', value);
+              }
+            ),
           ],
         ),
 
@@ -71,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final cajaSvc = Provider.of<CajasServices>(context, listen: false);
             cajaSvc.eliminarCajaActualSoloDePrueba();
           }, 
-          child: Text('Elimitar Caja Actual')
+          child: const Text('Elimitar Caja Actual')
         ),
 
 
@@ -85,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: DropdownButton<String>(
-                  hint: Text('Selecciona un dispositivo USB'),
+                  hint: const Text('Selecciona un dispositivo USB'),
                   value: _selectedDevice,
                   items: _devices.map((String device) {
                     return DropdownMenuItem<String>(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart'; // Importa tu WindowBar
 
 class ConnectionOverlay extends StatefulWidget {
   const ConnectionOverlay({super.key});
@@ -14,9 +15,9 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
   OverlayEntry? _overlayEntry;
   bool _show = false;
 
-  Future<void>esperarParaMostrar() async {
+  Future<void> esperarParaMostrar() async {
     await Future.delayed(const Duration(seconds: 2));
-    setState(() => _show=true);
+    setState(() => _show = true);
   }
 
   @override
@@ -35,7 +36,6 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
   Map<ShortcutActivator, Intent> _buildBlockingShortcuts() {
     final Map<ShortcutActivator, Intent> shortcuts = {};
     
-    // Bloquear teclas individuales comunes
     final keysToBlock = [
       LogicalKeyboardKey.enter,
       LogicalKeyboardKey.escape,
@@ -51,7 +51,6 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
       LogicalKeyboardKey.end,
       LogicalKeyboardKey.pageUp,
       LogicalKeyboardKey.pageDown,
-      // Números
       LogicalKeyboardKey.digit0,
       LogicalKeyboardKey.digit1,
       LogicalKeyboardKey.digit2,
@@ -62,7 +61,6 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
       LogicalKeyboardKey.digit7,
       LogicalKeyboardKey.digit8,
       LogicalKeyboardKey.digit9,
-      // Letras
       LogicalKeyboardKey.keyA,
       LogicalKeyboardKey.keyB,
       LogicalKeyboardKey.keyC,
@@ -91,10 +89,8 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
       LogicalKeyboardKey.keyZ,
     ];
 
-    // Agregar teclas individuales
     for (final key in keysToBlock) {
       shortcuts[SingleActivator(key)] = const DoNothingAndStopPropagationIntent();
-      // También con modificadores
       shortcuts[SingleActivator(key, control: true)] = const DoNothingAndStopPropagationIntent();
       shortcuts[SingleActivator(key, shift: true)] = const DoNothingAndStopPropagationIntent();
       shortcuts[SingleActivator(key, alt: true)] = const DoNothingAndStopPropagationIntent();
@@ -106,8 +102,7 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
-
-    if (_show==false) return;
+    if (_show == false) return;
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Material(
@@ -117,62 +112,81 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
           child: Actions(
             actions: {
               DoNothingAndStopPropagationIntent: CallbackAction<DoNothingAndStopPropagationIntent>(
-                onInvoke: (intent) => null, // No hacer nada
+                onInvoke: (intent) => null,
               ),
             },
             child: KeyboardListener(
               focusNode: FocusNode()..requestFocus(),
               autofocus: true,
               onKeyEvent: (KeyEvent event) {
-                // Consumir todos los eventos de teclado sin procesarlos
-                // No hacer nada aquí bloquea efectivamente el evento
+                // Bloquear eventos de teclado
               },
               child: Focus(
                 autofocus: true,
                 canRequestFocus: true,
                 onKeyEvent: (node, event) {
-                  // Bloquear TODOS los eventos de teclado
                   return KeyEventResult.handled;
                 },
-                child: GestureDetector(
-                  onTap: () {}, // Capturar taps
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: Colors.black45,
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const Icon(
-                          Icons.wifi_off,
-                          color: Colors.white,
-                          size: 48,
+                child: Stack(
+                  children: [
+                    // Contenido principal del overlay (bloqueador)
+                    GestureDetector(
+                      onTap: () {},
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        color: Colors.black45,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            WebSocketService.reconectandoSucursal == true
+                                ? const SizedBox()
+                                : const Icon(
+                                    Icons.wifi_off,
+                                    color: Colors.white,
+                                    size: 48,
+                                  ),
+                            WebSocketService.reconectandoSucursal == true
+                                ? const SizedBox()
+                                : const SizedBox(height: 20),
+                            WebSocketService.reconectandoSucursal == true
+                                ? const SizedBox()
+                                : const Text(
+                                    'Conexión perdida con el servidor',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                            const SizedBox(height: 20),
+                            const CircularProgressIndicator(color: Colors.white),
+                            const SizedBox(height: 20),
+                            WebSocketService.reconectandoSucursal == false
+                                ? const Text(
+                                    'Reconectando...',
+                                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                                  )
+                                : const Text(
+                                    'Conectando...',
+                                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                                  ),
+                          ],
                         ),
-                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const SizedBox(height: 20),
-                        WebSocketService.reconectandoSucursal==true ? const SizedBox() : const Text(
-                          'Conexión perdida con el servidor',
-                          style: TextStyle(
-                            color: Colors.white, 
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const CircularProgressIndicator(color: Colors.white),
-                        const SizedBox(height: 20),
-                        WebSocketService.reconectandoSucursal==false ? const Text(
-                          'Reconectando...',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ) : const Text(
-                          'Conectando...',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ) ,
-                      ],
+                      ),
                     ),
-                  ),
+                    
+                    // WindowBar en la parte superior
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: WindowBar(overlay: true),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -181,7 +195,6 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
       ),
     );
 
-    // Insertar en el overlay raíz con la máxima prioridad
     final navigatorState = Navigator.of(context, rootNavigator: true);
     final overlay = navigatorState.overlay;
     if (overlay != null) {
@@ -202,9 +215,7 @@ class _ConnectionOverlayState extends State<ConnectionOverlay> {
           if (webSocketService.isConnected) {
             _hideOverlay();
           } else {
-            // Quitar el foco de cualquier campo de texto activo
             FocusScope.of(context).unfocus();
-            // Ocultar el teclado si está abierto
             FocusManager.instance.primaryFocus?.unfocus();
             _showOverlay();
           }

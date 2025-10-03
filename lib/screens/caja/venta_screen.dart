@@ -69,13 +69,13 @@ class _VentaScreenState extends State<VentaScreen> {
 
     
     if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
-      return AbrirCaja();
+      return const AbrirCaja();
     }
 
     return Consumer3<ClientesServices, ProductosServices, VentasEnviadasServices>(
       builder: (context, value, value2, value3, child) {
         if (value.isLoading || value2.isLoading || value3.isLoading){
-          return SimpleLoading();
+          return const SimpleLoading();
         }
         return body(agregarPestania, selectedPestania, rebuildAndClean, context, rebuild, suc);
       });
@@ -94,7 +94,6 @@ class _VentaScreenState extends State<VentaScreen> {
       padding: const EdgeInsets.only(top:8, bottom: 5, left: 54, right: 52),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
     
@@ -133,7 +132,7 @@ class _VentaScreenState extends State<VentaScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppTheme.containerColor1,
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(10),
                       topRight: Radius.circular(10),
                     )
@@ -144,8 +143,8 @@ class _VentaScreenState extends State<VentaScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('venta de ', style: AppTheme.labelStyle),
-                        Text(VentasStates.tabs[VentasStates.indexSelected].usuarioQueEnvioNombre!, style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text('venta de ', style: AppTheme.labelStyle),
+                        Text(VentasStates.tabs[VentasStates.indexSelected].usuarioQueEnvioNombre!, style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -185,7 +184,7 @@ class _VentaScreenState extends State<VentaScreen> {
                 children: [
                   AlertDialog(
                     backgroundColor: AppTheme.containerColor1,
-                    title: Center(child: Text('Seleccione una venta'),),
+                    title: const Center(child: Text('Seleccione una venta'),),
                     content: SizedBox(
                       height: 250, 
                       width: 550,
@@ -201,20 +200,19 @@ class _VentaScreenState extends State<VentaScreen> {
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: ElevatedButton(
-                              autofocus: index==0,
-                              style: AppTheme.botonSecundarioStyle,
+                              autofocus: index==0,  
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Column(
                                     children: [
-                                      Text('Enviado Desde:', textScaler: TextScaler.linear(0.8)),
+                                      const Text('Enviado Desde:', textScaler: TextScaler.linear(0.8)),
                                       Text(ventasRecibida.ventas[index].compu),
                                     ],
                                   ),
                                   Column(
                                     children: [
-                                      Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
+                                      const Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
                                       Text(
                                         ventasRecibida.ventas[index].usuarioNombre.length > 30 
                                             ? '${ventasRecibida.ventas[index].usuarioNombre.substring(0, 30)}...' 
@@ -224,7 +222,7 @@ class _VentaScreenState extends State<VentaScreen> {
                                   ),
                                   Column(
                                     children: [
-                                      Text('Hora de Envio:', textScaler: TextScaler.linear(0.8)),
+                                      const Text('Hora de Envio:', textScaler: TextScaler.linear(0.8)),
                                       Text(formatted),
                                     ],
                                   ),
@@ -261,8 +259,8 @@ class _VentaScreenState extends State<VentaScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          "Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.",
+                        const Text(
+                          'Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.',
                           textScaler: TextScaler.linear(1.1),
                           style: TextStyle(color: Colors.white), 
                           textAlign: TextAlign.center
@@ -270,12 +268,11 @@ class _VentaScreenState extends State<VentaScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 20),
                           child: ElevatedButton(
-                            style: AppTheme.botonSecundarioStyle,
                             autofocus: true,
                             onPressed: (){
                               Navigator.pop(context, 'continuar');
                             }, 
-                            child: Text('Continuar'),
+                            child: const Text('Continuar'),
                           ),
                         ),
                       ],
@@ -289,7 +286,7 @@ class _VentaScreenState extends State<VentaScreen> {
         ).then((value) {
           if (value == null) {
             if (kDebugMode) {
-              print("Diálogo cancelado");
+              print('Diálogo cancelado');
             }
             continuar = false;
             return; // Cancela la operación
@@ -345,14 +342,12 @@ class AdvertenciaSucursal extends StatelessWidget {
         color: AppTheme.containerColor1,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
           children: [
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Esta terminal aún no tiene una sucursal asignada.",
+                  'Esta terminal aún no tiene una sucursal asignada.',
                   style: AppTheme.tituloClaro,
                   textScaler: TextScaler.linear(1.5),
                   textAlign: TextAlign.center,
@@ -360,9 +355,9 @@ class AdvertenciaSucursal extends StatelessWidget {
               ],
             ), 
             Transform.translate(
-              offset: Offset(0, -5),
-              child: Text(
-                "Asigne una para poder continuar.",
+              offset: const Offset(0, -5),
+              child: const Text(
+                'Asigne una para poder continuar.',
                 style: AppTheme.tituloClaro,
                 textScaler: TextScaler.linear(1.5),
                 textAlign: TextAlign.center,
@@ -373,11 +368,11 @@ class AdvertenciaSucursal extends StatelessWidget {
               textAlign: TextAlign.center,
               text: TextSpan(
                 children: <TextSpan>[
-                  TextSpan(text: 'Acceda a  ', style: AppTheme.subtituloPrimario),
+                  const TextSpan(text: 'Acceda a  ', style: AppTheme.subtituloPrimario),
                   TextSpan(text: 'Catálogo', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
-                  TextSpan(text: ' > ', style: AppTheme.subtituloPrimario,),
+                  const TextSpan(text: ' > ', style: AppTheme.subtituloPrimario,),
                   TextSpan(text: 'Sucursales', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
-                  TextSpan(text: '  con una cuenta de administrador y asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
+                  const TextSpan(text: '  con una cuenta de administrador y asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
                 ],
               ),
             )
@@ -412,7 +407,7 @@ class Pestania extends StatelessWidget {
       color: AppTheme.dropDownColor,
       elevation: 2,
       items: [
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'limpiar',
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -435,7 +430,7 @@ class Pestania extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.translate(
-      offset: Offset(0, 2),
+      offset: const Offset(0, 2),
       child: Padding(
         padding: const EdgeInsets.only(right: 10),
         child: DiagonalCornerContainer(
@@ -461,7 +456,7 @@ class Pestania extends StatelessWidget {
               onPressed: () {
                 agregarPestania!();
               },
-              child: Icon(Icons.add, color: AppTheme.letraClara, size: 21)
+              child: const Icon(Icons.add, color: AppTheme.letraClara, size: 21)
             ),
           ),
         ),

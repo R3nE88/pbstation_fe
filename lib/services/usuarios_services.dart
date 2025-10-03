@@ -33,12 +33,12 @@ class UsuariosServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final usuario = Usuarios.fromMap(body as Map<String, dynamic>);
-        usuario.id = (body as Map)["id"]?.toString();
+        usuario.id = (body as Map)['id']?.toString();
         isLoading = false;
         return usuario;
       } catch (e) {
@@ -70,14 +70,14 @@ class UsuariosServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       usuarios = listaJson.map<Usuarios>((jsonElem) {
         final cli = Usuarios.fromMap(jsonElem as Map<String, dynamic>);
-        cli.id = (jsonElem as Map)["id"]?.toString();
+        cli.id = (jsonElem as Map)['id']?.toString();
         return cli;
       }).toList();
       filteredUsuarios = usuarios;
@@ -100,12 +100,12 @@ class UsuariosServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final usu = Usuarios.fromMap(body as Map<String, dynamic>);
-        usu.id = (body as Map)["id"]?.toString();
+        usu.id = (body as Map)['id']?.toString();
         usuarios.add(usu);
         filteredUsuarios = usuarios;
 
@@ -125,7 +125,7 @@ class UsuariosServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -172,7 +172,7 @@ class UsuariosServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -209,7 +209,7 @@ class UsuariosServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -248,13 +248,13 @@ class UsuariosServices extends ChangeNotifier{
   }
 
   Future<bool> cambiarPsw(String usuarioId, String newPsw) async {
-    Map<String, String> datos = {"id": usuarioId, "nueva_psw":newPsw};
+    Map<String, String> datos = {'id': usuarioId, 'nueva_psw':newPsw};
 
     try {
       final url = Uri.parse('${_baseUrl}cambiar-password');
       final resp = await http.patch(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
         body: json.encode(datos),
       );
 
@@ -277,7 +277,7 @@ class UsuariosServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);

@@ -19,7 +19,7 @@ class Background extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
-        stops: [0.1,0.9],
+        stops: const [0.1,0.9],
         colors: [
           AppTheme.backgroundWidgetColor1,
           AppTheme.backgroundWidgetColor2,

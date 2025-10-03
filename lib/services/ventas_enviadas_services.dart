@@ -21,14 +21,14 @@ class VentasEnviadasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       ventas = listaJson.map<VentasEnviadas>((jsonElem) {
         final x = VentasEnviadas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)["id"]?.toString();
+        x.id = (jsonElem as Map)['id']?.toString();
         return x;
       }).toList();
 
@@ -56,7 +56,7 @@ class VentasEnviadasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -67,7 +67,7 @@ class VentasEnviadasServices extends ChangeNotifier{
       final url = Uri.parse(_baseUrl);
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', "tkn": Env.tkn},
+        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
         body: venta.toJson(),   
       );
 
@@ -101,7 +101,7 @@ class VentasEnviadasServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {

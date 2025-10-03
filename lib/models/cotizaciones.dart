@@ -37,36 +37,36 @@ class Cotizaciones {
   String toJson() => json.encode(toMap());
 
   factory Cotizaciones.fromMap(Map<String, dynamic> json) => Cotizaciones(
-    id: json["id"]?.toString(),
-    folio: json["folio"],
-    clienteId: json["cliente_id"],
-    usuarioId: json["usuario_id"],
-    sucursalId: json["sucursal_id"],
+    id: json['id']?.toString(),
+    folio: json['folio'],
+    clienteId: json['cliente_id'],
+    usuarioId: json['usuario_id'],
+    sucursalId: json['sucursal_id'],
     detalles: List<DetallesVenta>.from(
-      json["detalles"].map((x) => DetallesVenta.fromMap(x as Map<String, dynamic>)),
+      json['detalles'].map((x) => DetallesVenta.fromMap(x as Map<String, dynamic>)),
     ),
-    fechaCotizacion: json["fecha_cotizacion"],
-    comentariosVenta: json["comentarios_venta"],
-    subTotal: Decimal.parse(json["subtotal"]),
-    descuento: Decimal.parse(json["descuento"]),
-    iva: Decimal.parse(json["iva"]),
-    total: Decimal.parse(json["total"]), 
-    vigente: json["vigente"],
+    fechaCotizacion: json['fecha_cotizacion'],
+    comentariosVenta: json['comentarios_venta'],
+    subTotal: Decimal.parse(json['subtotal']),
+    descuento: Decimal.parse(json['descuento']),
+    iva: Decimal.parse(json['iva']),
+    total: Decimal.parse(json['total']), 
+    vigente: json['vigente'],
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "folio": folio,
-    "cliente_id": clienteId,
-    "usuario_id": usuarioId,
-    "sucursal_id": sucursalId,
+    'id': id,
+    'folio': folio,
+    'cliente_id': clienteId,
+    'usuario_id': usuarioId,
+    'sucursal_id': sucursalId,
     'detalles': detalles.map((d) => d.toMap()).toList(),
-    "fecha_cotizacion": fechaCotizacion,
-    "comentarios_venta": comentariosVenta,
-    "subtotal": subTotal,
-    "descuento": descuento,
-    "iva": iva,
-    "total": total,
-    "vigente":vigente
+    'fecha_cotizacion': fechaCotizacion,
+    'comentarios_venta': comentariosVenta,
+    'subtotal': subTotal,
+    'descuento': descuento,
+    'iva': iva,
+    'total': total,
+    'vigente':vigente
   };
 }

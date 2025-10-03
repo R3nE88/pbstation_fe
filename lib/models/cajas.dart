@@ -30,28 +30,28 @@ class Cajas {
   String toJson() => json.encode(toMap());
 
   factory Cajas.fromMap(Map<String, dynamic> json) => Cajas(
-    id: json["id"]?.toString(),
-    folio: json["folio"],
-    usuarioId: json["usuario_id"],
-    sucursalId: json["sucursal_id"],
-    fechaApertura: json["fecha_apertura"],
-    fechaCierre: json["fecha_cierre"],
-    ventaTotal: json["venta_total"],
-    estado: json["estado"],
-    cortesIds: List<String>.from(json["cortes_ids"] ?? []),
-    tipoCambio: json["tipo_cambio"],
+    id: json['id']?.toString(),
+    folio: json['folio'],
+    usuarioId: json['usuario_id'],
+    sucursalId: json['sucursal_id'],
+    fechaApertura: json['fecha_apertura'],
+    fechaCierre: json['fecha_cierre'],
+    ventaTotal: json['venta_total']!=null ? Decimal.tryParse(json['venta_total'].toString()) : null,
+    estado: json['estado'],
+    cortesIds: List<String>.from(json['cortes_ids'] ?? []),
+    tipoCambio: double.parse(json['tipo_cambio'].toString()),
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "folio": folio,
-    "usuario_id": usuarioId,
-    "sucursal_id": sucursalId,
-    "fecha_apertura": fechaApertura,
-    "fecha_cierre": fechaCierre,
-    "venta_total": ventaTotal,
-    "estado": estado,
-    "cortes_ids": cortesIds,
-    "tipo_cambio": tipoCambio
+    'id': id,
+    'folio': folio,
+    'usuario_id': usuarioId,
+    'sucursal_id': sucursalId,
+    'fecha_apertura': fechaApertura,
+    'fecha_cierre': fechaCierre,
+    'venta_total': ventaTotal,
+    'estado': estado,
+    'cortes_ids': cortesIds,
+    'tipo_cambio': tipoCambio
   };
 }

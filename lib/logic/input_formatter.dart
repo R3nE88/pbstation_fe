@@ -18,8 +18,7 @@ class MoneyInputFormatter extends TextInputFormatter { //Formatear dinero con $ 
     }
 
     if (digitsOnly.isEmpty) {
-      return TextEditingValue(
-        text: '',
+      return const TextEditingValue(
         selection: TextSelection.collapsed(offset: 0),
       );
     }
@@ -58,8 +57,7 @@ class PesosInputFormatter extends TextInputFormatter { //Formatear dinero con $ 
     }
 
     if (digitsOnly.isEmpty) {
-      return TextEditingValue(
-        text: '',
+      return const TextEditingValue(
         selection: TextSelection.collapsed(offset: 0),
       );
     }
@@ -98,8 +96,7 @@ class DolaresInputFormatter extends TextInputFormatter { //Formatear dinero con 
     }
 
     if (digitsOnly.isEmpty) {
-      return TextEditingValue(
-        text: '',
+      return const TextEditingValue(
         selection: TextSelection.collapsed(offset: 0),
       );
     }
@@ -138,8 +135,7 @@ class NumericFormatter extends TextInputFormatter { //Formatear numeros enteros 
     }
 
     if (digitsOnly.isEmpty) {
-      return TextEditingValue(
-        text: '',
+      return const TextEditingValue(
         selection: TextSelection.collapsed(offset: 0),
       );
     }
@@ -176,8 +172,7 @@ class DecimalInputFormatter extends TextInputFormatter { //Formatear numeros dec
     }
 
     if (digitsOnly.isEmpty) {
-      return TextEditingValue(
-        text: '',
+      return const TextEditingValue(
         selection: TextSelection.collapsed(offset: 0),
       );
     }

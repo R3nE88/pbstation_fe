@@ -8,6 +8,7 @@ class MovimientosCajas {
     required this.monto,
     required this.motivo,
     required this.fecha,
+    this.corte
   });
 
   String? id; 
@@ -16,25 +17,26 @@ class MovimientosCajas {
   double monto;
   String motivo;
   String fecha;
+  String? corte;
 
   factory MovimientosCajas.fromJson(String str) => MovimientosCajas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
   factory MovimientosCajas.fromMap(Map<String, dynamic> json) => MovimientosCajas(
-    id: json["id"]?.toString(),
-    usuarioId: json["usuario_id"],
-    tipo: json["tipo"],
-    monto: json["monto"],
-    motivo: json["motivo"],
-    fecha: json["fecha"],
+    id: json['id']?.toString(),
+    usuarioId: json['usuario_id'],
+    tipo: json['tipo'],
+    monto: json['monto'],
+    motivo: json['motivo'],
+    fecha: json['fecha'],
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "usuario_id": usuarioId,
-    "tipo": tipo,
-    "monto": monto,
-    "motivo": motivo,
-    "fecha": fecha,
+    'id': id,
+    'usuario_id': usuarioId,
+    'tipo': tipo,
+    'monto': monto,
+    'motivo': motivo,
+    'fecha': fecha,
   };
 }

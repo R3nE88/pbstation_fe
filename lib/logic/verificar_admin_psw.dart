@@ -25,14 +25,14 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
       Navigator.pop(context, false);
       showDialog(
         context: context,
-        builder: (context) => Stack(
+        builder: (context) => const Stack(
           alignment: Alignment.topRight,
           children: [
             CustomErrorDialog(
               titulo: 'No puedes continuar',
               respuesta: 'Correo o contraseña inválidos o\npermisos insuficientes.'
             ),
-            const WindowBar(overlay: true),
+            WindowBar(overlay: true),
           ],
         ),
       );
@@ -46,7 +46,7 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
         children: [
           AlertDialog(
             backgroundColor: AppTheme.containerColor2,
-            title: Text('Para continuar ingrese su contraseña\nde Administrador',textAlign: TextAlign.center, textScaler: TextScaler.linear(0.8)),
+            title: const Text('Para continuar ingrese su contraseña\nde Administrador',textAlign: TextAlign.center, textScaler: TextScaler.linear(0.8)),
             content: SizedBox(
               width: 300,
               child: Form(
@@ -58,7 +58,7 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
                     TextFormField(
                       controller: controller,
                       buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Contraseña',
                         labelStyle: AppTheme.labelStyle,
                       ),
@@ -82,12 +82,12 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
                           onPressed: (){
                             Navigator.pop(context, false);
                           }, 
-                          child: Text('Regresar')
+                          child: const Text('Regresar')
                         ),
 
                         ElevatedButton(
                           onPressed: () => submited(),
-                          child: Text('Continuar')
+                          child: const Text('Continuar')
                         ),
                       ],
                     ),

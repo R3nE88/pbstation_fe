@@ -140,7 +140,7 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
                             )
                           : Align(
                               alignment: Alignment.topCenter,
-                              child: widget.menuContentColapsed ?? SizedBox(),
+                              child: widget.menuContentColapsed ?? const SizedBox(),
                             )
                     ),
                   );
@@ -171,15 +171,13 @@ class InverseBorder extends StatelessWidget {
         Stack(
           children: [
             Transform.translate(
-              offset: Offset(0, -0.5),
+              offset: const Offset(0, -0.5),
               child: Container(
                 height: size, 
                 width: size,
                 decoration: BoxDecoration(
                   color: AppTheme.primario2,
                   border: Border(
-                    left: BorderSide.none,
-                    bottom: BorderSide.none,
                     right: BorderSide(color: AppTheme.secundario1)
                   )
                 ),
@@ -190,7 +188,7 @@ class InverseBorder extends StatelessWidget {
               width: size,
               decoration:BoxDecoration(
                 color: AppTheme.secundario1,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(50)
                 )
               ),

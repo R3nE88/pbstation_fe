@@ -14,12 +14,12 @@ class Adeudos {
   String toJson() => json.encode(toMap());
 
   factory Adeudos.fromMap(Map<String, dynamic> json) => Adeudos(
-    ventaId: json["venta_id"],
-    montoPendiente: Decimal.parse(json["monto_pendiente"]),
+    ventaId: json['venta_id'],
+    montoPendiente: Decimal.parse(json['monto_pendiente']),
   );
 
   Map<String, dynamic> toMap() => {
-    "venta_id": ventaId,
-    "monto_pendiente": montoPendiente,
+    'venta_id': ventaId,
+    'monto_pendiente': montoPendiente,
   };
 }

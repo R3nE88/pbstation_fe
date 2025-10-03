@@ -23,22 +23,22 @@ class Sucursales {
   String toJson() => json.encode(toMap());
 
   factory Sucursales.fromMap(Map<String, dynamic> json) => Sucursales(
-      id: json["id"]?.toString(),
-      nombre: json["nombre"],
-      correo: json["correo"],
-      telefono: json["telefono"],
-      direccion: json["direccion"],
-      localidad: json["localidad"],
-      activo: json["activo"],
+      id: json['id']?.toString(),
+      nombre: json['nombre'],
+      correo: json['correo'],
+      telefono: json['telefono'],
+      direccion: json['direccion'],
+      localidad: json['localidad'],
+      activo: json['activo'],
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "nombre": nombre,
-    "correo": correo,
-    "telefono": telefono,
-    "direccion": direccion,
-    "localidad": localidad,
-    "activo": activo
+    'id': id,
+    'nombre': nombre,
+    'correo': correo,
+    'telefono': telefono,
+    'direccion': direccion,
+    'localidad': localidad,
+    'activo': activo
   };
 }

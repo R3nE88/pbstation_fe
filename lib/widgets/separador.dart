@@ -35,7 +35,7 @@ class Separador extends StatelessWidget {
           texto!=null ? 
           Transform.translate(
             offset: const Offset(0, -3),
-            child: Text(' $texto ', style: TextStyle(color: AppTheme.letra70, fontWeight: FontWeight.w700))
+            child: Text(' $texto ', style: const TextStyle(color: AppTheme.letra70, fontWeight: FontWeight.w700))
           ) : Expanded(
             child: Container(
               height: 1,

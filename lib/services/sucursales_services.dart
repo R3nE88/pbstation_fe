@@ -157,14 +157,14 @@ class SucursalesServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {"tkn": Env.tkn}
+        url, headers: {'tkn': Env.tkn}
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       sucursales = listaJson.map<Sucursales>((jsonElem) {
         final suc = Sucursales.fromMap(jsonElem as Map<String, dynamic>);
-        suc.id = (jsonElem as Map)["id"]?.toString();
+        suc.id = (jsonElem as Map)['id']?.toString();
         return suc;
       }).toList();
 
@@ -193,12 +193,12 @@ class SucursalesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final body = json.decode(resp.body);
         final suc = Sucursales.fromMap(body as Map<String, dynamic>);
-        suc.id = (body as Map)["id"]?.toString();
+        suc.id = (body as Map)['id']?.toString();
         sucursales.add(suc);
         isLoading = false;
         cargarSucursales(sucursales);
@@ -217,7 +217,7 @@ class SucursalesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -264,7 +264,7 @@ class SucursalesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -303,7 +303,7 @@ class SucursalesServices extends ChangeNotifier{
     final connectionId = WebSocketService.connectionId;
     final headers = {
       'Content-Type': 'application/json', 
-      "tkn": Env.tkn
+      'tkn': Env.tkn
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -355,7 +355,7 @@ class SucursalesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {"tkn": Env.tkn}
+          url, headers: {'tkn': Env.tkn}
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);

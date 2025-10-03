@@ -98,7 +98,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
         Text(
           isVigente ? 'Cotizaciones Vigentes' : 'Cotizaciones Vencidas',
           style: AppTheme.tituloClaro,
-          textScaler: TextScaler.linear(1.7),
+          textScaler: const TextScaler.linear(1.7),
         ),
         isVigente ? Row(
           children: [
@@ -114,14 +114,14 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Transform.translate(
-                    offset: Offset(-3, 0),
-                    child: Icon(
+                    offset: const Offset(-3, 0),
+                    child: const Icon(
                       Icons.filter_list
                     ),
                   ),
                   Transform.translate(
-                    offset: Offset(3, -1),
-                    child: Text(cotizacionesServices.todasLasSucursales ?  "Todas las sucursales" : "Esta Sucursal"),
+                    offset: const Offset(3, -1),
+                    child: Text(cotizacionesServices.todasLasSucursales ?  'Todas las sucursales' : 'Esta Sucursal'),
                   ),
                 ],
               )
@@ -135,7 +135,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
                 message: 'Folio o Cliente',
                 child: TextFormField(
                   controller: isVigente ? _searchController1 : _searchController2,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                     hintText: 'Buscar Cotizacion',
                   ),
@@ -161,8 +161,8 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
             ),
             color: AppTheme.tablaColorHeader,
           ),
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Expanded(flex: 2, child: Text('Folio', textAlign: TextAlign.center)),
               Expanded(flex: 2, child: Text('Fecha', textAlign: TextAlign.center)),
               Expanded(flex: 2, child: Text('Sucursal', textAlign: TextAlign.center)),

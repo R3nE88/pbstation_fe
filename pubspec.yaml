@@ -24,7 +24,13 @@ dependencies:
   decimal: ^3.2.4
   image: ^4.5.4
   package_info_plus: ^9.0.0
-  gif_view: ^1.0.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  windows:
+    generate: true
+    image_path: "assets/icon/logo.png"
+    icon_size: 48 # min:48, max:256, default: 48
 
 dev_dependencies:
   flutter_test:
@@ -38,7 +44,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
-    - assets/loading.gif
     - assets/frames/
   #   - images/a_dot_ham.jpeg
 

@@ -109,14 +109,14 @@ class _ClientesFormState extends State<ClientesFormDialog> {
           .any((text) => text.isEmpty)) {
         await showDialog(
           context: context,
-          builder: (context) => Stack(
+          builder: (context) => const Stack(
             alignment: Alignment.topRight,
             children: [
               CustomErrorDialog(
                 titulo: 'No se permiten datos parciales.',
-                respuesta: "Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.",
+                respuesta: 'Los campos Ciudad, Estado y País deben completarse todos o dejarse vacíos.',
               ),
-              const WindowBar(overlay: true),
+              WindowBar(overlay: true),
             ],
           ),
         );
@@ -289,7 +289,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     !_onlyRead 
                     ? IconButton(
                       onPressed:  () => setState(() => _regimenFiscal = null), 
-                      icon: Icon(Icons.clear, color: AppTheme.letraClara,)
+                      icon: const Icon(Icons.clear, color: AppTheme.letraClara,)
                     ) 
                     : const SizedBox()
                   ], 
@@ -307,7 +307,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['noExt']!,
                         labelText: 'No. Exterior',
@@ -317,7 +316,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['noInt']!,
                         labelText: 'No. Interior',
@@ -341,7 +339,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     ), const SizedBox(width: 10),
       
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['cp']!,
                         labelText: 'Codigo Postal',
@@ -355,7 +352,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                 Row(
                   children: [
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['ciudad']!,
                         labelText: 'Ciudad',
@@ -364,7 +360,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['estado']!,
                         labelText: 'Estado',
@@ -373,7 +368,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                       ),
                     ), const SizedBox(width: 10),
                     Expanded(
-                      flex: 1,
                       child: buildTextFormField(
                         controller: _controllers['pais']!,
                         labelText: 'País',

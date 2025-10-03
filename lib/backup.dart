@@ -1,231 +1,400 @@
 /*
 
-import 'dart:async';
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-class CotizacionesScreen extends StatefulWidget {
-  const CotizacionesScreen({super.key});
+class CajaScreen extends StatefulWidget {
+  const CajaScreen({super.key, this.readMode=false, this.caja});
+
+  final bool readMode;
+  final Cajas? caja;
 
   @override
-  State<CotizacionesScreen> createState() => _CotizacionesScreenState();
+  State<CajaScreen> createState() => _CajaScreenState();
 }
 
-class _CotizacionesScreenState extends State<CotizacionesScreen> {
-  final TextEditingController _searchController1 = TextEditingController();
-  final TextEditingController _searchController2 = TextEditingController();
-  Timer? _debounce;
+class _CajaScreenState extends State<CajaScreen> {
+  List<Ventas> _ventasParaMostrar = [];
 
-@override
+  @override
   void initState() {
     super.initState();
-    
-    final cotizacionesServices = Provider.of<CotizacionesServices>(context, listen: false);
-    cotizacionesServices.loadCotizaciones();
-    final clienteServices = Provider.of<ClientesServices>(context, listen: false);
-    clienteServices.loadClientes();
-    final productosServices = Provider.of<ProductosServices>(context, listen: false);
-    productosServices.loadProductos();
-    final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
-    sucursalesServices.loadSucursales();
+    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActualId != null) {
+      datosIniciales();
+    }
+  }
 
-    _searchController1.addListener(() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 600), () {
-        final query = _searchController1.text.toLowerCase();
-        cotizacionesServices.filtrarCotizaciones(query, context);
-      });
-    });
-    _searchController2.addListener(() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 600), () {
-        final query = _searchController2.text.toLowerCase();
-        cotizacionesServices.filtrarVencidas(query, context);
+  void datosIniciales(){
+    final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
+    ventasSvc.loadVentasDeCaja().whenComplete(
+      () {
+        if (!mounted) return;
+        _ventasParaMostrar = List.from(ventasSvc.ventasDeCaja);
+        setState(() {});
+      } 
+    );
+    ventasSvc.loadVentasDeCorteActual();
+    Provider.of<CajasServices>(context, listen: false).loadCortesDeCaja();
+    Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
+  }
+
+  Decimal sumarTotal (List<Ventas> ventas){
+    Decimal sumaTotal = Decimal.zero;
+    for (var venta in ventas) {
+      sumaTotal += venta.abonadoTotal;
+    }
+    return sumaTotal;
+  }
+
+  void filtrarVentasPor(Map<String, String>? opcion) async{
+    if (opcion==null) return;
+    //Si es un corte
+    if (opcion.keys.first=='corte'){
+      final ventaSvc = Provider.of<VentasServices>(context, listen: false);
+      final cajaSvc = Provider.of<CajasServices>(context, listen: false);
+      Loading.displaySpinLoading(context);
+      List<String> ventasIds = cajaSvc.cortesDeCaja.firstWhere((element) => element.id == opcion.values.first).ventasIds;
+      _ventasParaMostrar = await ventaSvc.loadVentasDeCortes(ventasIds);
+      setState(() {});
+      if (!mounted) return;
+      Navigator.pop(context);
+    }
+    //Si es un usuario
+    if (opcion.keys.first=='users'){
+      List<Ventas> tmp = [];
+      for (var venta in Provider.of<VentasServices>(context, listen: false).ventasDeCaja) {
+        if (venta.usuarioId == opcion.values.first){
+          tmp.add(venta);
+        }
+      }
+      _ventasParaMostrar = tmp;
+      setState(() {});
+    }
+    //Si es la venta total (otro)
+    if (opcion.keys.first=='otro'){
+      _ventasParaMostrar = Provider.of<VentasServices>(context, listen: false).ventasDeCaja;
+      setState(() {});
+    }
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.readMode==true && widget.caja==null){
+      return Center(child: Text('Hubo un problema al cargar esto. caja_screen.dart :92', style: AppTheme.subtituloConstraste));
+    }
+
+    return Consumer3<UsuariosServices, VentasServices, CajasServices>(
+      builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
+        
+        if(widget.caja==null){
+          if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
+            return AbrirCaja(metodo: datosIniciales);
+          }
+        } 
+        if (usuariosSvc.isLoading || ventasSvc.isLoading || cajasSvc.cortesDeCajaIsLoading || cajasSvc.isLoading){
+          return const SimpleLoading();
+        }
+
+        return BodyPadding(
+          child: Column(
+            children: [
+              //Header
+              _Header(
+                total: sumarTotal(_ventasParaMostrar),
+                onFiltroCambio: (value) => filtrarVentasPor(value),
+              ), 
+              //Body
+              Expanded(
+                child: Column(
+                  children: [
+                    const _TablaHeader(),
+                    Expanded(
+                      child: Container(
+                        color: _ventasParaMostrar.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                        child: ListView.builder(
+                          itemCount: _ventasParaMostrar.length,
+                          itemBuilder: (context, index) {
+                            return _FilaVentas(index: index, venta: _ventasParaMostrar[index]);
+                          },
+                        ),
+                      ),
+                    ),
+                    _TablaFooter(total: _ventasParaMostrar.length)
+                  ],
+                )
+              ),
+            ],
+          )
+        );
+      }
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.total, required this.onFiltroCambio});
+  final Decimal total;
+  final ValueChanged<Map<String, String>?> onFiltroCambio;
+
+  @override
+  Widget build(BuildContext context) {
+    
+    final DateTime fecha = DateTime.parse(CajasServices.corteActual!.fechaApertura);
+    final mes = DateFormat('MMM', 'es_MX').format(fecha).toUpperCase();
+    final String hora = DateFormat('hh:mm a').format(fecha);
+    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId);
+    
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+
+        //Header izqui
+        Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Transform.translate(
+              offset: const Offset(0, -8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                  Text(CajasServices.cajaActual!.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                  const Text('   TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                  Text(CajasServices.corteActual!.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6))
+                ],
+              ),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 13, right: 13, bottom: 13),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.tablaColorHeader,
+                      borderRadius: const BorderRadius.all(Radius.circular(12))
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Turno abierto por\n$usuario', textAlign: TextAlign.center),
+                          Text('${fecha.day}/$mes/${fecha.year} a las $hora'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                      color: AppTheme.tablaColorHeader,
+                      border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12)
+                      ),
+                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Text('Total: ', textScaler: TextScaler.linear(1.3)),
+                            Text(Formatos.pesos.format(total.toDouble()),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+    
+        //Header centra/derecho
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _CajaBoton(
+                  label: 'Movimientos',
+                  icon: Icons.swap_horiz,
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => const Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        MovimientoCajaDialog(),
+                        WindowBar(overlay: true),
+                      ],
+                    ),
+                  ),
+                  cerrar: false,
+                  disabled: false,
+                ),
+                const SizedBox(width: 15),
+                _CajaBoton(
+                  label: 'Realizar Corte',
+                  icon: Icons.price_check,
+                  onTap: () => showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => const Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        CorteDialog(cierre: false),
+                        WindowBar(overlay: true),
+                      ],
+                    ),
+                  ),
+                  cerrar: false,
+                  disabled: !Configuracion.esCaja,
+                ),
+                const SizedBox(width: 15),
+                _CajaBoton(
+                  label: 'Cerrar Caja',
+                  icon: Icons.point_of_sale,
+                  onTap: () => showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => const Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        CorteDialog(cierre: true),
+                        WindowBar(overlay: true),
+                      ],
+                    ),
+                  ),
+                  cerrar: true, 
+                  disabled: !Configuracion.esCaja,
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+        
+            //Drop Down Button
+            Filtro(onFiltroCambio: onFiltroCambio),
+        
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class Filtro extends StatefulWidget {
+  const Filtro({super.key, required this.onFiltroCambio});
+
+  final ValueChanged<Map<String, String>?> onFiltroCambio;
+
+  @override
+  State<Filtro> createState() => _FiltroState();
+}
+
+class _FiltroState extends State<Filtro> {
+  final List<Map<String, String>> opciones = [
+    {'otro':'Todas las ventas del dia'},
+  ];
+
+  Map<String, String>? _valorSeleccionado;
+
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    //Agregar los cortes como opcion
+    for (var corte in Provider.of<CajasServices>(context, listen: false).cortesDeCaja) {
+      opciones.add({'corte': corte.id!});
+    }
+    //Agregar los empelados como opcion
+    for (var users in Provider.of<UsuariosServices>(context, listen: false).usuarios) {
+      opciones.add({'users': users.id!});
+    }
+
+
+    _valorSeleccionado = opciones.first;
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
       });
     });
   }
 
   @override
   void dispose() {
-    _searchController1.dispose();
-    _searchController2.dispose();
-    _debounce?.cancel();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer4<CotizacionesServices, ClientesServices, ProductosServices, SucursalesServices>(
-      builder: (context, cot, cli, prod, suc, _) {
-        if (cot.isLoading || cli.isLoading || prod.isLoading || suc.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        } else {
-          return BodyPadding(
-            hasSubModules: false,
-            child: Column(
-              children: [
-                _buildHeader(context, true),
-                const SizedBox(height: 10),
-                Expanded(
-                  flex: 8,
-                  child: _buildTable(cot, true)
-                ),
-                const SizedBox(height: 10),
-                _buildHeader(context, false),
-                const SizedBox(height: 10),
-                Expanded(
-                  flex: 7,
-                  child: _buildTable(cot, false)
-                ),
-              ],
-            ),
-          );
-        }
-      }
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, bool isVigente) {
-    final cotizacionesServices = Provider.of<CotizacionesServices>(context, listen: false);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          isVigente ? 'Cotizaciones Vigentes' : 'Cotizaciones Vencidas',
-          style: AppTheme.tituloClaro,
-          textScaler: TextScaler.linear(1.7),
-        ),
-        isVigente ? Row(
-          children: [
-            ElevatedButton(
-              onPressed: (){
-                
-                cotizacionesServices.todasLasSucursales;
-                cotizacionesServices.todasLasSucursales = !cotizacionesServices.todasLasSucursales;
-                cotizacionesServices.recargarFilters();
-
-              }, 
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Transform.translate(
-                    offset: Offset(-3, 0),
-                    child: Icon(
-                      Icons.filter_list
-                    ),
-                  ),
-                  Transform.translate(
-                    offset: Offset(3, -1),
-                    child: Text(cotizacionesServices.todasLasSucursales ?  "Todas las sucursales" : "Esta Sucursal"),
-                  ),
-                ],
-              )
-            ), const SizedBox(width: 20),
-
-            SizedBox(
-              height: 34,
-              width: 300,
-              child: Tooltip(
-                waitDuration: Durations.short4,
-                message: 'Folio o Cliente',
-                child: TextFormField(
-                  controller: isVigente ? _searchController1 : _searchController2,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
-                    hintText: 'Buscar Cotizacion',
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ) : const SizedBox(),
-      ],
-    );
-  }
-  
-
-  Widget _buildTable(CotizacionesServices servicios, bool isVigente) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
-            color: AppTheme.tablaColorHeader,
-          ),
-          child: Row(
-            children: const [
-              Expanded(flex: 2, child: Text('Folio', textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Fecha', textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Sucursal', textAlign: TextAlign.center)),
-              Expanded(flex: 3, child: Text('Cliente', textAlign: TextAlign.center)),
-              Expanded(flex: 3, child: Text('Productos', textAlign: TextAlign.center)),
-              Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center)),
-            ],
-          ),
-        ),
-        TablaListView(cotizaciones: isVigente ? servicios.filteredCotizaciones : servicios.filteredVencidas, vigente: isVigente),
-        Container(
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
-            color: AppTheme.tablaColorHeader,
-          ),
-          child: Row(
-            children: [
-              const Spacer(),
-              Text(
-               isVigente ?
-                '  Total: ${servicios.cotizaciones.length}   '
-                :
-                '  Total: ${servicios.vencidas.length}   ',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class TablaListView extends StatelessWidget {
-  const TablaListView({
-    super.key, required this.cotizaciones, required this.vigente,
-  });
-
-  final List<Cotizaciones> cotizaciones;
-  final bool vigente;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
+    return Padding(
+      padding: const EdgeInsets.only(right: 13),
       child: Container(
-        color: cotizaciones.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: ListView.builder(
-          itemCount: cotizaciones.length,
-          itemBuilder: (context, index) => FilaCotizaciones(
-            vigente: vigente,
-            cotizacion: cotizaciones[index],
-            index: index,
-            onDelete: () async {
-              /*Loading.displaySpinLoading(context);
-              await servicios.deleteProducto(servicios.cotizaciones[index].id!);
-              if (!context.mounted) return;
-              Navigator.pop(context);*/
+        height: 40,
+        decoration: BoxDecoration(
+          color: _isFocused ? AppTheme.containerColor2 : AppTheme.tablaColorHeader,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(15),
+            topRight: Radius.circular(15),
+          ),
+          border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<Map<String, String>>(
+            focusNode: _focusNode,
+            value: _valorSeleccionado,
+            items: opciones.map((opcion) {
+              late final String texto;
+              if (opcion.keys.first=='otro') {
+                texto = opcion.values.first;
+              } else if (opcion.keys.first=='corte') {
+                Cortes corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja.firstWhere((element) => element.id == opcion.values.first);
+                if (CajasServices.corteActualId == corte.id) {
+                  texto = 'Corte: ${corte.folio!} (turno actual)';
+                } else {
+                  texto = 'Corte: ${corte.folio!}';
+                }
+                
+              } else if (opcion.keys.first=='users'){
+                Usuarios user = Provider.of<UsuariosServices>(context, listen: false).usuarios.firstWhere((element) => element.id == opcion.values.first);
+                texto = user.nombre;
+              }
+              return DropdownMenuItem<Map<String, String>>(
+                value: opcion,
+                child: Text(texto),
+              );
+            }).toList(),
+            dropdownColor: AppTheme.containerColor2,
+            style: const TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
+            iconEnabledColor: Colors.white,
+            onChanged: (nuevo) {
+              widget.onFiltroCambio(nuevo);
+              setState(() {
+                _valorSeleccionado = nuevo;
+                
+              });
             },
           ),
         ),
@@ -234,142 +403,155 @@ class TablaListView extends StatelessWidget {
   }
 }
 
-class FilaCotizaciones extends StatelessWidget {
-  const FilaCotizaciones({
-    super.key,
-    required this.cotizacion,
-    required this.index,
-    required this.onDelete, required this.vigente,
-  });
-
-  final Cotizaciones cotizacion;
-  final int index;
-  final VoidCallback onDelete;
-  final bool vigente;
+class _TablaHeader extends StatelessWidget {
+  const _TablaHeader();
 
   @override
   Widget build(BuildContext context) {
-    void mostrarMenu(BuildContext context, Offset offset) async {
-      /*final String? seleccion;
-      seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppTheme.tablaColorHeader,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
         ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          PopupMenuItem(
-            value: 'leer',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                Text('  Ver Cotizacion Completa', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          ),
-          vigente 
-          ? PopupMenuItem(
-            value: 'usar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.navigate_next, color: AppTheme.letraClara, size: 17),
-                 Text('  Utilizar', style: AppTheme.subtituloPrimario)
-              ],
-            ),
-          )
-          : PopupMenuItem(
-            value: 'renovar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.repeat, color: AppTheme.letraClara, size: 17),
-                 Text('  Renovar', style: AppTheme.subtituloPrimario)
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'print',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.print, color: AppTheme.letraClara, size: 17),
-                Text('  Imprimir', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'eliminar',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
-                Text('  Eliminar', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          ),
+      ),
+      child:  const Row(
+        children: [
+          Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Tooltip(
+            message: 'El color amarillo indica que la cuenta aún está pendiente de pago,\nmientras que el verde señala que ya ha sido liquidada.',
+            waitDuration: Duration(milliseconds: 250),
+            child: Text('Pagado', textAlign: TextAlign.center)
+          )),
+          Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
         ],
-      );*/
+      ),
+    );
+  }
+}
 
-      /*if (seleccion != null) {
-        if (seleccion == 'leer') {
-          // Lógica para leer
-          if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto, onlyRead: true),
-          );
-        } else if (seleccion == 'editar') {
-          // Lógica para editar
-          if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => ProductoFormDialog(prodEdit: producto),
-          );
-        } else if (seleccion == 'eliminar') {
-          // Lógica para eliminar
-          onDelete();
-        }
-      }*/
+class _FilaVentas extends StatelessWidget {
+  const _FilaVentas({required this.index, required this.venta});
+
+  final int index;
+  final Ventas venta;
+
+  @override
+  Widget build(BuildContext context) {
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
+    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
+
+    final vendedorNombre = usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId);
+    final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
+    final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
+    final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+    //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
+
+    late TextStyle estilo;
+    if (venta.liquidado && venta.wasDeuda){
+      estilo = const TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
+    } else if (!venta.liquidado) {
+      estilo = AppTheme.warningStyle;
+    } else {
+      estilo = AppTheme.subtituloConstraste;
     }
 
-    //Conseguir cliente
-    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
-    final clienteNombre = clienteSvc.obtenerNombreClientePorId(cotizacion.clienteId);
 
-    //Conseguir Producto
-    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
-    final detalles = productosSvc.obtenerDetallesComoTexto(cotizacion.detalles);
+    return Container(
+      padding: const EdgeInsets.all(8),
+      color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Row(
+        children: [
+          Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+        ],
+      ),
+    );
+  }
+}
 
-    //Conseguir Sucursal
-    final sucursalSvc = Provider.of<SucursalesServices>(context, listen: false);
-    final sucursalNombre = sucursalSvc.obtenerNombreSucursalPorId(cotizacion.sucursalId);
+class _TablaFooter extends StatelessWidget {
+  const _TablaFooter({required this.total});
 
-    //fecha
-    DateTime dt = DateTime.parse(cotizacion.fechaCotizacion);
-    final DateFormat formatter = DateFormat('dd-MM-yyyy');
-    final String formatted = formatter.format(dt);
+  final int total;  
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        mostrarMenu(context, details.globalPosition);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: Row(
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppTheme.tablaColorHeader,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(12),
+          bottomRight: Radius.circular(12),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Spacer(),
+          Text('  Total de ventas: $total   ', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CajaBoton extends StatelessWidget {
+  const _CajaBoton({required this.label, required this.icon, required this.onTap, required this.cerrar, required this.disabled});
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool cerrar;
+  final bool disabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: disabled ? 'Necesitas estar en la Caja' : '',
+      waitDuration: Durations.short4,
+      child: ElevatedButton(
+        style: cerrar 
+        ? ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 241, 85, 38),
+          disabledBackgroundColor: Colors.grey,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8), // Custom radius
+          ),
+        ) 
+        : ElevatedButton.styleFrom(
+          disabledBackgroundColor: Colors.grey
+        ),
+        onPressed: !disabled ? onTap : null,
+        child:cerrar ? Row(
           children: [
-            Expanded(flex: 2, child: Text(cotizacion.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(formatted, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(sucursalNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 3, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 3, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(cotizacion.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Icon(icon, size: 21, color: Colors.white),
+            Text(' $label', style: AppTheme.tituloClaro),
+          ],
+        ) 
+        :
+        Row(
+          children: [
+            Icon(icon, size: 21),
+            Text(' $label'),
           ],
         ),
       ),

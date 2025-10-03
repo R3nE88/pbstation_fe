@@ -28,28 +28,28 @@ class MovimientoCajaDialog extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => Stack(
+                    builder: (_) => const Stack(
                       alignment: Alignment.topRight,
                       children: [
-                        const MovimientoCajaForm(isRetiro: false),
-                        const WindowBar(overlay: true),
+                        MovimientoCajaForm(isRetiro: false),
+                        WindowBar(overlay: true),
                       ],
                     )
                 ), 
-                child: Text('+ Entrada de Efectivo', textScaler: const TextScaler.linear(0.9))
+                child: const Text('+ Entrada de Efectivo', textScaler: TextScaler.linear(0.9))
               ), const SizedBox(width: 15),
               ElevatedButton(
                 onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => Stack(
+                    builder: (_) => const Stack(
                       alignment: Alignment.topRight,
                       children: [
-                        const MovimientoCajaForm(isRetiro: true),
-                        const WindowBar(overlay: true),
+                        MovimientoCajaForm(isRetiro: true),
+                        WindowBar(overlay: true),
                       ],
                     )
                 ), 
-                child: Text('- Retiro de Efectivo', textScaler: const TextScaler.linear(0.9))
+                child: const Text('- Retiro de Efectivo', textScaler: TextScaler.linear(0.9))
               ),
             ],
           )
@@ -59,11 +59,21 @@ class MovimientoCajaDialog extends StatelessWidget {
         width: 800,
         child: Consumer<CajasServices>(
           builder: (context, cs, _) {
+
+            List<MovimientosCajas> movimientos = [];
+            for (var corte in cs.cortesDeCaja) {
+              for (var movimiento in corte.movimientosCaja) {
+                MovimientosCajas mov =  movimiento;
+                mov.corte = corte.folio!;
+                movimientos.add(mov);
+              }
+            }
+
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.symmetric(vertical:8.0),
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(12),
@@ -71,13 +81,14 @@ class MovimientoCajaDialog extends StatelessWidget {
                     ),
                     color: AppTheme.tablaColorHeader,
                   ),
-                  child: Row(
-                    children: const [
-                      Expanded(flex:4, child: Text('Usuario', textAlign: TextAlign.center)),
-                      Expanded(flex:3, child: Text('Tipo', textAlign: TextAlign.center)),
-                      Expanded(flex:4, child: Text('Motivo', textAlign: TextAlign.center)),
-                      Expanded(flex:3, child: Text('Monto', textAlign: TextAlign.center)),
-                      Expanded(flex:4, child: Text('Fecha', textAlign: TextAlign.center)),
+                  child: const Row(
+                    children: [
+                      Expanded(flex:3, child: Center(child: Text('Turno', textAlign: TextAlign.center))),
+                      Expanded(flex:4, child: Center(child: Text('Usuario', textAlign: TextAlign.center))),
+                      Expanded(flex:3, child: Center(child: Text('Tipo', textAlign: TextAlign.center))),
+                      Expanded(flex:4, child: Center(child: Text('Motivo', textAlign: TextAlign.center))),
+                      Expanded(flex:3, child: Center(child: Text('Monto', textAlign: TextAlign.center))),
+                      Expanded(flex:3, child: Center(child: Text('Fecha', textAlign: TextAlign.center))),
                     ],
                   ),
                 ),
@@ -85,11 +96,11 @@ class MovimientoCajaDialog extends StatelessWidget {
                 
                     Container(
                       height: 200,
-                      color: cs.movimientos.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                      color: movimientos.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
                       child: ListView.builder(
-                        itemCount: cs.movimientos.length,
+                        itemCount: movimientos.length,
                         itemBuilder: (context, index) {
-                          return FilaMovimintos(movimiento: cs.movimientos[index], index: index);
+                          return FilaMovimintos(movimiento: movimientos[index], index: index);
                         },
                       ),
                     ),
@@ -109,7 +120,7 @@ class MovimientoCajaDialog extends StatelessWidget {
                     children: [
                       const Spacer(),
                       Text(
-                        '  Total: ${cs.movimientos.length}   ',
+                        '  Total: ${movimientos.length}   ',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -147,15 +158,18 @@ class FilaMovimintos extends StatelessWidget {
       color: index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
       child: Row(
         children: [
-          Expanded(flex:4, child: Text(usuarioNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex:3, child: Text(capitalizarPrimeraLetra(movimiento.tipo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex:4, child: Text(movimiento.motivo, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex:3, child: Text(Formatos.pesos.format(movimiento.monto), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex:4, child: Row( mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('$fecha  ', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: TextScaler.linear(0.8)),
-              Text(hora, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: TextScaler.linear(1.05)),
-            ],
+          Expanded(flex:3, child: Center(child: Text(movimiento.corte!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          Expanded(flex:4, child: Center(child: Text(usuarioNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          Expanded(flex:3, child: Center(child: Text(capitalizarPrimeraLetra(movimiento.tipo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          Expanded(flex:4, child: Center(child: Text(movimiento.motivo, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          Expanded(flex:3, child: Center(child: Text(Formatos.pesos.format(movimiento.monto), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          Expanded(flex:3, child: Center(
+            child: Column( mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('$fecha  ', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.8)),
+                Text(hora, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center,),
+              ],
+            ),
           )),
         ],
       ),

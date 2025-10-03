@@ -12,7 +12,10 @@ import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class CajaScreen extends StatefulWidget {
-  const CajaScreen({super.key});
+  const CajaScreen({super.key, this.readMode=false, this.caja});
+
+  final bool readMode;
+  final Cajas? caja;
 
   @override
   State<CajaScreen> createState() => _CajaScreenState();
@@ -20,13 +23,18 @@ class CajaScreen extends StatefulWidget {
 
 class _CajaScreenState extends State<CajaScreen> {
   List<Ventas> _ventasParaMostrar = [];
+  bool _initLoad = false;
+  late Cortes _corteSelected;
+  late Cajas _cajaSelected;
 
   @override
   void initState() {
     super.initState();
-    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActualId != null) {
-      datosIniciales();
-    }
+    if(widget.readMode==false){
+      if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActualId != null) {
+        datosIniciales();
+      }
+    } else { datosInicialesReadMode(); }
   }
 
   void datosIniciales(){
@@ -41,6 +49,20 @@ class _CajaScreenState extends State<CajaScreen> {
     ventasSvc.loadVentasDeCorteActual();
     Provider.of<CajasServices>(context, listen: false).loadCortesDeCaja();
     Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
+  }
+
+  void datosInicialesReadMode(){
+    Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
+    Provider.of<CajasServices>(context, listen: false).loadDatosCompletosDeCaja(widget.caja!.id!); 
+    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+    ventasSvc.loaded = false;
+    ventasSvc.loadVentasDeCajaHistorial(widget.caja!.id!).whenComplete(
+      () {
+        if (!mounted) return;
+        _ventasParaMostrar = List.from(ventasSvc.ventasDeCajaHistorial);
+        setState(() {});
+      } 
+    );
   }
 
   Decimal sumarTotal (List<Ventas> ventas){
@@ -85,16 +107,34 @@ class _CajaScreenState extends State<CajaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.readMode==true && widget.caja==null){
+      return Center(child: Text('Hubo un problema al cargar esto. caja_screen.dart :92', style: AppTheme.subtituloConstraste));
+    }
+
     return Consumer3<UsuariosServices, VentasServices, CajasServices>(
       builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
         
-        if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
-          return AbrirCaja(metodo: datosIniciales);
+        if(widget.caja==null){
+          if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
+            return AbrirCaja(metodo: datosIniciales);
+          }
+          if (usuariosSvc.isLoading || ventasSvc.isLoading || cajasSvc.cortesDeCajaIsLoading || cajasSvc.isLoading){
+            return const SimpleLoading();
+          } else if (_initLoad == false){
+            _corteSelected = CajasServices.corteActual!;
+            _cajaSelected = CajasServices.cajaActual!;
+            _initLoad = true;
+          }
+        } else {
+          if (usuariosSvc.isLoading || cajasSvc.isLoadingHistorial || ventasSvc.isLoadingHistorial){
+            return const LoadingWidget();
+          } else if (_initLoad == false){
+            _corteSelected = CajasServices.cortesHistorial!.first;
+            _cajaSelected = CajasServices.cajaHistorial!;
+            _initLoad = true;
+          }
         }
-
-        if (usuariosSvc.isLoading || ventasSvc.isLoading || cajasSvc.cortesDeCajaIsLoading || cajasSvc.isLoading){
-          return SimpleLoading();
-        }
+        
 
         return BodyPadding(
           child: Column(
@@ -103,12 +143,15 @@ class _CajaScreenState extends State<CajaScreen> {
               _Header(
                 total: sumarTotal(_ventasParaMostrar),
                 onFiltroCambio: (value) => filtrarVentasPor(value),
+                caja: _cajaSelected,
+                corte: _corteSelected,
+                readMode: widget.readMode,
               ), 
               //Body
               Expanded(
                 child: Column(
                   children: [
-                    _TablaHeader(),
+                    const _TablaHeader(),
                     Expanded(
                       child: Container(
                         color: _ventasParaMostrar.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
@@ -132,18 +175,23 @@ class _CajaScreenState extends State<CajaScreen> {
   }
 }
 
+
+
 class _Header extends StatelessWidget {
-  const _Header({required this.total, required this.onFiltroCambio});
+  const _Header({required this.total, required this.onFiltroCambio, required this.corte, required this.caja, this.readMode = false});
   final Decimal total;
   final ValueChanged<Map<String, String>?> onFiltroCambio;
+  final Cortes corte;
+  final Cajas caja;
+  final bool readMode;
 
   @override
   Widget build(BuildContext context) {
     
-    final DateTime fecha = DateTime.parse(CajasServices.corteActual!.fechaApertura);
+    final DateTime fecha = DateTime.parse(corte.fechaApertura);
     final mes = DateFormat('MMM', 'es_MX').format(fecha).toUpperCase();
     final String hora = DateFormat('hh:mm a').format(fecha);
-    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId);
+    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(corte.usuarioId);
     
     return Stack(
       alignment: Alignment.bottomCenter,
@@ -155,14 +203,14 @@ class _Header extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Transform.translate(
-              offset: Offset(0, -8),
+              offset: Offset(readMode? 70 :0, -8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text("CAJA: ", style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(CajasServices.cajaActual!.folio!, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.6)),
-                  const Text("   TURNO: ", style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(CajasServices.corteActual!.folio!, style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.6))
+                  const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                  Text(caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                  const Text('   TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                  Text(corte.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6))
                 ],
               ),
             ),
@@ -174,26 +222,26 @@ class _Header extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.tablaColorHeader,
-                      borderRadius: BorderRadius.all(Radius.circular(12))
+                      borderRadius: const BorderRadius.all(Radius.circular(12))
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Turno abierto por\n$usuario', textAlign: TextAlign.center),
+                          Text('Turno actual abierto por\n$usuario', textAlign: TextAlign.center),
                           Text('${fecha.day}/$mes/${fecha.year} a las $hora'),
                         ],
                       ),
                     ),
                   ),
                 ),
+                
                 Container(
                   decoration: BoxDecoration(
                       color: AppTheme.tablaColorHeader,
-                      border: Border(bottom: BorderSide(color: Colors.black12, width: 3)),
-                      borderRadius: BorderRadius.only(
+                      border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12)
                       ),
@@ -204,8 +252,8 @@ class _Header extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text('Total: ', textScaler: TextScaler.linear(1.3)),
-                            Text(Formatos.pesos.format(total.toDouble()),style: AppTheme.tituloClaro, textScaler: TextScaler.linear(1.4)),
+                            const Text('Total: ', textScaler: TextScaler.linear(1.3)),
+                            Text(Formatos.pesos.format(total.toDouble()),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4)),
                           ],
                         ),
                       ],
@@ -218,6 +266,7 @@ class _Header extends StatelessWidget {
         ),
     
         //Header centra/derecho
+        readMode==false ?
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,12 +279,11 @@ class _Header extends StatelessWidget {
                   icon: Icons.swap_horiz,
                   onTap: () => showDialog(
                     context: context,
-                    useSafeArea: true,
-                    builder: (_) => Stack(
+                    builder: (_) => const Stack(
                       alignment: Alignment.topRight,
                       children: [
-                        const MovimientoCajaDialog(),
-                        const WindowBar(overlay: true),
+                        MovimientoCajaDialog(),
+                        WindowBar(overlay: true),
                       ],
                     ),
                   ),
@@ -249,11 +297,11 @@ class _Header extends StatelessWidget {
                   onTap: () => showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (_) => Stack(
+                    builder: (_) => const Stack(
                       alignment: Alignment.topRight,
                       children: [
-                        const CorteDialog(cierre: false),
-                        const WindowBar(overlay: true),
+                        CorteDialog(cierre: false),
+                        WindowBar(overlay: true),
                       ],
                     ),
                   ),
@@ -267,11 +315,11 @@ class _Header extends StatelessWidget {
                   onTap: () => showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (_) => Stack(
+                    builder: (_) => const Stack(
                       alignment: Alignment.topRight,
                       children: [
-                        const CorteDialog(cierre: true),
-                        const WindowBar(overlay: true),
+                        CorteDialog(cierre: true),
+                        WindowBar(overlay: true),
                       ],
                     ),
                   ),
@@ -286,7 +334,7 @@ class _Header extends StatelessWidget {
             Filtro(onFiltroCambio: onFiltroCambio),
         
           ],
-        ),
+        ) : const SizedBox(),
       ],
     );
   }
@@ -346,11 +394,11 @@ class _FiltroState extends State<Filtro> {
         height: 40,
         decoration: BoxDecoration(
           color: _isFocused ? AppTheme.containerColor2 : AppTheme.tablaColorHeader,
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(15),
             topRight: Radius.circular(15),
           ),
-          border: Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+          border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: DropdownButtonHideUnderline(
@@ -379,7 +427,7 @@ class _FiltroState extends State<Filtro> {
               );
             }).toList(),
             dropdownColor: AppTheme.containerColor2,
-            style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
+            style: const TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
             iconEnabledColor: Colors.white,
             onChanged: (nuevo) {
               widget.onFiltroCambio(nuevo);
@@ -409,22 +457,22 @@ class _TablaHeader extends StatelessWidget {
           topRight: Radius.circular(12),
         ),
       ),
-      child:  Row(
+      child:  const Row(
         children: [
-          const Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
-          const Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
-          const Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
-          const Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
-          const Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
-          const Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
-          const Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
-          const Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
+          Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Tooltip(
             message: 'El color amarillo indica que la cuenta aún está pendiente de pago,\nmientras que el verde señala que ya ha sido liquidada.',
-            waitDuration: Duration(milliseconds: 750),
+            waitDuration: Duration(milliseconds: 250),
             child: Text('Pagado', textAlign: TextAlign.center)
           )),
-          const Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
+          Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
         ],
       ),
     );
@@ -451,7 +499,7 @@ class _FilaVentas extends StatelessWidget {
 
     late TextStyle estilo;
     if (venta.liquidado && venta.wasDeuda){
-      estilo = TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
+      estilo = const TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
     } else if (!venta.liquidado) {
       estilo = AppTheme.warningStyle;
     } else {
@@ -523,7 +571,7 @@ class _CajaBoton extends StatelessWidget {
       child: ElevatedButton(
         style: cerrar 
         ? ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 255, 211, 196),
+          backgroundColor: const Color.fromARGB(255, 241, 85, 38),
           disabledBackgroundColor: Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8), // Custom radius
@@ -533,7 +581,14 @@ class _CajaBoton extends StatelessWidget {
           disabledBackgroundColor: Colors.grey
         ),
         onPressed: !disabled ? onTap : null,
-        child: Row(
+        child:cerrar ? Row(
+          children: [
+            Icon(icon, size: 21, color: Colors.white),
+            Text(' $label', style: AppTheme.tituloClaro),
+          ],
+        ) 
+        :
+        Row(
           children: [
             Icon(icon, size: 21),
             Text(' $label'),

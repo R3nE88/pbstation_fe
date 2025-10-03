@@ -64,7 +64,7 @@ class VentaTab {
         altoController = TextEditingController(text: '1'),
         comentarioController = TextEditingController(),
         descuentoController = TextEditingController(text: '0%'),
-        descuentoAplicado = Decimal.parse("0"),
+        descuentoAplicado = Decimal.parse('0'),
         ivaController = TextEditingController(text: Formatos.pesos.format(0)),
         productoTotalController = TextEditingController(text: Formatos.pesos.format(0)),
         comentariosController = TextEditingController(),
@@ -106,7 +106,7 @@ class VentaTab {
     altoController = TextEditingController(text: '1');
     comentarioController = TextEditingController();
     descuentoController = TextEditingController(text: '0%');
-    descuentoAplicado = Decimal.parse("0");
+    descuentoAplicado = Decimal.parse('0');
     ivaController = TextEditingController(text: Formatos.pesos.format(0));
     productoTotalController = TextEditingController(text: Formatos.pesos.format(0));
     comentariosController = TextEditingController();

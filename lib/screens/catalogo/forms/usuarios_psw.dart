@@ -23,7 +23,7 @@ class _UsuariosPswFormState extends State<UsuariosPswForm> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.containerColor2,
-      title: Text('Restablecer Contraseña'),
+      title: const Text('Restablecer Contraseña'),
       content: SizedBox(
         width: 600,
         child: Form(
@@ -37,7 +37,7 @@ class _UsuariosPswFormState extends State<UsuariosPswForm> {
                     child: TextFormField(
                       controller: _psw1Ctlr,
                       buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Contraseña',
                         labelStyle: AppTheme.labelStyle,
                       ),
@@ -57,7 +57,7 @@ class _UsuariosPswFormState extends State<UsuariosPswForm> {
                     child: TextFormField(
                       controller: _psw2Ctlr,
                       buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Vuelva a introducir la contraseña',
                         labelStyle: AppTheme.labelStyle,
                       ),

@@ -15,14 +15,14 @@ class Contadores {
   String toJson() => json.encode(toMap());
 
   factory Contadores.fromMap(Map<String, dynamic> json) => Contadores(
-    id: json["id"]?.toString(),
-    impresoraId: json["impresora_id"],
-    cantidad: json["cantidad"],
+    id: json['id']?.toString(),
+    impresoraId: json['impresora_id'],
+    cantidad: json['cantidad'],
   );
 
   Map<String, dynamic> toMap() => {
-    "id": id,
-    "impresora_id": impresoraId,
-    "cantidad": cantidad,
+    'id': id,
+    'impresora_id': impresoraId,
+    'cantidad': cantidad,
   };
 }

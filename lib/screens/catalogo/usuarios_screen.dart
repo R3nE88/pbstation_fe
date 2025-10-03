@@ -61,16 +61,15 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+        const Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text(
+            Text(
               'Equipo',
               style: AppTheme.tituloClaro,
               textScaler: TextScaler.linear(1.7), 
             ),
-            const Text(
+            Text(
               '  (Gestión de todos los que usan la app)',
               style: AppTheme.labelStyle,
               textScaler: TextScaler.linear(1.1), 
@@ -87,7 +86,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                 message: 'Nombre',
                 child: TextFormField(
                   controller: _searchController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
                     hintText: 'Buscar usuario',
                   ),
@@ -98,11 +97,11 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
             Login.admin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => Stack(
+                builder: (_) => const Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    const UsuariosFormDialog(),
-                    const WindowBar(overlay: true),
+                    UsuariosFormDialog(),
+                    WindowBar(overlay: true),
                   ],
                 ),
               ),
@@ -142,8 +141,8 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                 ),
                 color: AppTheme.tablaColorHeader,
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Expanded(flex: 2, child: Text('Permisos Admin', textAlign: TextAlign.center)),
                   Expanded(flex: 4, child: Text('Nombre', textAlign: TextAlign.center)),
                   Expanded(flex: 4, child: Text('Correo', textAlign: TextAlign.center)),
@@ -225,7 +224,7 @@ class FilaUsuario extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -235,7 +234,7 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'cambiar_psw',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -245,7 +244,7 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'editar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -255,7 +254,7 @@ class FilaUsuario extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'eliminar',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -279,7 +278,7 @@ class FilaUsuario extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 2,
           items: [
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'leer',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -360,7 +359,7 @@ class FilaUsuario extends StatelessWidget {
         color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(flex: 2, child: usuario.rol=='admin' ? Icon(Icons.check) : Icon(Icons.close)),
+            Expanded(flex: 2, child: usuario.rol=='admin' ? const Icon(Icons.check) : const Icon(Icons.close)),
             Expanded(flex: 4, child: Text(mostrarCampo(usuario.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 4, child: Text(mostrarCampo(usuario.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(flex: 4, child: Text(mostrarCampo(usuario.telefono!=null ? usuario.telefono.toString() : '-'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),

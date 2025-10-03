@@ -51,7 +51,6 @@ class SideMenuLeft extends StatelessWidget {
         children: [
           const SizedBox(height: height+9, width: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,

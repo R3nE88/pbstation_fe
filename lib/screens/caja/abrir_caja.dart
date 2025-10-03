@@ -67,7 +67,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
         usuarioId: Login.usuarioLogeado.id!,
         sucursalId: SucursalesServices.sucursalActualID!,
         fechaApertura: fa,
-        estado: "abierta",
+        estado: 'abierta',
         cortesIds: [],
         tipoCambio: Configuracion.dolar,
       );
@@ -78,7 +78,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
       sucursalId: SucursalesServices.sucursalActualID!,
       fondoInicial: Decimal.parse(_fondotxt.text.replaceAll('MX\$', '').replaceAll(',', '')),
       fechaApertura: fa,
-      movimientoCaja: [],
+      movimientosCaja: [],
       ventasIds: [],
     );
 
@@ -93,7 +93,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
   @override
   Widget build(BuildContext context) {
     if (SucursalesServices.sucursalActualID==null){
-      return Column(
+      return const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('Necesitas tener una sucursal vinculada a esta terminal\npara acceder a esta pantalla.', style: AppTheme.tituloPrimario, textAlign: TextAlign.center)
@@ -107,9 +107,9 @@ class _AbrirCajaState extends State<AbrirCaja> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('Hubo un problema para encontrar los registros de la caja actual', style: AppTheme.subtituloConstraste),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: const Center(
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
               child: Icon(Icons.warning_amber ,color: Colors.red)
             ),
           ),
@@ -124,7 +124,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                   onPressed: (){
                     setState(() { _cajaNotFound = false; });
                   }, child: 
-                  Transform.translate( offset:Offset(0,-3),child: Text('Abrir Nueva Caja', textScaler: TextScaler.linear(0.9)))
+                  Transform.translate( offset:const Offset(0,-3),child: const Text('Abrir Nueva Caja', textScaler: TextScaler.linear(0.9)))
                 )
               ],
             ),
@@ -161,8 +161,8 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           :
                           'Caja Activa del dia ${DateFormat("EEEE, d", 'es_ES').format(DateTime.parse(CajasServices.cajaActual!.fechaApertura))}',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          textScaler: TextScaler.linear(1.1),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          textScaler: const TextScaler.linear(1.1),
                         ),
                         Text(
                           CajasServices.cajaActual == null ?
@@ -170,12 +170,12 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           :
                           '¿Quieres continuar el dia y abrir nuevo turno?',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          textScaler: TextScaler.linear(1.1),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          textScaler: const TextScaler.linear(1.1),
                         ),
                         Column(
                           children: [
-                            Text('¿Cuánto efectivo quieres tener de Fondo?'),
+                            const Text('¿Cuánto efectivo quieres tener de Fondo?'),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                               child: TextFormField(
@@ -185,7 +185,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                 maxLength: 11,
                                 autofocus: true,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Fondo (MXN)',
                                   labelStyle: AppTheme.labelStyle,
                                 ),
@@ -220,10 +220,10 @@ class _AbrirCajaState extends State<AbrirCaja> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Transform.translate(
-                                offset: Offset(0, -1),
-                                child: Text('Continuar  ')
+                                offset: const Offset(0, -1),
+                                child: const Text('Continuar  ')
                               ),
-                              Icon(Icons.arrow_forward_rounded)
+                              const Icon(Icons.arrow_forward_rounded)
                             ],
                           ),
                         )
@@ -257,7 +257,6 @@ class _AbrirCajaState extends State<AbrirCaja> {
               padding: const EdgeInsets.all(20),
               child: SingleChildScrollView(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
@@ -266,8 +265,8 @@ class _AbrirCajaState extends State<AbrirCaja> {
                       :
                       'No se encontraron impresoras para\nagregar el contadores.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      textScaler: TextScaler.linear(1.1),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      textScaler: const TextScaler.linear(1.1),
                     ), const SizedBox(height: 8),
                     
                     ...List.generate(impresoraSvc.impresoras.length, (index) {
@@ -288,7 +287,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
                 
                     !_loadingToComplete ? ElevatedButton(
                       onPressed: () => abrirCaja(controllers),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('Abrir Caja  '),
