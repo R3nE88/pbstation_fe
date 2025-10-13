@@ -128,8 +128,11 @@ class Ticket {
     //Footer
     bytes += generator.text('Atendido por',
         styles: const PosStyles(align: PosAlign.center));
-    bytes += generator.text('Carlos Rene Ayala Salazar',
-        styles: const PosStyles(align: PosAlign.center));
+    if (context.mounted){
+      String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(venta.usuarioId);
+      bytes += generator.text(usuario,
+          styles: const PosStyles(align: PosAlign.center));
+    }
     bytes += generator.feed(1);
     bytes += generator.text('¡Gracias Por Su Preferencia!',
         styles: const PosStyles(align: PosAlign.center, bold: true));
@@ -226,8 +229,11 @@ class Ticket {
     //Footer
     bytes += generator.text('Atendido por',
         styles: const PosStyles(align: PosAlign.center));
-    bytes += generator.text('Carlos Rene Ayala Salazar',
-        styles: const PosStyles(align: PosAlign.center));
+    if (context.mounted){
+      String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(venta.usuarioId);
+      bytes += generator.text(usuario,
+          styles: const PosStyles(align: PosAlign.center));
+    }
     bytes += generator.feed(1);
     bytes += generator.text('¡Gracias Por Su Preferencia!',
         styles: const PosStyles(align: PosAlign.center, bold: true));
@@ -241,7 +247,7 @@ class Ticket {
     return bytes;
   }
 
-  static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cortes corte, Map<String, TextEditingController> impresoraControllers) async {
+  static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cajas caja, Cortes corte, List<Ventas> ventas, Map<String, TextEditingController> impresoraControllers) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
     DateTime fecha = DateTime.parse(corte.fechaApertura);
@@ -253,9 +259,6 @@ class Ticket {
 
     //Abrir cajon
     bytes.addAll([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-
-    //Barra Horizontal
-    bytes += generator.hr();
 
     //Header
     bytes += generator.text('Emilio Alberto Diaz Obregon',
@@ -270,15 +273,15 @@ class Ticket {
     //Corte de caja
     bytes += generator.text('CORTE DE CAJA',
         styles: const PosStyles(align: PosAlign.center, bold: true));
-    bytes += generator.text('CAJA: ${CajasServices.cajaActual?.folio ?? 'folio no encontrado'}',
+    bytes += generator.text('CAJA: ${caja.folio ?? 'folio no encontrado'}',
         styles: const PosStyles(align: PosAlign.right));
     bytes += generator.text('CORTE: ${corte.folio}',
         styles: const PosStyles(align: PosAlign.right));
-    bytes += generator.text('FECHA: ${DateFormat('dd-MMM-yyyy').format(DateTime.now())}',
+    bytes += generator.text('FECHA: ${DateFormat('dd-MMM-yyyy').format(DateTime.parse(corte.fechaCorte!))}',
         styles: const PosStyles(align: PosAlign.right));
-    bytes += generator.text('HORA: ${DateFormat('hh:mm a').format(DateTime.now())}',
+    bytes += generator.text('HORA: ${DateFormat('hh:mm a').format(DateTime.parse(corte.fechaCorte!))}',
         styles: const PosStyles(align: PosAlign.right));
-    bytes += generator.text('TC: ${CajasServices.cajaActual!.tipoCambio}',
+    bytes += generator.text('TC: ${caja.tipoCambio}',
         styles: const PosStyles(align: PosAlign.right));
     bytes += generator.text('Abrio: $cajeroQueAbrio');
     bytes += generator.text(fechaAperturaFormatted); //Formatos.pesos.format(corte.fondoInicial.toDouble())
@@ -297,7 +300,7 @@ class Ticket {
       PosColumn(text: 'Articulo', width: 6, styles: const PosStyles(bold: true)),
       PosColumn(text: 'Total', width: 4, styles: const PosStyles(bold: true)),
     ]);
-    List<VentasPorProducto> ventasPorProducto = ventaSvc.consolidarVentasPorProducto(ventaSvc.ventasDeCorteActual);
+    List<VentasPorProducto> ventasPorProducto = ventaSvc.consolidarVentasPorProducto(ventas);
     for (var venta in ventasPorProducto) {
       Productos? producto = productoSvc.obtenerProductoPorId(venta.productoId);
       bytes += generator.row([
@@ -307,29 +310,25 @@ class Ticket {
         PosColumn(text: Formatos.moneda.format(venta.total.toDouble()), width: 4),
       ]);
     }
-    /*Decimal subtotal = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      subtotal += venta.subTotal;
-    }
-    Decimal iva = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      iva += venta.iva;
-    }
-    Decimal totalVenta = Decimal.parse('0');
-    for (var venta in ventasPorProducto) {
-      totalVenta += venta.total;
-    }
-    bytes += generator.row([
-      PosColumn(text: 'Subtotal', width: 4),
-      PosColumn(text: 'Iva', width: 4),
-      PosColumn(text: 'Total', width: 4),
-    ]);
-    bytes += generator.row([
-      PosColumn(text: Formatos.moneda.format(subtotal.toDouble()), width: 4),
-      PosColumn(text: Formatos.moneda.format(iva.toDouble()), width: 4),
-      PosColumn(text: Formatos.moneda.format(totalVenta.toDouble()), width: 4),
-    ]);*/
     bytes += generator.hr(); // horizontal rule
+
+    // Ventas canceladas
+    final canceladas = [];
+    if (canceladas.isNotEmpty) {
+      bytes += generator.text('VENTAS CANCELADAS',
+          styles: const PosStyles(align: PosAlign.center, bold: true));
+      bytes += generator.row([
+        PosColumn(text: 'Folio', width: 6, styles: const PosStyles(bold: true)),
+        PosColumn(text: 'Total', width: 6, styles: const PosStyles(bold: true)),
+      ]);
+      for (var venta in canceladas) {
+        bytes += generator.row([
+          PosColumn(text: venta.folio ?? 'S/N', width: 6),
+          PosColumn(text: Formatos.moneda.format(venta.total.toDouble()), width: 6),
+        ]);
+      }
+      bytes += generator.hr();
+    }
 
     //Ventas pendientes
     Set<String> idsCorteActual = ventaSvc.ventasDeCorteActual
@@ -343,7 +342,7 @@ class Ticket {
       bytes += generator.text('VENTAS CON DEUDA',
         styles: const PosStyles(align: PosAlign.center, bold: true));
       bytes += generator.row([
-        PosColumn(text: 'folio', width: 6,  styles: const PosStyles(bold: true)),
+        PosColumn(text: 'Folio', width: 6,  styles: const PosStyles(bold: true)),
         PosColumn(text: 'Deuda', width: 6, styles: const PosStyles(bold: true)),
       ]);
       for (var venta in ventasConDeudaEnCorteActual) {
@@ -365,32 +364,8 @@ class Ticket {
         salida += Decimal.parse(movimiento.monto.toString());
       }
     } 
-    
-    Decimal abonadoMxn = Decimal.parse('0');
-    Decimal abonadoUs = Decimal.parse('0');
-    Decimal abonadoTarjD = Decimal.parse('0');
-    Decimal abonadoTarjC = Decimal.parse('0');
-    Decimal abonadoTrans = Decimal.parse('0');
-    for (var venta in ventaSvc.ventasDeCorteActual) {
-      if (venta.abonadoMxn!=null){
-        abonadoMxn += venta.abonadoMxn!;
-      }
-      if (venta.abonadoUs!=null){
-        abonadoUs += venta.abonadoUs!;
-      }
-      if (venta.abonadoTarj!=null){
-        if (venta.tipoTarjeta == 'debito'){
-          abonadoTarjD += venta.abonadoTarj!;
-        } else if(venta.tipoTarjeta == 'credito'){
-          abonadoTarjC += venta.abonadoTarj!;
-        }
-      }
-      if (venta.abonadoTrans!=null){
-        abonadoTrans += venta.abonadoTrans!;
-      }
-    }
-    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    Decimal total = /*fondo - proximoFondo +*/ entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
+
+    Decimal total = entrada - salida + (corte.ventaPesos??Decimal.zero) + (corte.ventaDolares??Decimal.zero) + (corte.ventaDebito??Decimal.zero) + (corte.ventaCredito??Decimal.zero) + (corte.ventaTransf??Decimal.zero);
     bytes += generator.text('CORTE DE CAJA',
         styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.row([
@@ -405,26 +380,26 @@ class Ticket {
       PosColumn(text: 'Salida', width: 7),
       PosColumn(text: '-${Formatos.pesos.format(salida.toDouble())}', width: 5),
     ]);
-    double mx = abonadoMxn.toDouble();
+    double mx = corte.ventaPesos?.toDouble()??Decimal.zero.toDouble();
     bytes += generator.row([
       PosColumn(text: 'Efectivo(mxn)', width: 7),
       PosColumn(text: mx<0? Formatos.pesos.format(mx) : '+${Formatos.pesos.format(mx)}', width: 5),
     ]);
     bytes += generator.row([
       PosColumn(text: 'Efectivo(us)', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(abonadoUs.toDouble())}', width: 5),
+      PosColumn(text: '+${Formatos.pesos.format(corte.ventaDolares?.toDouble()??Decimal.zero.toDouble())}', width: 5),
     ]);
     bytes += generator.row([
       PosColumn(text: 'Tarj Debito', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', width: 5),
+      PosColumn(text: '+${Formatos.pesos.format(corte.ventaDebito?.toDouble()??Decimal.zero.toDouble())}', width: 5),
     ]);
     bytes += generator.row([
       PosColumn(text: 'Tarj Credito', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', width: 5),
+      PosColumn(text: '+${Formatos.pesos.format(corte.ventaCredito?.toDouble()??Decimal.zero.toDouble())}', width: 5),
     ]);
     bytes += generator.row([
       PosColumn(text: 'Transferencia', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', width: 5), //total
+      PosColumn(text: '+${Formatos.pesos.format(corte.ventaTransf?.toDouble()??Decimal.zero.toDouble())}', width: 5), //total
     ]);
     bytes += generator.row([
       PosColumn(text: 'TOTAL', width: 7, styles: const PosStyles(bold: true)),
@@ -432,7 +407,7 @@ class Ticket {
     ]);
 
     //Dinero Entregado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(corte.conteoDolares!.toDouble()).toString());
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(corte.conteoDolares!.toDouble(), caja.tipoCambio).toString());
     Decimal totalContado = corte.conteoPesos! + contadoUsCnv + corte.conteoDebito! + corte.conteoCredito! + corte.conteoTransf!;
     bytes += generator.row([
       PosColumn(text: 'Dinero Entregado', width: 7, styles: const PosStyles(bold: true)),
@@ -479,6 +454,13 @@ class Ticket {
       PosColumn(text: Formatos.pesos.format(diferencia.toDouble()).replaceAll('-', ''), width: 5, styles: const PosStyles(bold: true)),
     ]);
     bytes += generator.hr(); // horizontal rule
+    
+    //Comentario
+    if (corte.comentarios!.isNotEmpty){
+      bytes += generator.text('Comentarios', styles: const PosStyles(align: PosAlign.center, bold: true));
+      bytes += generator.text(corte.comentarios!, styles: const PosStyles(align: PosAlign.center));
+      bytes += generator.hr();
+    }
 
     //Desglose
     bytes += generator.text('DESGLOSE DE DINERO ENTREGADO',
@@ -536,12 +518,6 @@ class Ticket {
       }
       bytes += generator.hr();
     }
-
-    //Comentario
-    if (corte.comentarios!.isNotEmpty){
-      bytes += generator.text('Comentarios', styles: const PosStyles(align: PosAlign.center, bold: true));
-      bytes += generator.text(corte.comentarios!, styles: const PosStyles(align: PosAlign.center));
-    }
     
     // Cut the paper (if supported)
     bytes += generator.feed(1);
@@ -589,7 +565,7 @@ class Ticket {
     }
   }
 
-  static void imprimirTicketCorte(context, Cortes corte, Map<String, TextEditingController> impresoraControllers) async{
+  static void imprimirTicketCorte(context, Cajas caja, Cortes corte, List<Ventas> ventas, Map<String, TextEditingController> impresoraControllers) async{
     if (Configuracion.impresora != 'null') {
       bool connected = await PrintUsb.connect(name: Configuracion.impresora);
       UsbDevice device = UsbDevice(
@@ -600,7 +576,7 @@ class Ticket {
       );
       if (connected) {
         cargarServices(context);
-        List<int> bytes = await _generarTicketDeCorte(context, corte, impresoraControllers);
+        List<int> bytes = await _generarTicketDeCorte(context, caja, corte, ventas, impresoraControllers);
         await PrintUsb.printBytes(bytes: bytes, device: device);
       }
     }

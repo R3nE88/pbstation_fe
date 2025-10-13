@@ -32,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     Future<void> loadServicesAndProcess() async{
       setState(() { _loading = true; });
-
       await Provider.of<CajasServices>(context, listen:  false).loadCortesDeCaja();
       if (!context.mounted) return;
       await Provider.of<ClientesServices>(context, listen: false).loadClientes();
@@ -51,6 +50,82 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!context.mounted) return;
       await Provider.of<VentasServices>(context, listen: false).loadVentasDeCorteActual();
       _servicesLoaded = true;      
+    }
+
+    bool esVersionMayor(String versionNueva, String versionActual) {
+      List<int> partsNueva = versionNueva.split('.').map(int.parse).toList();
+      List<int> partsActual = versionActual.split('.').map(int.parse).toList();
+      
+      for (int i = 0; i < 3; i++) {
+        if (partsNueva[i] > partsActual[i]) {
+          return true;
+        } else if (partsNueva[i] < partsActual[i]) {
+          return false;
+        }
+      }
+      return false; // Son iguales
+    }
+
+    if (esVersionMayor(Configuracion.lastVersion, Constantes.version)) {
+      return Stack(
+        children: [
+          
+          Scaffold(
+            resizeToAvoidBottomInset: false,
+            body: Background(),
+          ),
+
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const BarraW(),
+          
+                Flexible(
+                  flex: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 25),
+                    child: Image.asset(
+                      AppTheme.isDarkTheme ? 'assets/images/logo_darkmode.png' : 'assets/images/logo_normal.png',
+                      height: 200,
+                    ),
+                  )
+                ),
+          
+                const Flexible(
+                  flex: 6,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 90),
+                    child: SizedBox(
+                      height: double.infinity,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Hay una version mas reciente de PrinterBoy. Es necesario actualizar el programa: (653)146-3159', textAlign: TextAlign.center),
+                          SizedBox(height: 70)
+                        ],
+                      )
+                    ),
+                  ),
+                ),
+                
+                
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'PrinterBoy Punto De Venta\nv${Constantes.version}', 
+                    style: AppTheme.subtituloPrimario.copyWith(
+                      letterSpacing: 1
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
+      );
     }
 
     return Stack(
@@ -176,6 +251,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),   
+      
+        
       ],
     );
   }

@@ -2,556 +2,1617 @@
 
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/calculos_dinero.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
-import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
-import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
+import 'package:pbstation_frontend/services/login.dart';
+import 'package:pbstation_frontend/widgets/caja/voucher_board.dart';
+import 'package:pbstation_frontend/widgets/loading.dart';
+import 'package:pbstation_frontend/widgets/separador.dart';
+import 'package:provider/provider.dart';
+import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/widgets.dart';
-import 'package:provider/provider.dart';
 
-class CajaScreen extends StatefulWidget {
-  const CajaScreen({super.key, this.readMode=false, this.caja});
+enum StepStage { contadores, esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
 
-  final bool readMode;
-  final Cajas? caja;
+class CorteDialog extends StatefulWidget {
+  const CorteDialog({super.key, required this.cierre});
+
+  final bool cierre;
 
   @override
-  State<CajaScreen> createState() => _CajaScreenState();
+  State<CorteDialog> createState() => _CorteDialogState();
 }
 
-class _CajaScreenState extends State<CajaScreen> {
-  List<Ventas> _ventasParaMostrar = [];
+class _CorteDialogState extends State<CorteDialog> {
+  StepStage stage = StepStage.contadores;
+
+  // Impresoras controllers (uno por impresora)
+  final Map<String, TextEditingController> impresoraControllers = {};
+
+  final List<VentasPorProducto> _ventasPorProducto = [];
+  final List<Ventas> _ventasConDescuentos = [];
+  final Map<String, List<Ventas>> _ventasPorUsuario = {};
+  Decimal _subtotal = Decimal.zero;
+  Decimal _iva = Decimal.zero;
+  Decimal _total = Decimal.zero;
+  Decimal _abonadoMxn = Decimal.zero;
+  Decimal _abonadoUs = Decimal.zero;
+  Decimal _abonadoTarjD = Decimal.zero;
+  Decimal _abonadoTarjC = Decimal.zero;
+  Decimal _abonadoTrans = Decimal.zero;
+
+  // Denominaciones: ahora con tipo ('billete' | 'moneda') y valor
+  final List<Map<String, dynamic>> denominacionesMxn = [
+    {'value': 1000.0, 'kind': 'billete'},
+    {'value': 500.0, 'kind': 'billete'},
+    {'value': 200.0, 'kind': 'billete'},
+    {'value': 100.0, 'kind': 'billete'},
+    {'value': 50.0, 'kind': 'billete'},
+    {'value': 20.0, 'kind': 'billete'}, // billete de 20
+    {'value': 20.0, 'kind': 'moneda'},   // moneda de 20 (sí existe)
+    {'value': 10.0, 'kind': 'moneda'},
+    {'value': 5.0, 'kind': 'moneda'},
+    {'value': 2.0, 'kind': 'moneda'},
+    {'value': 1.0, 'kind': 'moneda'},
+    {'value': 0.5, 'kind': 'moneda'},
+  ];
+  final List<Map<String, dynamic>> denominacionesDlls = [
+    {'value': 100.0, 'kind': 'billete'},
+    {'value': 50.0, 'kind': 'billete'},
+    {'value': 20.0, 'kind': 'billete'},
+    {'value': 10.0, 'kind': 'billete'},
+    {'value': 5.0, 'kind': 'billete'},
+    {'value': 2.0, 'kind': 'billete'},
+    {'value': 1.0, 'kind': 'billete'}, 
+    {'value': 0.50, 'kind': 'half dollar'},
+    {'value': 0.25, 'kind': 'quarter'},
+    {'value': 0.10, 'kind': 'dime'},
+    {'value': 0.05, 'kind': 'nickel'},
+    {'value': 0.01, 'kind': 'penny'},
+  ];
+
+  //Esto es para que funcione el autoFocus del dolar
+  List<FocusNode> denominacionesDolarFocus = []; 
+
+  //Para calcular el total
+  double efectivoPesos = 0;
+  double efectivoDolares = 0;
+  double efectivoDolaresAPeso = 0;
+
+  // Controllers para cada denominación (lista paralela a `denominaciones`)
+  final List<TextEditingController> denomControllersMxn = [];
+  final List<TextEditingController> denomControllersDlls = [];
+
+  bool loadingImpresoras = false;
+  bool performingRetiro = false;
+  //int segundosTotales = 20;
+  late int segundosRestantes;
+
+  FocusNode primerFocusDlls = FocusNode();
+
+  // Voucher controllers
+  List<TextEditingController> debitoControllers = [];
+  List<TextEditingController> creditoControllers = [];
+  List<TextEditingController> transferenciaControllers = [];
+
+  final FocusNode _voucherButtonFocus = FocusNode();
+
+  DateTime fechaApertura = DateTime.parse(CajasServices.corteActual!.fechaApertura);
+  late String fechaAperturaFormatted;
+  DateTime fechaCorte = DateTime.now();
+  late String fechaCorteFormatted;
+
+  int reporteFinalPage = 1;
+
 
   @override
   void initState() {
     super.initState();
-    if (CajasServices.cajaActualId != null && CajasServices.cajaActualId != 'buscando' && CajasServices.corteActualId != null) {
-      datosIniciales();
-    }
-  }
+    //formatear fecha
+    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
+    CajasServices.corteActual!.fechaCorte = fechaCorte.toIso8601String();
+    CajasServices.corteActual!.usuarioIdCerro = Login.usuarioLogeado.id!;
+    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
+  
+    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+    _ventasPorProducto.addAll(ventasSvc.consolidarVentasPorProducto(ventasSvc.ventasDeCorteActual));
 
-  void datosIniciales(){
-    final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
-    ventasSvc.loadVentasDeCaja().whenComplete(
-      () {
-        if (!mounted) return;
-        _ventasParaMostrar = List.from(ventasSvc.ventasDeCaja);
-        setState(() {});
-      } 
-    );
-    ventasSvc.loadVentasDeCorteActual();
-    Provider.of<CajasServices>(context, listen: false).loadCortesDeCaja();
-    Provider.of<UsuariosServices>(context, listen: false).loadUsuarios();
-  }
-
-  Decimal sumarTotal (List<Ventas> ventas){
-    Decimal sumaTotal = Decimal.zero;
-    for (var venta in ventas) {
-      sumaTotal += venta.abonadoTotal;
+    //ReporteFinalDescuentosYVendedores
+    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
+    for (var venta in ventaSvc.ventasDeCorteActual) {
+      //Descuento
+      if (venta.descuento > Decimal.parse('0')){
+        _ventasConDescuentos.add(venta);
+      }
+      // Agrupar por usuario_id
+      final usuarioId = venta.usuarioId; 
+      _ventasPorUsuario.putIfAbsent(usuarioId, () => []);
+      _ventasPorUsuario[usuarioId]!.add(venta);
     }
-    return sumaTotal;
-  }
 
-  void filtrarVentasPor(Map<String, String>? opcion) async{
-    if (opcion==null) return;
-    //Si es un corte
-    if (opcion.keys.first=='corte'){
-      final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-      final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-      Loading.displaySpinLoading(context);
-      List<String> ventasIds = cajaSvc.cortesDeCaja.firstWhere((element) => element.id == opcion.values.first).ventasIds;
-      _ventasParaMostrar = await ventaSvc.loadVentasDeCortes(ventasIds);
-      setState(() {});
-      if (!mounted) return;
-      Navigator.pop(context);
+    //ReporteFinalVenta
+    for (var venta in _ventasPorProducto) {
+      _subtotal += venta.subTotal;
     }
-    //Si es un usuario
-    if (opcion.keys.first=='users'){
-      List<Ventas> tmp = [];
-      for (var venta in Provider.of<VentasServices>(context, listen: false).ventasDeCaja) {
-        if (venta.usuarioId == opcion.values.first){
-          tmp.add(venta);
+    for (var venta in _ventasPorProducto) {
+      _iva += venta.iva;
+    }
+    for (var venta in _ventasPorProducto) {
+      _total += venta.total;
+    }
+
+    //ReporteFinalMovimientos
+    final ventas = Provider.of<VentasServices>(context, listen: false);
+    for (var venta in ventas.ventasDeCorteActual) {
+      if (venta.abonadoMxn!=null){
+        _abonadoMxn += venta.abonadoMxn!;
+      }
+      if (venta.abonadoUs!=null){
+        _abonadoUs += venta.abonadoUs!;
+      }
+      if (venta.abonadoTarj!=null){
+        if (venta.tipoTarjeta == 'debito'){
+          _abonadoTarjD += venta.abonadoTarj!;
+        } else if(venta.tipoTarjeta == 'credito'){
+          _abonadoTarjC += venta.abonadoTarj!;
         }
       }
-      _ventasParaMostrar = tmp;
-      setState(() {});
-    }
-    //Si es la venta total (otro)
-    if (opcion.keys.first=='otro'){
-      _ventasParaMostrar = Provider.of<VentasServices>(context, listen: false).ventasDeCaja;
-      setState(() {});
+      if (venta.abonadoTrans!=null){
+        _abonadoTrans += venta.abonadoTrans!;
+      }
     }
 
+    // inicializa controladores de denominación (debe coincidir con denominaciones.length)
+    for (var _ in denominacionesMxn) {
+      denomControllersMxn.add(TextEditingController());
+    }
+    for (var _ in denominacionesDlls) {
+      denomControllersDlls.add(TextEditingController());
+    }
+
+    for (var i = 0; i < denominacionesDlls.length; i++) {
+      denominacionesDolarFocus.add(FocusNode());
+    }
+
+    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    setState(() => loadingImpresoras = true);
+    impresoraSvc.loadImpresoras(true).whenComplete(() {
+      _ensureImpresoraControllers(impresoraSvc);
+      setState(() => loadingImpresoras = false);
+    });
+  }
+
+  void _ensureImpresoraControllers(ImpresorasServices svc) {
+    // solo crear si hacen falta (evita recrear en build)
+    if (impresoraControllers.length != svc.impresoras.length) {
+      impresoraControllers.clear();
+      for (var impresora in svc.impresoras) {
+        impresoraControllers[impresora.id!] = TextEditingController();
+      }
+    }
+  }
+
+@override
+void dispose() {
+  //FocusScope.of(context).unfocus(); //TODO: me dio error: FlutterError (Looking up a deactivated widget's ancestor is unsafe. At this point the state of the widget's element tree is no longer stable. To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.)
+  _voucherButtonFocus.unfocus();
+  
+  for (var node in denominacionesDolarFocus) {
+    if (node.hasFocus) {
+      node.unfocus();
+    }
+  }
+  
+  // Esperar un frame antes de dispose
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    for (var c in impresoraControllers.values) {
+      c.dispose();
+    }
+    for (var c in denomControllersMxn) {
+      c.dispose();
+    }
+    for (var c in denomControllersDlls) {
+      c.dispose();
+    }
+
+    for (var i = 0; i < denominacionesDolarFocus.length; i++) {
+      denominacionesDolarFocus[i].dispose();
+    }
+    _voucherButtonFocus.dispose();
+  });
+
+  super.dispose();
+}
+
+  Cortes _corte(String comentario){
+    //Contado
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(efectivoDolares).toString());
+    Decimal contadoPesos = Decimal.parse(efectivoPesos.toString());
+    Decimal contadoDolares = Decimal.parse(efectivoDolares.toString());
+    Decimal contadoDebito = contarVouchers(debitoControllers);
+    Decimal contadoCredito = contarVouchers(creditoControllers);
+    Decimal contadoTransf = contarVouchers(transferenciaControllers);
+    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
+
+    //Venta
+    final ventas = Provider.of<VentasServices>(context, listen: false);
+    Decimal abonadoMxn = Decimal.parse('0');
+    Decimal abonadoUs = Decimal.parse('0');
+    Decimal abonadoTarjD = Decimal.parse('0');
+    Decimal abonadoTarjC = Decimal.parse('0');
+    Decimal abonadoTrans = Decimal.parse('0');
+    for (var venta in ventas.ventasDeCorteActual) {
+      if (venta.abonadoMxn!=null){
+        abonadoMxn += venta.abonadoMxn!;
+      }
+      if (venta.abonadoUs!=null){
+        abonadoUs += venta.abonadoUs!;
+      }
+      if (venta.abonadoTarj!=null){
+        if (venta.tipoTarjeta == 'debito'){
+          abonadoTarjD += venta.abonadoTarj!;
+        } else if(venta.tipoTarjeta == 'credito'){
+          abonadoTarjC += venta.abonadoTarj!;
+        }
+      }
+      if (venta.abonadoTrans!=null){
+        abonadoTrans += venta.abonadoTrans!;
+      }
+    }
+    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    Decimal ventaTotal = abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
+
+    //Diferencia
+    Decimal diferencia = Decimal.parse('0');
+
+    Cortes corte = Cortes(
+      id: CajasServices.corteActualId,
+      folio: CajasServices.corteActual!.folio,
+      usuarioId: CajasServices.corteActual!.usuarioId, 
+      usuarioIdCerro: CajasServices.corteActual!.usuarioIdCerro,
+      sucursalId: CajasServices.corteActual!.sucursalId, 
+      fechaApertura: CajasServices.corteActual!.fechaApertura,
+      fechaCorte: CajasServices.corteActual!.fechaCorte,
+      contadoresFinales: convertir(impresoraControllers),
+      fondoInicial: CajasServices.corteActual!.fondoInicial, 
+      conteoPesos: contadoPesos,
+      conteoDolares: contadoDolares,
+      conteoDebito: contadoDebito, 
+      conteoCredito: contadoCredito, 
+      conteoTransf: contadoTransf, 
+      conteoTotal: totalContado,
+      ventaPesos: abonadoMxn,
+      ventaDolares: abonadoUs,
+      ventaDebito: abonadoTarjD,
+      ventaCredito: abonadoTarjC,
+      ventaTransf: abonadoTrans,
+      ventaTotal: ventaTotal,
+      diferencia: (diferencia + ventaTotal) - totalContado,
+      movimientosCaja: CajasServices.corteActual!.movimientosCaja,
+      desglosePesos: mapearDesglose(true),
+      desgloseDolares: mapearDesglose(false),
+      ventasIds: CajasServices.corteActual!.ventasIds,
+      comentarios: comentario,
+      isCierre: widget.cierre
+    );
+
+    return corte;
+  }
+
+  void terminarCorte(String comentario) async{
+    FocusScope.of(context).unfocus();
+    Loading.displaySpinLoading(context);
+
+    //Cerrar Corte
+    Cortes corte = _corte(comentario);
+    final cajasSvc = Provider.of<CajasServices>(context, listen: false);
+    await cajasSvc.actualizarDatosCorte(corte, CajasServices.corteActualId!);
+    CajasServices.corteActual=null;
+    CajasServices.corteActualId=null;
+    if (!mounted) return;
+    Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual.clear();
+
+    //Cerrar Caja
+    if (widget.cierre){
+      Decimal ventaTotal = Decimal.zero;
+      for (var corteCaja in cajasSvc.cortesDeCaja) {
+        ventaTotal += corteCaja.ventaTotal ?? Decimal.zero;
+      }
+
+      Cajas caja = Cajas(
+        id: CajasServices.cajaActualId,
+        folio: CajasServices.cajaActual!.folio,
+        usuarioId: CajasServices.cajaActual!.usuarioId, 
+        sucursalId: CajasServices.cajaActual!.sucursalId, 
+        fechaApertura: CajasServices.cajaActual!.fechaApertura, 
+        fechaCierre: corte.fechaCorte,
+        ventaTotal: ventaTotal,
+        estado: 'cerrada', 
+        cortesIds: CajasServices.cajaActual!.cortesIds, 
+        tipoCambio: CajasServices.cajaActual!.tipoCambio
+      );
+      await cajasSvc.cerrarCaja(caja);
+      if (!mounted) return;
+      final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+      ventasSvc.ventasDeCaja.clear();
+      cajasSvc.cortesDeCaja.clear();
+      //cajasSvc.movimientos.clear();
+    }
+  
+    if (!mounted) return;
+    Navigator.pop(context);
+    Navigator.pop(context);
+  }
+
+  Map<String, int> convertir(Map<String, TextEditingController> origen) {
+    return origen.map((key, controller) {
+      final valorTexto = controller.text.trim();
+      final valorEntero = int.tryParse(valorTexto) ?? 0; // por si está vacío o no es número
+      return MapEntry(key, valorEntero);
+    });
+  }
+
+  double calculateTotalMxn() {
+    double total = 0.0;
+    for (var i = 0; i < denomControllersMxn.length; i++) {
+      final text = denomControllersMxn[i].text.trim();
+      if (text.isEmpty) continue;
+      final intCount = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final value = denominacionesMxn[i]['value'] as double;
+      total += intCount * value;
+    }
+    return total;
+  }
+
+  double calculateTotalDolares(){
+    double total = 0.0;
+    for (var i = 0; i < denomControllersDlls.length; i++) {
+      final text = denomControllersDlls[i].text.trim();
+      if (text.isEmpty) continue;
+      final intCount = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final value = denominacionesDlls[i]['value'] as double;
+      total += intCount * value;
+    }
+    return total;
+  }
+
+  void _nextStage() async {
+    switch (stage) {
+      case StepStage.contadores:
+        setState(() {
+          performingRetiro = true;
+          stage = StepStage.esperandoRetiro;
+          }
+        );
+        break;
+      case StepStage.esperandoRetiro:
+        break;
+      case StepStage.conteoPesos:
+        setState(() => stage = StepStage.conteoDolares);
+        denominacionesDolarFocus.first.requestFocus();
+        break;
+      case StepStage.conteoDolares:
+        for (var node in denominacionesDolarFocus) {
+          if (node.hasFocus) {
+            node.unfocus();
+          }
+        }
+        setState(() => stage = StepStage.voucher);
+        break;
+
+      case StepStage.voucher:
+        _voucherButtonFocus.unfocus();
+        setState(() => stage = StepStage.terminado);
+        break;
+      case StepStage.terminado:
+        if(reporteFinalPage==2){
+          setState(() {});
+        }
+        break;
+    }
+  }
+
+  Widget _buildContadores(ImpresorasServices impresoraSvc) {
+    if (loadingImpresoras) {
+      return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(impresoraSvc.impresoras.length, (i) {
+            final modelo = impresoraSvc.impresoras[i].modelo;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: KeyboardListener(
+                onKeyEvent: (event) {
+                  if (event.logicalKey == LogicalKeyboardKey.enter && event is KeyDownEvent) {
+                    _nextStage();
+                  }
+                },
+                focusNode: FocusNode(
+                  canRequestFocus: false
+                ),
+                child: TextFormField(
+                  controller: impresoraControllers[impresoraSvc.impresoras[i].id],
+                  autofocus: i == 0,
+                  decoration: InputDecoration(labelText: modelo),
+                  inputFormatters: [NumericFormatter()],
+                  textInputAction: TextInputAction.done, 
+                  keyboardType: TextInputType.number,
+                  maxLength: 12,
+                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                  onFieldSubmitted: (value) => _nextStage,
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Regresar')),
+              const SizedBox(width: 15),
+              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEsperandoRetiro() {
+    final impresoraSvc = Provider.of<ImpresorasServices>(context);
+
+    return SizedBox(
+      width: 340,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Wrap(
+              //mainAxisAlignment: MainAxisAlignment.center,
+              alignment: WrapAlignment.center,
+              children: [
+                const Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+                Text(Formatos.pesos.format(CajasServices.corteActual!.fondoInicial.toDouble()), style: AppTheme.tituloClaro.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+                const Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+          if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
+          const SizedBox(height: 12),
+
+          Row( 
+            mainAxisAlignment: impresoraSvc.impresoras.isEmpty ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+            children: [
+              impresoraSvc.impresoras.isEmpty ?
+              ElevatedButton(
+                onPressed: (){
+                  Navigator.pop(context);
+                }, 
+                //child: Text('Continuar ($segundosRestantes)')
+                child: const Text('Regresar')
+              ) : const SizedBox(),
+
+              ElevatedButton(
+                autofocus: true,
+                onPressed: (){
+                  setState(() {
+                    performingRetiro = false;
+                    stage = StepStage.conteoPesos;
+                  });
+                }, 
+                //child: Text('Continuar ($segundosRestantes)')
+                child: const Text('Continuar')
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConteoStep() {
+    return SizedBox(
+      width: 520,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: List.generate(denominacionesMxn.length, (i) {
+              final den = denominacionesMxn[i];
+              final ctrl = denomControllersMxn[i];
+              final value = den['value'] as double;
+              final kind = den['kind'] as String;
+              String label;
+              if (kind == 'billete') {
+                // billetes no tienen decimales (mostrar int)
+                label = 'Billetes de \$${value.toInt()}';
+              } else {
+                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
+                label = value >= 1 ? 'Monedas de \$${value.toInt()}' : 'Monedas de \$${value.toString()}';
+              }
+              return SizedBox(
+                width: 240,
+                child: TextFormField(
+                  controller: ctrl,
+                  autofocus: i==0,
+                  decoration: InputDecoration(labelText: label),
+                  inputFormatters: [NumericFormatter()],
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    if(value.isEmpty){ ctrl.text = '0'; }
+                    setState(() { efectivoPesos = calculateTotalMxn(); });
+                  },
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total contado: ${Formatos.pesos.format(efectivoPesos)}', style: AppTheme.subtituloPrimario),
+              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConteoDolaresStep() {
+    return SizedBox(
+      width: 520,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: List.generate(denominacionesDlls.length, (i) {
+              final den = denominacionesDlls[i];
+              final ctrl = denomControllersDlls[i];
+              final value = den['value'] as double;
+              final kind = den['kind'] as String;
+              String label;
+              if (kind == 'billete') {
+                // billetes no tienen decimales (mostrar int)
+                label = 'Billetes de \$${value.toInt()}';
+              } else {
+                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
+                label = '$kind \$${value.toStringAsFixed(2)}';
+              }
+              
+              return SizedBox(
+                width: 240,
+                child: TextFormField(
+                  controller: ctrl,
+                  //focusNode:  i==0 ? primerFocusDlls : FocusNode(),
+                  focusNode: denominacionesDolarFocus[i],
+                  decoration: InputDecoration(labelText: label),
+                  inputFormatters: [NumericFormatter()],
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    if(value.isEmpty){ ctrl.text = '0'; }
+                    setState(() {
+                      efectivoDolares = calculateTotalDolares();
+                      efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares);
+                    });
+                  },
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total contado: ${Formatos.dolares.format(efectivoDolares)} (${Formatos.pesos.format(efectivoDolaresAPeso)})', style: AppTheme.subtituloPrimario),
+              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleVoucherControllers(List<TextEditingController> debitoCtrl, List<TextEditingController> creditoCtrl, List<TextEditingController> transferenciaCtrl,) {
+    setState(() {
+      debitoControllers = debitoCtrl;
+      creditoControllers = creditoCtrl;
+      transferenciaControllers = transferenciaCtrl;
+    });
+  }
+
+  Widget buildVoucherStep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VoucherBoard(
+          onControllersChanged: _handleVoucherControllers,
+          callback: () => _nextStage(),
+          focusButton: _voucherButtonFocus,
+        ),
+      ],
+    );
+  }
+
+  Widget buildReporteFinal(
+    int page, 
+    List<VentasPorProducto> ventas, 
+    List<Ventas> ventasConDescuentos,
+    Map<String, List<Ventas>> ventasPorUsuario, 
+    Decimal subtotal, 
+    Decimal iva, 
+    Decimal total,
+    Decimal abonadoMxn,
+    Decimal abonadoUs,
+    Decimal abonadoTarjD,
+    Decimal abonadoTarjC,
+    Decimal abonadoTrans
+    ){
+    final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final TextEditingController ctrl = TextEditingController();
+
+    if (CajasServices.corteActualId==null) return const SizedBox();
+
+    return SizedBox(
+      width: 1000,
+      height: 616,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+      
+          //Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text('#Corte: '),
+                  Text(CajasServices.corteActual?.folio ?? 'error', style: AppTheme.tituloClaro),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('Tipo de cambio: '),
+                  Text(Formatos.pesos.format(Configuracion.dolar), style: AppTheme.tituloClaro),
+                ],
+              ),
+            ],
+          ),
+          
+          //Header2
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text('Abierta: '),
+                  Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                  const Text(' por '),
+                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId), style: AppTheme.tituloClaro),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('Hora del corte: '),
+                  Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                  const Text(' por '),
+                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioIdCerro!), style: AppTheme.tituloClaro),
+                ],
+              ),
+            ],
+          ), const SizedBox(height: 15),
+
+          //Body 1
+          page==1 ?Expanded(
+            child: Row(
+              children: [
+                ReporteFinalVenta(ventasPorProducto: ventas, subtotal: subtotal, iva: iva, total: total,),
+                const SizedBox(width: 10),
+                ReporteFinalDescuentosYVendedores(
+                  ventasConDescuentos: ventasConDescuentos,
+                  ventasPorUsuario: ventasPorUsuario,
+                  callback: (){
+                    reporteFinalPage=2;
+                    _nextStage();
+                  },
+                ),
+              ],
+            )
+          ) 
+          : 
+          //Body 2
+          Expanded(
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Row(
+                  children: [
+                    ReporteFinalMovimientos(
+                      contadoPesos: Decimal.parse(efectivoPesos.toString()), 
+                      contadoDolares: Decimal.parse(efectivoDolares.toString()), 
+                      contadoDebito: contarVouchers(debitoControllers), 
+                      contadoCredito: contarVouchers(creditoControllers), 
+                      contadoTransf: contarVouchers(transferenciaControllers), 
+                      abonadoMxn: abonadoMxn, 
+                      abonadoUs: abonadoUs, 
+                      abonadoTarjD: abonadoTarjD, 
+                      abonadoTarjC: abonadoTarjC, 
+                      abonadoTrans: abonadoTrans, 
+                    ),
+                    const SizedBox(width: 10),
+                    ReporteFinalDesgloseDinero(
+                      desglosePesos: mapearDesglose(true),
+                      desgloseDolares: mapearDesglose(false),
+                      impresoraControllers: impresoraControllers,
+                      ctrl: ctrl,
+                    ),
+                  ],
+                ),
+                
+                //Botones finales
+                Row( 
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          reporteFinalPage=1;
+                          //page=1;
+                        });
+                        
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Transform.translate(
+                            offset: const Offset(-8, 1.5),
+                            child: const Icon(Icons.chevron_left_outlined, size: 25)
+                          ),
+                          const Text('Regresar'),
+                        ],
+                      )
+                    ), const SizedBox(width: 20),
+
+                    Tooltip(
+                      message: 'Funcion En Desarrollo...',
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Descargar PDF'),
+                            Transform.translate(
+                              offset: const Offset(8, 1.5),
+                              child: const Icon(Icons.picture_as_pdf_outlined, size: 25)
+                            )
+                          ],
+                        )
+                      ),
+                    ), const SizedBox(width: 20),
+
+                    Tooltip(
+                      message: 'Funcion En Desarrollo...',
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Enviar Por Correo'),
+                            Transform.translate(
+                              offset: const Offset(8, 1.5),
+                              child: const Icon(Icons.email_outlined, size: 25)
+                            )
+                          ],
+                        )
+                      ),
+                    ), const SizedBox(width: 20),
+
+                    ElevatedButton(
+                      onPressed: () => Ticket.imprimirTicketCorte(context, _corte(ctrl.text), impresoraControllers),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Imprimir Ticket'),
+                          Transform.translate(
+                            offset: const Offset(8, 1.5),
+                            child: const Icon(Icons.print_outlined, size: 25)
+                          )
+                        ],
+                      )
+                    ), const SizedBox(width: 20),
+
+                    ElevatedButton(
+                      onPressed: () => terminarCorte(ctrl.text),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
+                          Transform.translate(
+                            offset: const Offset(8, 1.5),
+                            child: const Icon(Icons.done, size: 25)
+                          )
+                        ],
+                      ), 
+                    ),
+                  ],
+                ),
+              ],
+            )
+          ),
+        ],
+      )
+    );
+  }
+
+  List<Desglose> mapearDesglose(bool pesos) {
+    List<Desglose> lista = [];
+
+    if (pesos) {
+      for (var i = 0; i < denominacionesMxn.length; i++) {
+        if (denomControllersMxn[i].text.isNotEmpty) {
+          double denominacion = denominacionesMxn[i]['value'] as double;
+          int cantidad = int.parse(denomControllersMxn[i].text.replaceAll(',', ''));
+          lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
+        }
+      }
+    } else {
+      for (var i = 0; i < denominacionesDlls.length; i++) {
+        if (denomControllersDlls[i].text.isNotEmpty) {
+          double denominacion = denominacionesDlls[i]['value'] as double;
+          int cantidad = int.parse(denomControllersDlls[i].text.replaceAll(',', ''));
+          lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
+        }
+      }
+    }
+    return lista;
+  }
+
+  Decimal contarVouchers(List<TextEditingController> lista){
+    Decimal total = Decimal.parse('0');
+    for (var item in lista) {
+      total += item.text.isNotEmpty ? Decimal.parse(item.text.replaceAll('MX\$', '').replaceAll(',', '')) : Decimal.parse('0');
+    }
+    return total;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.readMode==true && widget.caja==null){
-      return Center(child: Text('Hubo un problema al cargar esto. caja_screen.dart :92', style: AppTheme.subtituloConstraste));
+    final impresoraSvc = Provider.of<ImpresorasServices>(context);
+    // Aseguramos controladores si impresoras ya cargadas (por si cambia after init)
+    if (impresoraControllers.length != impresoraSvc.impresoras.length && !loadingImpresoras) {
+      _ensureImpresoraControllers(impresoraSvc);
     }
 
-    return Consumer3<UsuariosServices, VentasServices, CajasServices>(
-      builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
-        
-        if(widget.caja==null){
-          if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
-            return AbrirCaja(metodo: datosIniciales);
-          }
-        } 
-        if (usuariosSvc.isLoading || ventasSvc.isLoading || cajasSvc.cortesDeCajaIsLoading || cajasSvc.isLoading){
-          return const SimpleLoading();
-        }
-
-        return BodyPadding(
-          child: Column(
-            children: [
-              //Header
-              _Header(
-                total: sumarTotal(_ventasParaMostrar),
-                onFiltroCambio: (value) => filtrarVentasPor(value),
-              ), 
-              //Body
-              Expanded(
-                child: Column(
-                  children: [
-                    const _TablaHeader(),
-                    Expanded(
-                      child: Container(
-                        color: _ventasParaMostrar.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-                        child: ListView.builder(
-                          itemCount: _ventasParaMostrar.length,
-                          itemBuilder: (context, index) {
-                            return _FilaVentas(index: index, venta: _ventasParaMostrar[index]);
-                          },
-                        ),
-                      ),
-                    ),
-                    _TablaFooter(total: _ventasParaMostrar.length)
-                  ],
-                )
-              ),
-            ],
-          )
-        );
+    //Si no tengo impresoras y estoy en la primera ventana, ignorarla
+    if (!loadingImpresoras){
+      if (impresoraSvc.impresoras.isEmpty && stage == StepStage.contadores){
+        stage = StepStage.esperandoRetiro;
+        performingRetiro = true;
       }
+    }
+
+
+    Widget content;
+    String title = 'Corte de Caja';
+
+    switch (stage) {
+      case StepStage.contadores:
+        title = 'Registrar Contadores';
+        content = _buildContadores(impresoraSvc);
+        break;
+      case StepStage.esperandoRetiro:
+        title = '';
+        content = _buildEsperandoRetiro();
+        break;
+      case StepStage.conteoPesos:
+        title = 'Conteo de Efectivo (MXN)';
+        content = _buildConteoStep();
+        break;
+      case StepStage.conteoDolares:
+        title = 'Conteo de Efectivo (DLLS)';
+        content = _buildConteoDolaresStep();
+        break;
+      case StepStage.voucher:
+        title = 'Conteo de Voucher';
+        content = buildVoucherStep();
+        break;
+      case StepStage.terminado:
+        title = '';
+        content = buildReporteFinal(
+          reporteFinalPage,
+          _ventasPorProducto,
+          _ventasConDescuentos,
+          _ventasPorUsuario,
+          _subtotal,
+          _iva,
+          _total,
+          _abonadoMxn,
+          _abonadoUs,
+          _abonadoTarjD,
+          _abonadoTarjC,
+          _abonadoTrans
+          );
+        break;
+    }
+
+    return AlertDialog(
+      elevation: 2,
+      backgroundColor: AppTheme.containerColor2,
+      title: title.isNotEmpty ? 
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title),
+          stage == StepStage.voucher ? 
+          Transform.translate(
+            offset: const Offset(0, -10),
+            child: const Tooltip(
+              mouseCursor: SystemMouseCursors.click,
+              message: 
+'''TAB -> Siguiente
+Enter -> Descender
+---------------------------
+Ademas puedes navegar
+con las flechas.''',
+              waitDuration: Durations.short1,
+              child: Icon(Icons.help_outline, color: AppTheme.letraClara,)
+            )
+          ) : const SizedBox()
+        ],
+      ) 
+      : null,
+      content: content,
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.total, required this.onFiltroCambio});
+class ReporteFinalVenta extends StatelessWidget {
+  const ReporteFinalVenta({
+    super.key, 
+    required this.ventasPorProducto, 
+    required this.subtotal, 
+    required this.iva, 
+    required this.total,
+  });
+
+  final List<VentasPorProducto> ventasPorProducto;
+  final Decimal subtotal;
+  final Decimal iva;
   final Decimal total;
-  final ValueChanged<Map<String, String>?> onFiltroCambio;
 
   @override
   Widget build(BuildContext context) {
+    final productos = Provider.of<ProductosServices>(context, listen: false);
     
-    final DateTime fecha = DateTime.parse(CajasServices.corteActual!.fechaApertura);
-    final mes = DateFormat('MMM', 'es_MX').format(fecha).toUpperCase();
-    final String hora = DateFormat('hh:mm a').format(fecha);
-    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId);
-    
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
+    return Expanded(
+      flex: 10,
+      child: Stack(
+        alignment: AlignmentGeometry.bottomCenter,
+        children: [
+          Column(
+            children: [
+              const Separador(
+                texto: 'Ventas por Articulos',
+              ),
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(flex: 3 , child: Center(child: Text('Cant'))),
+                      Expanded(flex: 10, child: Center(child: Text('Articulos'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Iva'))),
+                      Expanded(flex: 8,  child: Center(child: Text('Total'))),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: AppTheme.tablaColor1,
+                  child: ListView.builder(
+                    itemCount: ventasPorProducto.length,
+                    itemBuilder: (context, index) {
+                      Productos? producto = productos.obtenerProductoPorId(ventasPorProducto[index].productoId);
+                      
+                      return FilaProductos(
+                        cantidad: ventasPorProducto[index].cantidad, 
+                        articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
+                        iva: Decimal.parse(ventasPorProducto[index].iva.toString()), 
+                        subtotal: Decimal.parse(ventasPorProducto[index].subTotal.toString()), 
+                        total: Decimal.parse(ventasPorProducto[index].total.toString()), 
+                        color: index+1
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Container(
+                color: AppTheme.tablaColorHeader,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical : 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(flex: 13, child: Center(child: Text('Total:'))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
+                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
+                    ],
+                  ),
+                ),
+              ), //const SizedBox(height: 10,)
+            ],
+          ),
+          Transform.translate(
+            offset: const Offset(0, 15),
+            child: const Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
+          ),
+        ],
+      )
+    );
+  }
+}
 
-        //Header izqui
-        Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Transform.translate(
-              offset: const Offset(0, -8),
+class ReporteFinalDescuentosYVendedores extends StatelessWidget {
+  const ReporteFinalDescuentosYVendedores({
+    super.key, 
+    required this.ventasConDescuentos,
+    required this.ventasPorUsuario,
+    required this.callback,
+  });
+  final List<Ventas> ventasConDescuentos;
+  final Map<String, List<Ventas>> ventasPorUsuario;
+  final Function callback;
+
+  @override
+  Widget build(BuildContext context) {    
+    final usuariosQueVendieron = ventasPorUsuario.keys.toList();
+
+    return Expanded(
+      flex: 10,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const Separador(texto: 'Ventas con Descuentos'),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical : 2),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(CajasServices.cajaActual!.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
-                  const Text('   TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(CajasServices.corteActual!.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6))
+                  Expanded(flex: 6,  child: Center(child: Text('Folio'))),
+                  Expanded(flex: 10, child: Center(child: Text('Vendedor'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Se Descuento'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Se Cobro'))),
                 ],
               ),
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          ),
+          Expanded(
+            flex: 8, 
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: ventasConDescuentos.length,
+                itemBuilder: (context, index) {
+                  return FilaDescuentos(venta: ventasConDescuentos[index], color: index+1);
+                },
+              ),
+            )
+          ),
+          const SizedBox(height: 10),
+          const Separador(texto: 'Ventas por Vendedor'),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 3, child: Center(child: Text('Vendedor'))),
+                  Expanded(child: Center(child: Text('Ventas'))),
+                  Expanded(flex: 2, child: Center(child: Text('Total'))),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: usuariosQueVendieron.length,
+                itemBuilder: (context, index) {
+                  final usuarioId = usuariosQueVendieron[index];
+                  final ventasDeEsteUsuario = ventasPorUsuario[usuarioId]!;
+
+                  return FilaPorVendedor(
+                    usuarioId: usuarioId,
+                    ventas: ventasDeEsteUsuario, 
+                    color: index+1);
+                },
+              ),
+            )
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton(onPressed: (){
+            callback();
+          }, child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Siguiente'),
+              Transform.translate(
+                offset: const Offset(8, 1.5),
+                child: const Icon(Icons.chevron_right_sharp, size: 25)
+              )
+            ],
+          ))
+        ],
+      ),
+    );
+  }
+}
+
+class ReporteFinalMovimientos extends StatelessWidget {
+  const ReporteFinalMovimientos({
+    super.key, 
+    required this.contadoPesos, 
+    required this.contadoDolares, 
+    required this.contadoDebito, 
+    required this.contadoCredito, 
+    required this.contadoTransf, 
+    required this.abonadoMxn, 
+    required this.abonadoUs, 
+    required this.abonadoTarjD, 
+    required this.abonadoTarjC, 
+    required this.abonadoTrans,
+  });
+
+  final Decimal contadoPesos;
+  final Decimal contadoDolares;
+  final Decimal contadoDebito;
+  final Decimal contadoCredito;
+  final Decimal contadoTransf;
+  final Decimal abonadoMxn;
+  final Decimal abonadoUs;
+  final Decimal abonadoTarjD;
+  final Decimal abonadoTarjC;
+  final Decimal abonadoTrans;
+
+  @override
+  Widget build(BuildContext context) {
+    //Calcular Movimientos
+    Cortes corte = CajasServices.corteActual!;
+    Decimal entrada = Decimal.parse('0');
+    Decimal salida = Decimal.parse('0');
+
+    for (var movimiento in corte.movimientosCaja) {
+      if (movimiento.tipo=='entrada'){
+        entrada += Decimal.parse(movimiento.monto.toString());
+      } else if (movimiento.tipo=='retiro'){
+        salida += Decimal.parse(movimiento.monto.toString());
+      }
+    } 
+
+    //sistema
+    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
+    double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble());
+    Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
+
+    //Contado
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble()).toString());
+    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
+
+    //diferencia
+    Decimal diferencia = total - totalContado;
+
+    double mx = abonadoMxn.toDouble();
+
+    return Expanded(
+      flex: 2,
+      child: Column(
+        children: [
+          const Separador(texto: 'Movimientos De Caja'),
+          Fila(texto: 'Entrada de dinero', precio: '+${Formatos.pesos.format(entrada.toDouble())}', color: 2),
+          Fila(texto: 'Salida de dinero', precio: '-${Formatos.pesos.format(salida.toDouble())}', color: 1),
+          Fila(texto: 'Efectivo (MX)', precio: mx < 0 ? Formatos.pesos.format(mx) : '+${Formatos.pesos.format(mx)}', color: 2),
+          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(abonadoUs.toDouble())}', dolar: Formatos.dolares.format(abonadoMxToUsd), color: 1),
+          Fila(texto: 'Tarjeta de Debito', precio: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', color: 2),
+          Fila(texto: 'Tarjeta de Credito', precio: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', color: 1),
+          Fila(texto: 'Transferencia', precio: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', color: 2),
+          Fila(texto: 'Total', precio: Formatos.pesos.format(total.toDouble()), color: 0),
+          const SizedBox(height: 15),
+          const Separador(texto: 'Dinero Entregado'),
+          Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
+          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
+          Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
+          Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
+          Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
+          Fila(texto: 'Total', precio: Formatos.pesos.format(totalContado.toDouble()), color: 0),
+          const SizedBox(height: 15),
+          const Separador(texto: 'Diferencia'),
+          Fila(texto: 'Movimientos de Caja', precio: Formatos.pesos.format(total.toDouble()), color: 1),
+          Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
+          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse('0') ? 'Faltante: ${Formatos.pesos.format(diferencia.toDouble())}' : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
+        ],
+      )
+    );
+  }
+}
+
+class ReporteFinalDesgloseDinero extends StatelessWidget {
+  const ReporteFinalDesgloseDinero({
+    super.key, 
+    required this.desglosePesos, 
+    required this.desgloseDolares, 
+    required this.impresoraControllers, 
+    required this.ctrl,
+  });
+
+  final List<Desglose> desglosePesos;
+  final List<Desglose> desgloseDolares;
+  final Map<String, TextEditingController> impresoraControllers;
+  final TextEditingController ctrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: 3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const Separador(texto: 'Desglose Dinero Entregado', reducido: true),
+          const Row(
+            children: [
+              Expanded(child: Fila(texto: 'Pesos', precio: '', color: 0)),
+              SizedBox(width: 10),
+              Expanded(child: Fila(texto: 'Dolares', precio: '', color: 0)),
+            ],
+          ),
+          Expanded(
+            flex: 9,
+            child: Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 13, right: 13, bottom: 13),
+                Expanded(
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.tablaColorHeader,
-                      borderRadius: const BorderRadius.all(Radius.circular(12))
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Turno abierto por\n$usuario', textAlign: TextAlign.center),
-                          Text('${fecha.day}/$mes/${fecha.year} a las $hora'),
-                        ],
-                      ),
-                    ),
-                  ),
+                    color: AppTheme.tablaColor1,
+                    child: ListView.builder(
+                      itemCount: desglosePesos.length,
+                      itemBuilder: (context, index) {
+                        final d = desglosePesos[index];
+                        return FilaDesglose(
+                          denominacion: d.denominacion,
+                          cantidad: d.cantidad,
+                          color: index + 1,
+                          dolar: false
+                        );
+                      },
+                    )
+                  )
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                      color: AppTheme.tablaColorHeader,
-                      border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12)
-                      ),
-                    ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Text('Total: ', textScaler: TextScaler.linear(1.3)),
-                            Text(Formatos.pesos.format(total.toDouble()),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    color: AppTheme.tablaColor1,
+                    child: ListView.builder(
+                      itemCount: desgloseDolares.length,
+                      itemBuilder: (context, index) {
+                        final d = desgloseDolares[index];
+                        return FilaDesglose(
+                          denominacion: d.denominacion,
+                          cantidad: d.cantidad,
+                          color: index + 1,
+                          dolar: true
+                        );
+                      },
+                    )
+                  )
                 ),
               ],
             ),
-          ],
-        ),
-    
-        //Header centra/derecho
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+          ), const SizedBox(height: 10),
+          
+          const Separador(texto: 'Contadores'),
+          Expanded(
+            flex: 6,
+            child: ReporteFinalContadores(impresoraControllers: impresoraControllers)
+          ), const SizedBox(height: 10),
+
+          const Separador(texto: 'Comentarios'),
+          TextFormField(
+            controller: ctrl,
+            maxLines: 2,
+            decoration: InputDecoration(
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color.fromARGB(159, 255, 255, 255), width: 2)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white, width: 2)),
+              contentPadding: const EdgeInsets.all(8),
+            ),
+          ),
+
+          const SizedBox(height: 48),
+        ],
+      )
+    );
+  }
+
+}
+
+class ReporteFinalContadores extends StatelessWidget {
+  const ReporteFinalContadores({
+    super.key, required this.impresoraControllers,
+  });
+
+  final Map<String, TextEditingController> impresoraControllers;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          color: AppTheme.tablaColorHeader,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _CajaBoton(
-                  label: 'Movimientos',
-                  icon: Icons.swap_horiz,
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        MovimientoCajaDialog(),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: false,
-                  disabled: false,
-                ),
-                const SizedBox(width: 15),
-                _CajaBoton(
-                  label: 'Realizar Corte',
-                  icon: Icons.price_check,
-                  onTap: () => showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        CorteDialog(cierre: false),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: false,
-                  disabled: !Configuracion.esCaja,
-                ),
-                const SizedBox(width: 15),
-                _CajaBoton(
-                  label: 'Cerrar Caja',
-                  icon: Icons.point_of_sale,
-                  onTap: () => showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        CorteDialog(cierre: true),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: true, 
-                  disabled: !Configuracion.esCaja,
-                ),
+                Expanded(flex: 10, child: Center(child: Text('Impresora', style: AppTheme.tituloClaro))),
+                Expanded(flex: 12, child: Center(child: Text('Calculado            Real', style: AppTheme.tituloClaro))),
+                Expanded(flex: 7,  child: Center(child: Text('  Diferencia', style: AppTheme.tituloClaro))),
               ],
             ),
-            const SizedBox(height: 40),
-        
-            //Drop Down Button
-            Filtro(onFiltroCambio: onFiltroCambio),
-        
-          ],
+          ),
         ),
+        Expanded(
+          child: Consumer<ImpresorasServices>(
+            builder: (context, value, child) {
+              return Container(
+                color: AppTheme.tablaColor1,
+                child: ListView.builder(
+                  itemCount: value.impresoras.length,
+                  itemBuilder: (context, index) {
+                    int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
+                    return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        //Text('Si la diferencia es negativa significa que hubo merma o no se registro alguna impresion en el sistema', style: AppTheme.tituloClaro, textScaler: TextScaler.linear(0.7)),
       ],
     );
   }
 }
 
-class Filtro extends StatefulWidget {
-  const Filtro({super.key, required this.onFiltroCambio});
+class FilaProductos extends StatelessWidget {
+  const FilaProductos({
+    super.key, 
+    required this.cantidad, 
+    required this.articulo, 
+    required this.subtotal, 
+    required this.iva, 
+    required this.total,
+    required this.color,   
+  });
 
-  final ValueChanged<Map<String, String>?> onFiltroCambio;
-
-  @override
-  State<Filtro> createState() => _FiltroState();
-}
-
-class _FiltroState extends State<Filtro> {
-  final List<Map<String, String>> opciones = [
-    {'otro':'Todas las ventas del dia'},
-  ];
-
-  Map<String, String>? _valorSeleccionado;
-
-  final FocusNode _focusNode = FocusNode();
-  bool _isFocused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    //Agregar los cortes como opcion
-    for (var corte in Provider.of<CajasServices>(context, listen: false).cortesDeCaja) {
-      opciones.add({'corte': corte.id!});
-    }
-    //Agregar los empelados como opcion
-    for (var users in Provider.of<UsuariosServices>(context, listen: false).usuarios) {
-      opciones.add({'users': users.id!});
-    }
-
-
-    _valorSeleccionado = opciones.first;
-    _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 13),
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          color: _isFocused ? AppTheme.containerColor2 : AppTheme.tablaColorHeader,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(15),
-            topRight: Radius.circular(15),
-          ),
-          border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<Map<String, String>>(
-            focusNode: _focusNode,
-            value: _valorSeleccionado,
-            items: opciones.map((opcion) {
-              late final String texto;
-              if (opcion.keys.first=='otro') {
-                texto = opcion.values.first;
-              } else if (opcion.keys.first=='corte') {
-                Cortes corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja.firstWhere((element) => element.id == opcion.values.first);
-                if (CajasServices.corteActualId == corte.id) {
-                  texto = 'Corte: ${corte.folio!} (turno actual)';
-                } else {
-                  texto = 'Corte: ${corte.folio!}';
-                }
-                
-              } else if (opcion.keys.first=='users'){
-                Usuarios user = Provider.of<UsuariosServices>(context, listen: false).usuarios.firstWhere((element) => element.id == opcion.values.first);
-                texto = user.nombre;
-              }
-              return DropdownMenuItem<Map<String, String>>(
-                value: opcion,
-                child: Text(texto),
-              );
-            }).toList(),
-            dropdownColor: AppTheme.containerColor2,
-            style: const TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
-            iconEnabledColor: Colors.white,
-            onChanged: (nuevo) {
-              widget.onFiltroCambio(nuevo);
-              setState(() {
-                _valorSeleccionado = nuevo;
-                
-              });
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TablaHeader extends StatelessWidget {
-  const _TablaHeader();
+  final int cantidad;
+  final String articulo;
+  final Decimal subtotal;
+  final Decimal iva;
+  final Decimal total;
+  final int color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppTheme.tablaColorHeader,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 3, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 10, child: Center(child: Text(articulo, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: AppTheme.subtituloConstraste))),
+          ],
         ),
-      ),
-      child:  const Row(
-        children: [
-          Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Tooltip(
-            message: 'El color amarillo indica que la cuenta aún está pendiente de pago,\nmientras que el verde señala que ya ha sido liquidada.',
-            waitDuration: Duration(milliseconds: 250),
-            child: Text('Pagado', textAlign: TextAlign.center)
-          )),
-          Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
-        ],
       ),
     );
   }
 }
 
-class _FilaVentas extends StatelessWidget {
-  const _FilaVentas({required this.index, required this.venta});
+class FilaDescuentos extends StatelessWidget {
+  const FilaDescuentos({
+    super.key, 
+    required this.color, required this.venta,   
+  });
 
-  final int index;
   final Ventas venta;
+  final int color;
 
   @override
   Widget build(BuildContext context) {
     final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
-    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
 
-    final vendedorNombre = usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId);
-    final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
-    final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
-    final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
-    //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 6,  child: Center(child: Text(venta.folio!, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 10, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    late TextStyle estilo;
-    if (venta.liquidado && venta.wasDeuda){
-      estilo = const TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
-    } else if (!venta.liquidado) {
-      estilo = AppTheme.warningStyle;
-    } else {
-      estilo = AppTheme.subtituloConstraste;
+class FilaPorVendedor extends StatelessWidget {
+  const FilaPorVendedor({
+    super.key, 
+    required this.usuarioId,
+    required this.ventas,    
+    required this.color, 
+  });
+
+  final String usuarioId;
+  final List<Ventas> ventas;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+
+    Decimal total = Decimal.parse('0');
+    for (var venta in ventas) {
+      total += venta.abonadoTotal;
     }
 
-
     return Container(
-      padding: const EdgeInsets.all(8),
-      color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Row(
-        children: [
-          Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-        ],
-      ),
-    );
-  }
-}
-
-class _TablaFooter extends StatelessWidget {
-  const _TablaFooter({required this.total});
-
-  final int total;  
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppTheme.tablaColorHeader,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(12),
-          bottomRight: Radius.circular(12),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Spacer(),
-          Text('  Total de ventas: $total   ', style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-}
-
-class _CajaBoton extends StatelessWidget {
-  const _CajaBoton({required this.label, required this.icon, required this.onTap, required this.cerrar, required this.disabled});
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool cerrar;
-  final bool disabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: disabled ? 'Necesitas estar en la Caja' : '',
-      waitDuration: Durations.short4,
-      child: ElevatedButton(
-        style: cerrar 
-        ? ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 241, 85, 38),
-          disabledBackgroundColor: Colors.grey,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8), // Custom radius
-          ),
-        ) 
-        : ElevatedButton.styleFrom(
-          disabledBackgroundColor: Colors.grey
-        ),
-        onPressed: !disabled ? onTap : null,
-        child:cerrar ? Row(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 21, color: Colors.white),
-            Text(' $label', style: AppTheme.tituloClaro),
+            Expanded(flex: 3, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(ventas.length.toString(), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 2,child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: AppTheme.subtituloConstraste))),
           ],
-        ) 
-        :
-        Row(
+        ),
+      ),
+    );
+  }
+}
+
+class Fila extends StatelessWidget {
+  const Fila({
+    super.key, required this.texto, required this.precio, required this.color, this.dolar
+  });
+
+  final String texto;
+  final String precio;
+  final String? dolar;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
+        child: dolar==null ? Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 21),
-            Text(' $label'),
+            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+            Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+          ],
+        ) : Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+            Row(
+              children: [
+                Text('+(${dolar!})', style: TextStyle(color: AppTheme.colorContraste.withAlpha(220)), textScaler: const TextScaler.linear(0.9)),
+                Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+              ],
+            ),
+            
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaDesglose extends StatelessWidget {
+  const FilaDesglose({
+    super.key, required this.denominacion, required this.cantidad, required this.color, required this.dolar,
+  });
+
+  final double denominacion;
+  final int cantidad;
+  final int color;
+  final bool dolar;
+  
+  @override
+  Widget build(BuildContext context) {
+    double total = denominacion * cantidad;
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 2, child: Center(child: Text('${denominacion}x', style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(cantidad.toString(), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 3, child: Center(child: Text(dolar?Formatos.dolares.format(total):Formatos.pesos.format(total), style: AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaContadores extends StatelessWidget {
+  const FilaContadores({
+    super.key, 
+    required this.impresora,
+    required this.cantidadAnotada,
+    required this.color,
+  });
+
+  final Impresoras impresora;
+  final int cantidadAnotada;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
+    int cantidad = impresoraSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 8, child: Center(child: Text(impresora.modelo, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))),
           ],
         ),
       ),

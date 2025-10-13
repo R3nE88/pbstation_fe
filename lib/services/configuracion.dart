@@ -11,6 +11,7 @@ class Configuracion extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}configuracion/';
   static late double dolar;
   static late int iva;
+  static String lastVersion = '0.0.0';
   static late bool esCaja;
   static late String nombrePC;
   static late String impresora;
@@ -31,14 +32,14 @@ class Configuracion extends ChangeNotifier{
       final archivo = json.decode(resp.body);
       dolar = (archivo['precio_dolar'] as num).toDouble();
       iva = (archivo['iva'] as num).toInt();
-      if (kDebugMode) {
-        print('dolar e iva: $dolar & $iva');
-      }
+      lastVersion = archivo['last_version'];
+      
       
       //Obtener Configuracion de PC
       if (configLoaded==false){
         final directory = await getApplicationSupportDirectory();
-        final file = File('${directory.path}/config.json');
+        final String fileName = Env.debug ? 'config_debug' : 'config';
+        final file = File('${directory.path}/$fileName.json');
         if (!file.existsSync()) {
           loaded = false;
           return;

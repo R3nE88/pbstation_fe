@@ -9,6 +9,7 @@ class Sucursales {
     required this.direccion,
     required this.localidad,
     required this.activo,
+    this.prefijoFolio
   });
 
   String? id; 
@@ -18,6 +19,7 @@ class Sucursales {
   String direccion;
   String localidad;
   bool activo;
+  String? prefijoFolio;
 
   factory Sucursales.fromJson(String str) => Sucursales.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -30,6 +32,7 @@ class Sucursales {
       direccion: json['direccion'],
       localidad: json['localidad'],
       activo: json['activo'],
+      prefijoFolio: json['prefijo_folio']
   );
 
   Map<String, dynamic> toMap() => {
@@ -39,6 +42,7 @@ class Sucursales {
     'telefono': telefono,
     'direccion': direccion,
     'localidad': localidad,
-    'activo': activo
+    'activo': activo,
+    'prefijo_folio': prefijoFolio
   };
 }

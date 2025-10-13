@@ -14,12 +14,16 @@ import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 
-enum StepStage { contadores, /*fondo,*/ esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
+enum StepStage { contadores, esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
 
 class CorteDialog extends StatefulWidget {
-  const CorteDialog({super.key, required this.cierre});
+  const CorteDialog({super.key, required this.cierre, required this.caja, required this.corte, required this.ventas, this.readMode=false});
 
   final bool cierre;
+  final Cajas caja;
+  final Cortes corte;
+  final List<Ventas> ventas;
+  final bool readMode;
 
   @override
   State<CorteDialog> createState() => _CorteDialogState();
@@ -33,6 +37,7 @@ class _CorteDialogState extends State<CorteDialog> {
 
   final List<VentasPorProducto> _ventasPorProducto = [];
   final List<Ventas> _ventasConDescuentos = [];
+  final List<Ventas> _ventasConDeuda = [];
   final Map<String, List<Ventas>> _ventasPorUsuario = {};
   Decimal _subtotal = Decimal.zero;
   Decimal _iva = Decimal.zero;
@@ -99,9 +104,9 @@ class _CorteDialogState extends State<CorteDialog> {
 
   final FocusNode _voucherButtonFocus = FocusNode();
 
-  DateTime fechaApertura = DateTime.parse(CajasServices.corteActual!.fechaApertura);
+  late DateTime fechaApertura;
   late String fechaAperturaFormatted;
-  DateTime fechaCorte = DateTime.now();
+  late DateTime fechaCorte;
   late String fechaCorteFormatted;
 
   int reporteFinalPage = 1;
@@ -111,17 +116,23 @@ class _CorteDialogState extends State<CorteDialog> {
   void initState() {
     super.initState();
     //formatear fecha
+    fechaApertura = DateTime.parse(widget.corte.fechaApertura);
     fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
-    CajasServices.corteActual!.fechaCorte = fechaCorte.toIso8601String();
-    CajasServices.corteActual!.usuarioIdCerro = Login.usuarioLogeado.id!;
+    
+    if (widget.readMode==false){ 
+      fechaCorte = DateTime.now();
+      widget.corte.usuarioIdCerro = Login.usuarioLogeado.id!;
+    } 
+    else { 
+      fechaCorte = DateTime.parse(widget.corte.fechaCorte!); 
+    }
     fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
-  
-    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-    _ventasPorProducto.addAll(ventasSvc.consolidarVentasPorProducto(ventasSvc.ventasDeCorteActual));
+    widget.corte.fechaCorte = fechaCorte.toIso8601String();
+      
+    _ventasPorProducto.addAll(Provider.of<VentasServices>(context, listen: false).consolidarVentasPorProducto(widget.ventas));
 
     //ReporteFinalDescuentosYVendedores
-    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-    for (var venta in ventaSvc.ventasDeCorteActual) {
+    for (var venta in widget.ventas) {
       //Descuento
       if (venta.descuento > Decimal.parse('0')){
         _ventasConDescuentos.add(venta);
@@ -130,6 +141,10 @@ class _CorteDialogState extends State<CorteDialog> {
       final usuarioId = venta.usuarioId; 
       _ventasPorUsuario.putIfAbsent(usuarioId, () => []);
       _ventasPorUsuario[usuarioId]!.add(venta);
+      //Deuda
+      if(venta.wasDeuda && venta.liquidado){
+        _ventasConDeuda.add(venta);
+      }
     }
 
     //ReporteFinalVenta
@@ -144,8 +159,7 @@ class _CorteDialogState extends State<CorteDialog> {
     }
 
     //ReporteFinalMovimientos
-    final ventas = Provider.of<VentasServices>(context, listen: false);
-    for (var venta in ventas.ventasDeCorteActual) {
+    for (var venta in widget.ventas) {
       if (venta.abonadoMxn!=null){
         _abonadoMxn += venta.abonadoMxn!;
       }
@@ -165,16 +179,19 @@ class _CorteDialogState extends State<CorteDialog> {
     }
 
     // inicializa controladores de denominación (debe coincidir con denominaciones.length)
-    for (var _ in denominacionesMxn) {
-      denomControllersMxn.add(TextEditingController());
-    }
-    for (var _ in denominacionesDlls) {
-      denomControllersDlls.add(TextEditingController());
-    }
+    if (widget.readMode==false){
+      for (var _ in denominacionesMxn) {
+        denomControllersMxn.add(TextEditingController());
+      }
+      for (var _ in denominacionesDlls) {
+        denomControllersDlls.add(TextEditingController());
+      }
 
-    for (var i = 0; i < denominacionesDlls.length; i++) {
-      denominacionesDolarFocus.add(FocusNode());
+      for (var i = 0; i < denominacionesDlls.length; i++) {
+        denominacionesDolarFocus.add(FocusNode());
+      }
     }
+    
 
     final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
     setState(() => loadingImpresoras = true);
@@ -194,41 +211,40 @@ class _CorteDialogState extends State<CorteDialog> {
     }
   }
 
-@override
-void dispose() {
-  //FocusScope.of(context).unfocus(); //TODO: me dio error: FlutterError (Looking up a deactivated widget's ancestor is unsafe. At this point the state of the widget's element tree is no longer stable. To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.)
-  _voucherButtonFocus.unfocus();
-  
-  for (var node in denominacionesDolarFocus) {
-    if (node.hasFocus) {
-      node.unfocus();
+  @override
+  void dispose() {
+    _voucherButtonFocus.unfocus();
+    
+    for (var node in denominacionesDolarFocus) {
+      if (node.hasFocus) {
+        node.unfocus();
+      }
     }
+    
+    // Esperar un frame antes de dispose
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (var c in impresoraControllers.values) {
+        c.dispose();
+      }
+      for (var c in denomControllersMxn) {
+        c.dispose();
+      }
+      for (var c in denomControllersDlls) {
+        c.dispose();
+      }
+
+      for (var i = 0; i < denominacionesDolarFocus.length; i++) {
+        denominacionesDolarFocus[i].dispose();
+      }
+      _voucherButtonFocus.dispose();
+    });
+
+    super.dispose();
   }
-  
-  // Esperar un frame antes de dispose
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    for (var c in impresoraControllers.values) {
-      c.dispose();
-    }
-    for (var c in denomControllersMxn) {
-      c.dispose();
-    }
-    for (var c in denomControllersDlls) {
-      c.dispose();
-    }
-
-    for (var i = 0; i < denominacionesDolarFocus.length; i++) {
-      denominacionesDolarFocus[i].dispose();
-    }
-    _voucherButtonFocus.dispose();
-  });
-
-  super.dispose();
-}
 
   Cortes _corte(String comentario){
     //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(efectivoDolares).toString());
+    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(efectivoDolares, CajasServices.cajaActual!.tipoCambio).toString());
     Decimal contadoPesos = Decimal.parse(efectivoPesos.toString());
     Decimal contadoDolares = Decimal.parse(efectivoDolares.toString());
     Decimal contadoDebito = contarVouchers(debitoControllers);
@@ -237,13 +253,12 @@ void dispose() {
     Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
 
     //Venta
-    final ventas = Provider.of<VentasServices>(context, listen: false);
     Decimal abonadoMxn = Decimal.parse('0');
     Decimal abonadoUs = Decimal.parse('0');
     Decimal abonadoTarjD = Decimal.parse('0');
     Decimal abonadoTarjC = Decimal.parse('0');
     Decimal abonadoTrans = Decimal.parse('0');
-    for (var venta in ventas.ventasDeCorteActual) {
+    for (var venta in widget.ventas) {
       if (venta.abonadoMxn!=null){
         abonadoMxn += venta.abonadoMxn!;
       }
@@ -268,15 +283,15 @@ void dispose() {
     Decimal diferencia = Decimal.parse('0');
 
     Cortes corte = Cortes(
-      id: CajasServices.corteActualId,
-      folio: CajasServices.corteActual!.folio,
-      usuarioId: CajasServices.corteActual!.usuarioId, 
-      usuarioIdCerro: CajasServices.corteActual!.usuarioIdCerro,
-      sucursalId: CajasServices.corteActual!.sucursalId, 
-      fechaApertura: CajasServices.corteActual!.fechaApertura,
-      fechaCorte: CajasServices.corteActual!.fechaCorte,
+      id: widget.corte.id,
+      folio: widget.corte.folio,
+      usuarioId: widget.corte.usuarioId, 
+      usuarioIdCerro: widget.corte.usuarioIdCerro,
+      sucursalId: widget.corte.sucursalId, 
+      fechaApertura: widget.corte.fechaApertura,
+      fechaCorte: widget.corte.fechaCorte,
       contadoresFinales: convertir(impresoraControllers),
-      fondoInicial: CajasServices.corteActual!.fondoInicial, 
+      fondoInicial: widget.corte.fondoInicial, 
       conteoPesos: contadoPesos,
       conteoDolares: contadoDolares,
       conteoDebito: contadoDebito, 
@@ -290,10 +305,10 @@ void dispose() {
       ventaTransf: abonadoTrans,
       ventaTotal: ventaTotal,
       diferencia: (diferencia + ventaTotal) - totalContado,
-      movimientosCaja: CajasServices.corteActual!.movimientosCaja,
+      movimientosCaja: widget.corte.movimientosCaja,
       desglosePesos: mapearDesglose(true),
       desgloseDolares: mapearDesglose(false),
-      ventasIds: CajasServices.corteActual!.ventasIds,
+      ventasIds: widget.corte.ventasIds,
       comentarios: comentario,
       isCierre: widget.cierre
     );
@@ -308,7 +323,7 @@ void dispose() {
     //Cerrar Corte
     Cortes corte = _corte(comentario);
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
-    await cajasSvc.actualizarDatosCorte(corte, CajasServices.corteActualId!);
+    await cajasSvc.actualizarDatosCorte(corte, widget.corte.id!);
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
     if (!mounted) return;
@@ -322,16 +337,16 @@ void dispose() {
       }
 
       Cajas caja = Cajas(
-        id: CajasServices.cajaActualId,
-        folio: CajasServices.cajaActual!.folio,
-        usuarioId: CajasServices.cajaActual!.usuarioId, 
-        sucursalId: CajasServices.cajaActual!.sucursalId, 
-        fechaApertura: CajasServices.cajaActual!.fechaApertura, 
+        id: widget.caja.id,
+        folio: widget.caja.folio,
+        usuarioId: widget.caja.usuarioId, 
+        sucursalId: widget.caja.sucursalId, 
+        fechaApertura: widget.caja.fechaApertura, 
         fechaCierre: corte.fechaCorte,
         ventaTotal: ventaTotal,
         estado: 'cerrada', 
-        cortesIds: CajasServices.cajaActual!.cortesIds, 
-        tipoCambio: CajasServices.cajaActual!.tipoCambio
+        cortesIds: widget.caja.cortesIds, 
+        tipoCambio: widget.caja.tipoCambio
       );
       await cajasSvc.cerrarCaja(caja);
       if (!mounted) return;
@@ -419,207 +434,216 @@ void dispose() {
       return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...List.generate(impresoraSvc.impresoras.length, (i) {
-            final modelo = impresoraSvc.impresoras[i].modelo;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: KeyboardListener(
-                onKeyEvent: (event) {
-                  if (event.logicalKey == LogicalKeyboardKey.enter && event is KeyDownEvent) {
-                    _nextStage();
-                  }
-                },
-                focusNode: FocusNode(
-                  canRequestFocus: false
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...List.generate(impresoraSvc.impresoras.length, (i) {
+              final modelo = impresoraSvc.impresoras[i].modelo;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: KeyboardListener(
+                  onKeyEvent: (event) {
+                    if (event.logicalKey == LogicalKeyboardKey.enter && event is KeyDownEvent) {
+                      _nextStage();
+                    }
+                  },
+                  focusNode: FocusNode(
+                    canRequestFocus: false
+                  ),
+                  child: TextFormField(
+                    controller: impresoraControllers[impresoraSvc.impresoras[i].id],
+                    autofocus: i == 0,
+                    decoration: InputDecoration(labelText: modelo),
+                    inputFormatters: [NumericFormatter()],
+                    textInputAction: TextInputAction.done, 
+                    keyboardType: TextInputType.number,
+                    maxLength: 12,
+                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                    onFieldSubmitted: (value) => _nextStage,
+                  ),
                 ),
-                child: TextFormField(
-                  controller: impresoraControllers[impresoraSvc.impresoras[i].id],
-                  autofocus: i == 0,
-                  decoration: InputDecoration(labelText: modelo),
-                  inputFormatters: [NumericFormatter()],
-                  textInputAction: TextInputAction.done, 
-                  keyboardType: TextInputType.number,
-                  maxLength: 12,
-                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                  onFieldSubmitted: (value) => _nextStage,
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Regresar')),
-              const SizedBox(width: 15),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
+              );
+            }),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Regresar')),
+                const SizedBox(width: 15),
+                ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEsperandoRetiro() {
+  Widget _buildEsperandoRetiro(Cortes corte) {
     final impresoraSvc = Provider.of<ImpresorasServices>(context);
 
-    return SizedBox(
-      width: 340,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Wrap(
-              //mainAxisAlignment: MainAxisAlignment.center,
-              alignment: WrapAlignment.center,
-              children: [
-                const Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
-                Text(Formatos.pesos.format(CajasServices.corteActual!.fondoInicial.toDouble()), style: AppTheme.tituloClaro.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-                const Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
-              ],
-            ),
-          ),
-          if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
-          const SizedBox(height: 12),
-
-          Row( 
-            mainAxisAlignment: impresoraSvc.impresoras.isEmpty ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
-            children: [
-              impresoraSvc.impresoras.isEmpty ?
-              ElevatedButton(
-                onPressed: (){
-                  Navigator.pop(context);
-                }, 
-                //child: Text('Continuar ($segundosRestantes)')
-                child: const Text('Regresar')
-              ) : const SizedBox(),
-
-              ElevatedButton(
-                autofocus: true,
-                onPressed: (){
-                  setState(() {
-                    performingRetiro = false;
-                    stage = StepStage.conteoPesos;
-                  });
-                }, 
-                //child: Text('Continuar ($segundosRestantes)')
-                child: const Text('Continuar')
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
+      child: SizedBox(
+        width: 340,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                children: [
+                  const Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+                  Text(Formatos.pesos.format(corte.fondoInicial.toDouble()), style: AppTheme.tituloClaro.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+                  const Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
+                ],
               ),
-            ],
-          )
-        ],
+            ),
+            if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
+            const SizedBox(height: 12),
+      
+            Row( 
+              mainAxisAlignment: impresoraSvc.impresoras.isEmpty ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+              children: [
+                impresoraSvc.impresoras.isEmpty ?
+                ElevatedButton(
+                  onPressed: (){
+                    Navigator.pop(context);
+                  }, 
+                  child: const Text('Regresar')
+                ) : const SizedBox(),
+      
+                ElevatedButton(
+                  autofocus: true,
+                  onPressed: (){
+                    setState(() {
+                      performingRetiro = false;
+                      stage = StepStage.conteoPesos;
+                    });
+                  }, 
+                  child: const Text('Continuar')
+                ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildConteoStep() {
-    return SizedBox(
-      width: 520,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: List.generate(denominacionesMxn.length, (i) {
-              final den = denominacionesMxn[i];
-              final ctrl = denomControllersMxn[i];
-              final value = den['value'] as double;
-              final kind = den['kind'] as String;
-              String label;
-              if (kind == 'billete') {
-                // billetes no tienen decimales (mostrar int)
-                label = 'Billetes de \$${value.toInt()}';
-              } else {
-                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
-                label = value >= 1 ? 'Monedas de \$${value.toInt()}' : 'Monedas de \$${value.toString()}';
-              }
-              return SizedBox(
-                width: 240,
-                child: TextFormField(
-                  controller: ctrl,
-                  autofocus: i==0,
-                  decoration: InputDecoration(labelText: label),
-                  inputFormatters: [NumericFormatter()],
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = '0'; }
-                    setState(() { efectivoPesos = calculateTotalMxn(); });
-                  },
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total contado: ${Formatos.pesos.format(efectivoPesos)}', style: AppTheme.subtituloPrimario),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
+      child: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: List.generate(denominacionesMxn.length, (i) {
+                final den = denominacionesMxn[i];
+                final ctrl = denomControllersMxn[i];
+                final value = den['value'] as double;
+                final kind = den['kind'] as String;
+                String label;
+                if (kind == 'billete') {
+                  // billetes no tienen decimales (mostrar int)
+                  label = 'Billetes de \$${value.toInt()}';
+                } else {
+                  // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
+                  label = value >= 1 ? 'Monedas de \$${value.toInt()}' : 'Monedas de \$${value.toString()}';
+                }
+                return SizedBox(
+                  width: 240,
+                  child: TextFormField(
+                    controller: ctrl,
+                    autofocus: i==0,
+                    decoration: InputDecoration(labelText: label),
+                    inputFormatters: [NumericFormatter()],
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      if(value.isEmpty){ ctrl.text = '0'; }
+                      setState(() { efectivoPesos = calculateTotalMxn(); });
+                    },
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total contado: ${Formatos.pesos.format(efectivoPesos)}', style: AppTheme.subtituloPrimario),
+                ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildConteoDolaresStep() {
-    return SizedBox(
-      width: 520,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: List.generate(denominacionesDlls.length, (i) {
-              final den = denominacionesDlls[i];
-              final ctrl = denomControllersDlls[i];
-              final value = den['value'] as double;
-              final kind = den['kind'] as String;
-              String label;
-              if (kind == 'billete') {
-                // billetes no tienen decimales (mostrar int)
-                label = 'Billetes de \$${value.toInt()}';
-              } else {
-                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
-                label = '$kind \$${value.toStringAsFixed(2)}';
-              }
-              
-              return SizedBox(
-                width: 240,
-                child: TextFormField(
-                  controller: ctrl,
-                  //focusNode:  i==0 ? primerFocusDlls : FocusNode(),
-                  focusNode: denominacionesDolarFocus[i],
-                  decoration: InputDecoration(labelText: label),
-                  inputFormatters: [NumericFormatter()],
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = '0'; }
-                    setState(() {
-                      efectivoDolares = calculateTotalDolares();
-                      efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares);
-                    });
-                  },
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total contado: ${Formatos.dolares.format(efectivoDolares)} (${Formatos.pesos.format(efectivoDolaresAPeso)})', style: AppTheme.subtituloPrimario),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
+      child: SizedBox(
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: List.generate(denominacionesDlls.length, (i) {
+                final den = denominacionesDlls[i];
+                final ctrl = denomControllersDlls[i];
+                final value = den['value'] as double;
+                final kind = den['kind'] as String;
+                String label;
+                if (kind == 'billete') {
+                  // billetes no tienen decimales (mostrar int)
+                  label = 'Billetes de \$${value.toInt()}';
+                } else {
+                  // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
+                  label = '$kind \$${value.toStringAsFixed(2)}';
+                }
+                
+                return SizedBox(
+                  width: 240,
+                  child: TextFormField(
+                    controller: ctrl,
+                    //focusNode:  i==0 ? primerFocusDlls : FocusNode(),
+                    focusNode: denominacionesDolarFocus[i],
+                    decoration: InputDecoration(labelText: label),
+                    inputFormatters: [NumericFormatter()],
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      if(value.isEmpty){ ctrl.text = '0'; }
+                      setState(() {
+                        efectivoDolares = calculateTotalDolares();
+                        efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares, CajasServices.cajaActual!.tipoCambio);
+                      });
+                    },
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total contado: ${Formatos.dolares.format(efectivoDolares)} (${Formatos.pesos.format(efectivoDolaresAPeso)})', style: AppTheme.subtituloPrimario),
+                ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -633,15 +657,18 @@ void dispose() {
   }
 
   Widget buildVoucherStep() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        VoucherBoard(
-          onControllersChanged: _handleVoucherControllers,
-          callback: () => _nextStage(),
-          focusButton: _voucherButtonFocus,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          VoucherBoard(
+            onControllersChanged: _handleVoucherControllers,
+            callback: () => _nextStage(),
+            focusButton: _voucherButtonFocus,
+          ),
+        ],
+      ),
     );
   }
 
@@ -649,6 +676,7 @@ void dispose() {
     int page, 
     List<VentasPorProducto> ventas, 
     List<Ventas> ventasConDescuentos,
+    List<Ventas> ventasConDeuda,
     Map<String, List<Ventas>> ventasPorUsuario, 
     Decimal subtotal, 
     Decimal iva, 
@@ -661,73 +689,113 @@ void dispose() {
     ){
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
     final TextEditingController ctrl = TextEditingController();
-
-    if (CajasServices.corteActualId==null) return const SizedBox();
+    if (widget.readMode==true){
+      ctrl.text = widget.corte.comentarios??'';
+    }
+    if (widget.corte.id==null) return const SizedBox();
 
     return SizedBox(
-      width: 1000,
-      height: 616,
+      width: 1048,
+      height: 670,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
       
           //Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Text('#Corte: '),
-                  Text(CajasServices.corteActual?.folio ?? 'error', style: AppTheme.tituloClaro),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text('Tipo de cambio: '),
-                  Text(Formatos.pesos.format(Configuracion.dolar), style: AppTheme.tituloClaro),
-                ],
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(top: 10, left: 24, right: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('#Corte: '),
+                    Text(widget.corte.folio ?? 'error', style: AppTheme.tituloClaro),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text('Tipo de cambio: '),
+                    Text(Formatos.pesos.format(widget.caja.tipoCambio), style: AppTheme.tituloClaro), //TODO: no se si dejar el dolar de config o el de la caja
+                  ],
+                ),
+              ],
+            ),
           ),
           
           //Header2
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Text('Abierta: '),
-                  Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  const Text(' por '),
-                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId), style: AppTheme.tituloClaro),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text('Hora del corte: '),
-                  Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  const Text(' por '),
-                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioIdCerro!), style: AppTheme.tituloClaro),
-                ],
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('Abierta: '),
+                    Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                    const Text(' por '),
+                    Text(usuariosSvc.obtenerNombreUsuarioPorId(widget.corte.usuarioId), style: AppTheme.tituloClaro),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Text('Hora del corte: '),
+                    Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
+                    const Text(' por '),
+                    Text(usuariosSvc.obtenerNombreUsuarioPorId(widget.corte.usuarioIdCerro!), style: AppTheme.tituloClaro),
+                  ],
+                ),
+              ],
+            ),
           ), const SizedBox(height: 15),
-
+    
           //Body 1
           page==1 ?Expanded(
-            child: Row(
+            child: Stack(
+              alignment: Alignment.centerRight,
               children: [
-                ReporteFinalVenta(ventasPorProducto: ventas, subtotal: subtotal, iva: iva, total: total,),
-                const SizedBox(width: 10),
-                ReporteFinalDescuentosYVendedores(
-                  ventasConDescuentos: ventasConDescuentos,
-                  ventasPorUsuario: ventasPorUsuario,
-                  callback: (){
-                    reporteFinalPage=2;
-                    _nextStage();
-                  },
+                Padding(
+                  padding: const EdgeInsets.only(left:24, bottom: 20, right: 24),
+                  child: Row(
+                    children: [
+                      ReporteFinalVenta(ventasPorProducto: ventas, subtotal: subtotal, iva: iva, total: total,),
+                      const SizedBox(width: 10),
+                      ReporteFinalDescuentosYVendedores(
+                        ventasConDescuentos: ventasConDescuentos,
+                        ventasConDeuda: ventasConDeuda,
+                        ventasPorUsuario: ventasPorUsuario,
+                        callback: (){
+                          reporteFinalPage=2;
+                          _nextStage();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      reporteFinalPage = 2;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.letraClara,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                      )
+                    ),
+                    child: Icon(
+                      Icons.keyboard_arrow_right, 
+                      size: 30, 
+                      color: AppTheme.containerColor1,
+                    ),
+                  )
+                )
               ],
             )
           ) 
@@ -735,124 +803,159 @@ void dispose() {
           //Body 2
           Expanded(
             child: Stack(
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.centerLeft,
               children: [
-                Row(
-                  children: [
-                    ReporteFinalMovimientos(
-                      contadoPesos: Decimal.parse(efectivoPesos.toString()), 
-                      contadoDolares: Decimal.parse(efectivoDolares.toString()), 
-                      contadoDebito: contarVouchers(debitoControllers), 
-                      contadoCredito: contarVouchers(creditoControllers), 
-                      contadoTransf: contarVouchers(transferenciaControllers), 
-                      abonadoMxn: abonadoMxn, 
-                      abonadoUs: abonadoUs, 
-                      abonadoTarjD: abonadoTarjD, 
-                      abonadoTarjC: abonadoTarjC, 
-                      abonadoTrans: abonadoTrans, 
-                    ),
-                    const SizedBox(width: 10),
-                    ReporteFinalDesgloseDinero(
-                      desglosePesos: mapearDesglose(true),
-                      desgloseDolares: mapearDesglose(false),
-                      impresoraControllers: impresoraControllers,
-                      ctrl: ctrl,
-                    ),
-                  ],
-                ),
-                
-                //Botones finales
-                Row( 
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          reporteFinalPage=1;
-                          //page=1;
-                        });
-                        
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                Padding(
+                  padding: const EdgeInsets.only(left:24, bottom: 10, right: 24),
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Row(
                         children: [
-                          Transform.translate(
-                            offset: const Offset(-8, 1.5),
-                            child: const Icon(Icons.chevron_left_outlined, size: 25)
+                          ReporteFinalMovimientos(
+                            contadoPesos: widget.readMode ? widget.corte.conteoPesos??Decimal.zero : Decimal.parse(efectivoPesos.toString()), 
+                            contadoDolares: widget.readMode ? widget.corte.conteoDolares??Decimal.zero : Decimal.parse(efectivoDolares.toString()), 
+                            contadoDebito: widget.readMode ? widget.corte.conteoDebito??Decimal.zero : contarVouchers(debitoControllers), 
+                            contadoCredito: widget.readMode ? widget.corte.conteoCredito??Decimal.zero : contarVouchers(creditoControllers), 
+                            contadoTransf: widget.readMode ? widget.corte.conteoTransf??Decimal.zero : contarVouchers(transferenciaControllers), 
+                            abonadoMxn: abonadoMxn, 
+                            abonadoUs: abonadoUs, 
+                            abonadoTarjD: abonadoTarjD, 
+                            abonadoTarjC: abonadoTarjC, 
+                            abonadoTrans: abonadoTrans, 
+                            corte: widget.corte,
+                            readMode: widget.readMode,
+                            tc: widget.readMode ? widget.caja.tipoCambio : CajasServices.cajaActual?.tipoCambio??Configuracion.dolar,
                           ),
-                          const Text('Regresar'),
+                          const SizedBox(width: 10),
+                          ReporteFinalDesgloseDinero(
+                            desglosePesos: widget.readMode==false ? mapearDesglose(true) : widget.corte.desglosePesos!,
+                            desgloseDolares: widget.readMode==false ? mapearDesglose(false) : widget.corte.desgloseDolares!,
+                            impresoraControllers: impresoraControllers,
+                            ctrl: ctrl,
+                            readMode: widget.readMode,
+                          ),
                         ],
-                      )
-                    ), const SizedBox(width: 20),
-
-                    Tooltip(
-                      message: 'Funcion En Desarrollo...',
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Descargar PDF'),
-                            Transform.translate(
-                              offset: const Offset(8, 1.5),
-                              child: const Icon(Icons.picture_as_pdf_outlined, size: 25)
-                            )
-                          ],
-                        )
                       ),
-                    ), const SizedBox(width: 20),
-
-                    Tooltip(
-                      message: 'Funcion En Desarrollo...',
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Enviar Por Correo'),
-                            Transform.translate(
-                              offset: const Offset(8, 1.5),
-                              child: const Icon(Icons.email_outlined, size: 25)
+                      
+                      //Botones finales
+                      Row( 
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [                      
+                          Tooltip(
+                            message: 'Funcion En Desarrollo...',
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('Descargar PDF'),
+                                  Transform.translate(
+                                    offset: const Offset(8, 1.5),
+                                    child: const Icon(Icons.picture_as_pdf_outlined, size: 25)
+                                  )
+                                ],
+                              )
+                            ),
+                          ), const SizedBox(width: 20),
+                      
+                          Tooltip(
+                            message: 'Funcion En Desarrollo...',
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('Enviar Por Correo'),
+                                  Transform.translate(
+                                    offset: const Offset(8, 1.5),
+                                    child: const Icon(Icons.email_outlined, size: 25)
+                                  )
+                                ],
+                              )
+                            ),
+                          ), const SizedBox(width: 20),
+                      
+                          ElevatedButton(
+                            onPressed: () {
+                              if (widget.readMode){
+                                Ticket.imprimirTicketCorte(context, widget.caja, widget.corte, widget.ventas, {});
+                              } else {
+                                Ticket.imprimirTicketCorte(context, CajasServices.cajaActual!, _corte(ctrl.text), Provider.of<VentasServices>(context, listen:false).ventasDeCorteActual, impresoraControllers);
+                              }
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('Imprimir Ticket'),
+                                Transform.translate(
+                                  offset: const Offset(8, 1.5),
+                                  child: const Icon(Icons.print_outlined, size: 25)
+                                )
+                              ],
                             )
-                          ],
-                        )
-                      ),
-                    ), const SizedBox(width: 20),
-
-                    ElevatedButton(
-                      onPressed: () => Ticket.imprimirTicketCorte(context, _corte(ctrl.text), impresoraControllers),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Imprimir Ticket'),
-                          Transform.translate(
-                            offset: const Offset(8, 1.5),
-                            child: const Icon(Icons.print_outlined, size: 25)
-                          )
+                          ), const SizedBox(width: 20),
+                      
+                          !widget.readMode ?
+                          ElevatedButton(
+                            onPressed: () => terminarCorte(ctrl.text),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
+                                Transform.translate(
+                                  offset: const Offset(8, 1.5),
+                                  child: const Icon(Icons.done, size: 25)
+                                )
+                              ],
+                            ), 
+                          ):
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Transform.translate(
+                                  offset: const Offset(-8, 1.5),
+                                  child: const Icon(Icons.close, size: 25)
+                                ),
+                                const Text('Salir'),
+                              ],
+                            ), 
+                          ),
                         ],
-                      )
-                    ), const SizedBox(width: 20),
-
-                    ElevatedButton(
-                      onPressed: () => terminarCorte(ctrl.text),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
-                          Transform.translate(
-                            offset: const Offset(8, 1.5),
-                            child: const Icon(Icons.done, size: 25)
-                          )
-                        ],
-                      ), 
-                    ),
-                  ],
+                      ) 
+                    ],
+                  ),
                 ),
+              
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      reporteFinalPage = 1;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.letraClara,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(15),
+                        bottomRight: Radius.circular(15),
+                      )
+                    ),
+                    child: Icon(
+                      Icons.keyboard_arrow_left, 
+                      size: 30, 
+                      color: AppTheme.containerColor1,
+                    ),
+                  )
+                )
               ],
             )
           ),
@@ -863,7 +966,6 @@ void dispose() {
 
   List<Desglose> mapearDesglose(bool pesos) {
     List<Desglose> lista = [];
-
     if (pesos) {
       for (var i = 0; i < denominacionesMxn.length; i++) {
         if (denomControllersMxn[i].text.isNotEmpty) {
@@ -881,6 +983,7 @@ void dispose() {
         }
       }
     }
+    lista.removeWhere((element) => element.cantidad == 0);
     return lista;
   }
 
@@ -907,6 +1010,10 @@ void dispose() {
         performingRetiro = true;
       }
     }
+     
+    if(widget.readMode){
+      stage = StepStage.terminado;
+    }
 
 
     Widget content;
@@ -919,7 +1026,7 @@ void dispose() {
         break;
       case StepStage.esperandoRetiro:
         title = '';
-        content = _buildEsperandoRetiro();
+        content = _buildEsperandoRetiro(widget.corte);
         break;
       case StepStage.conteoPesos:
         title = 'Conteo de Efectivo (MXN)';
@@ -939,6 +1046,7 @@ void dispose() {
           reporteFinalPage,
           _ventasPorProducto,
           _ventasConDescuentos,
+          _ventasConDeuda,
           _ventasPorUsuario,
           _subtotal,
           _iva,
@@ -955,6 +1063,7 @@ void dispose() {
     return AlertDialog(
       elevation: 2,
       backgroundColor: AppTheme.containerColor2,
+      contentPadding: const EdgeInsets.all(0),
       title: title.isNotEmpty ? 
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1061,12 +1170,12 @@ class ReporteFinalVenta extends StatelessWidget {
                     ],
                   ),
                 ),
-              ), //const SizedBox(height: 10,)
+              ),
             ],
           ),
           Transform.translate(
             offset: const Offset(0, 15),
-            child: const Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
+            child: const Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye deudas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
           ),
         ],
       )
@@ -1078,10 +1187,12 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
   const ReporteFinalDescuentosYVendedores({
     super.key, 
     required this.ventasConDescuentos,
+    required this.ventasConDeuda,
     required this.ventasPorUsuario,
     required this.callback,
   });
   final List<Ventas> ventasConDescuentos;
+  final List<Ventas> ventasConDeuda;
   final Map<String, List<Ventas>> ventasPorUsuario;
   final Function callback;
 
@@ -1094,6 +1205,34 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          const Separador(texto: 'Deudas pagadas'),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical : 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 6,  child: Center(child: Text('Folio'))),
+                  Expanded(flex: 12, child: Center(child: Text('Detalles'))),
+                  Expanded(flex: 8,  child: Center(child: Text('Total'))),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 5, 
+            child: Container(
+              color: AppTheme.tablaColor1,
+              child: ListView.builder(
+                itemCount: ventasConDeuda.length,
+                itemBuilder: (context, index) {
+                  return FilaDeudas(venta: ventasConDeuda[index], color: index+1);
+                },
+              ),
+            )
+          ),
+          const SizedBox(height: 10),
           const Separador(texto: 'Ventas con Descuentos'),
           Container(
             color: AppTheme.tablaColorHeader,
@@ -1111,7 +1250,7 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 8, 
+            flex: 6, 
             child: Container(
               color: AppTheme.tablaColor1,
               child: ListView.builder(
@@ -1156,8 +1295,8 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
               ),
             )
           ),
-          const SizedBox(height: 10),
-          ElevatedButton(onPressed: (){
+          //const SizedBox(height: 10),
+          /*ElevatedButton(onPressed: (){
             callback();
           }, child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -1168,7 +1307,7 @@ class ReporteFinalDescuentosYVendedores extends StatelessWidget {
                 child: const Icon(Icons.chevron_right_sharp, size: 25)
               )
             ],
-          ))
+          ))*/
         ],
       ),
     );
@@ -1188,6 +1327,9 @@ class ReporteFinalMovimientos extends StatelessWidget {
     required this.abonadoTarjD, 
     required this.abonadoTarjC, 
     required this.abonadoTrans,
+    required this.corte,
+    required this.readMode,
+    required this.tc,
   });
 
   final Decimal contadoPesos;
@@ -1200,11 +1342,13 @@ class ReporteFinalMovimientos extends StatelessWidget {
   final Decimal abonadoTarjD;
   final Decimal abonadoTarjC;
   final Decimal abonadoTrans;
+  final Cortes corte;
+  final double tc;
+  final bool readMode;
 
   @override
   Widget build(BuildContext context) {
     //Calcular Movimientos
-    Cortes corte = CajasServices.corteActual!;
     Decimal entrada = Decimal.parse('0');
     Decimal salida = Decimal.parse('0');
 
@@ -1218,12 +1362,19 @@ class ReporteFinalMovimientos extends StatelessWidget {
 
     //sistema
     //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble());
-    Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
+    final double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble(), tc);
+    final Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
 
     //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble()).toString());
-    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
+    late final Decimal contadoUsCnv;
+    late final Decimal totalContado;
+    if(!readMode){
+      contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble(), tc).toString());
+      totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
+    } else {
+      contadoUsCnv =  Decimal.parse(CalculosDinero().pesosADolar(corte.conteoDolares?.toDouble()??0, tc).toString());
+      totalContado = corte.conteoTotal??Decimal.zero;
+    }
 
     //diferencia
     Decimal diferencia = total - totalContado;
@@ -1269,12 +1420,14 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
     required this.desgloseDolares, 
     required this.impresoraControllers, 
     required this.ctrl,
+    required this.readMode,
   });
 
   final List<Desglose> desglosePesos;
   final List<Desglose> desgloseDolares;
   final Map<String, TextEditingController> impresoraControllers;
   final TextEditingController ctrl;
+  final bool readMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1337,12 +1490,13 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
           const Separador(texto: 'Contadores'),
           Expanded(
             flex: 6,
-            child: ReporteFinalContadores(impresoraControllers: impresoraControllers)
+            child: ReporteFinalContadores(impresoraControllers: impresoraControllers, readMode: readMode)
           ), const SizedBox(height: 10),
 
           const Separador(texto: 'Comentarios'),
           TextFormField(
             controller: ctrl,
+            readOnly: readMode,
             maxLines: 2,
             decoration: InputDecoration(
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color.fromARGB(159, 255, 255, 255), width: 2)),
@@ -1361,10 +1515,13 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
 
 class ReporteFinalContadores extends StatelessWidget {
   const ReporteFinalContadores({
-    super.key, required this.impresoraControllers,
+    super.key, 
+    required this.impresoraControllers,
+    required this.readMode,
   });
 
   final Map<String, TextEditingController> impresoraControllers;
+  final bool readMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1372,14 +1529,15 @@ class ReporteFinalContadores extends StatelessWidget {
       children: [
         Container(
           color: AppTheme.tablaColorHeader,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(flex: 10, child: Center(child: Text('Impresora', style: AppTheme.tituloClaro))),
-                Expanded(flex: 12, child: Center(child: Text('Calculado            Real', style: AppTheme.tituloClaro))),
-                Expanded(flex: 7,  child: Center(child: Text('  Diferencia', style: AppTheme.tituloClaro))),
+                const Expanded(flex: 8, child: Center(child: Text('Impresora', style: AppTheme.tituloClaro))),
+                Expanded(flex: 5, child: Center(child: Text(!readMode ? 'Calculado' : 'Contador', style: AppTheme.tituloClaro))),
+                !readMode ? const Expanded(flex: 5, child: Center(child: Text('Real', style: AppTheme.tituloClaro))) : const SizedBox(),
+                !readMode ? const Expanded(flex: 5, child: Center(child: Text('Diferencia', style: AppTheme.tituloClaro))) : const SizedBox(),
               ],
             ),
           ),
@@ -1393,14 +1551,13 @@ class ReporteFinalContadores extends StatelessWidget {
                   itemCount: value.impresoras.length,
                   itemBuilder: (context, index) {
                     int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
-                    return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1);
+                    return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1, readMode: readMode);
                   },
                 ),
               );
             },
           ),
         ),
-        //Text('Si la diferencia es negativa significa que hubo merma o no se registro alguna impresion en el sistema', style: AppTheme.tituloClaro, textScaler: TextScaler.linear(0.7)),
       ],
     );
   }
@@ -1469,6 +1626,37 @@ class FilaDescuentos extends StatelessWidget {
             Expanded(flex: 10, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
             Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste))),
             Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FilaDeudas extends StatelessWidget {
+  const FilaDeudas({
+    super.key, 
+    required this.color, required this.venta,   
+  });
+
+  final Ventas venta;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
+    final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
+
+    return Container(
+      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(flex: 6,  child: Center(child: Text(venta.folio!, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 12, child: Center(child: Text(detalles, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
+            Expanded(flex: 8,  child: Center(child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste))),
           ],
         ),
       ),
@@ -1590,11 +1778,13 @@ class FilaContadores extends StatelessWidget {
     required this.impresora,
     required this.cantidadAnotada,
     required this.color,
+    required this.readMode,
   });
 
   final Impresoras impresora;
   final int cantidadAnotada;
   final int color;
+  final bool readMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1609,8 +1799,8 @@ class FilaContadores extends StatelessWidget {
           children: [
             Expanded(flex: 8, child: Center(child: Text(impresora.modelo, style: AppTheme.subtituloConstraste))),
             Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))),
+            !readMode ? Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))) : const SizedBox(),
+            !readMode ? Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))) : const SizedBox(),
           ],
         ),
       ),

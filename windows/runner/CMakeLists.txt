@@ -38,3 +38,14 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# Cambiar el nombre del ejecutable a PrinterBoy
+set_target_properties(${BINARY_NAME} PROPERTIES OUTPUT_NAME "PrinterBoy")
+
+# Crear copia para que Flutter CLI lo encuentre
+add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "$<TARGET_FILE:${BINARY_NAME}>"
+    "$<TARGET_FILE_DIR:${BINARY_NAME}>/pbstation_frontend.exe"
+    COMMENT "Creando copia para compatibilidad con Flutter CLI..."
+)

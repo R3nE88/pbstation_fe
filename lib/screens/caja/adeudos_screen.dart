@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/venta_dialog.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -174,8 +175,12 @@ class FilaDeuda extends StatelessWidget {
     final detalles = Provider.of<ProductosServices>(context, listen: false).obtenerDetallesComoTexto(deuda.detalles);
     Decimal? monto = obtenerMontoPendiente(deuda.id!);
     Decimal abonadoTotal = (deuda.abonadoMxn??Decimal.zero) + (deuda.abonadoUs??Decimal.zero) + (deuda.abonadoTarj??Decimal.zero) + (deuda.abonadoTrans??Decimal.zero);
+    final bool isActive = Provider.of<VentasServices>(context, listen: false)
+    .ventasDeCaja
+    .any((element) => element.id == deuda.id);
 
-    void mostrarMenu(BuildContext context, Offset offset) async {
+
+    /*void mostrarMenu(BuildContext context, Offset offset) async {
       late final String? seleccion;
 
       if (Configuracion.esCaja) {
@@ -272,11 +277,21 @@ class FilaDeuda extends StatelessWidget {
           );
         }
       }
-    }
+    }*/
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        mostrarMenu(context, details.globalPosition);
+    return FeedBackButton(
+      onlyVertical: true,
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (_) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              VentaDialog(venta: deuda, tc: 0, isActive: isActive, callback: (){}, fromDeudas: true,),
+              const WindowBar(overlay: true),
+            ],
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(8.0),

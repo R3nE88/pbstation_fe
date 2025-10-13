@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
-import 'package:pbstation_frontend/models/movimientos_cajas.dart';
+import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -10,9 +10,10 @@ import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class MovimientoCajaDialog extends StatelessWidget {
-  const MovimientoCajaDialog({super.key});
+  const MovimientoCajaDialog({super.key, this.cortes});
 
   final titulo = 'Movimientos';
+  final List<Cortes>? cortes;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +24,7 @@ class MovimientoCajaDialog extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(titulo),
+          cortes==null ?
           Row(
             children: [
               ElevatedButton(
@@ -52,22 +54,33 @@ class MovimientoCajaDialog extends StatelessWidget {
                 child: const Text('- Retiro de Efectivo', textScaler: TextScaler.linear(0.9))
               ),
             ],
-          )
+          ) : const SizedBox()
         ],
       ),
       content: SizedBox(
         width: 800,
         child: Consumer<CajasServices>(
           builder: (context, cs, _) {
-
+            
             List<MovimientosCajas> movimientos = [];
-            for (var corte in cs.cortesDeCaja) {
-              for (var movimiento in corte.movimientosCaja) {
-                MovimientosCajas mov =  movimiento;
-                mov.corte = corte.folio!;
-                movimientos.add(mov);
+            if (cortes==null){
+              for (var corte in cs.cortesDeCaja) {
+                for (var movimiento in corte.movimientosCaja) {
+                  MovimientosCajas mov =  movimiento;
+                  mov.corte = corte.folio!;
+                  movimientos.add(mov);
+                }
+              }
+            } else {
+              for (var corte in cortes!) {
+                for (var movimiento in corte.movimientosCaja) {
+                  MovimientosCajas mov =  movimiento;
+                  mov.corte = corte.folio!;
+                  movimientos.add(mov);
+                }
               }
             }
+
 
             return Column(
               mainAxisSize: MainAxisSize.min,

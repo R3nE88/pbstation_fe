@@ -123,9 +123,10 @@ class VentasServices extends ChangeNotifier{
     final Map<String, VentasPorProducto> acumulador = {};
 
     for (final venta in ventas) {
+      if (venta.cancelado){ continue; }
+      if (venta.liquidado && venta.wasDeuda){ continue; }
       for (final detalle in venta.detalles) {
         final productoId = detalle.productoId;
-
         // Verificamos si ya existe una entrada para este producto
         if (acumulador.containsKey(productoId)) {
           // Si existe, actualizamos los valores sumándolos
@@ -312,6 +313,41 @@ class VentasServices extends ChangeNotifier{
       }
     } catch (e) {
       debugPrint('Exception en marcarVentaComoDeuda: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<Ventas?> cancelarVenta(String ventaId, String motivo) async {
+    isLoading = true;
+    
+    try {
+      final url = Uri.parse('$_baseUrl$ventaId/cancelar?motivo_cancelacion=$motivo');
+      final resp = await http.patch(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final ventaActualizada = Ventas.fromMap(data);
+        ventaActualizada.id = data['id']?.toString();
+
+        // Actualizar la venta en las listas locales si existe
+        _actualizarVentaEnListas(ventaActualizada);
+
+        isLoading = false;
+        notifyListeners();
+        return ventaActualizada;
+      } else {
+        debugPrint('Error al cancelar venta: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en cancelarVenta: $e');
       isLoading = false;
       notifyListeners();
       return null;

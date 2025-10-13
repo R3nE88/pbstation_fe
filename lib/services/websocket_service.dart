@@ -108,7 +108,7 @@ class WebSocketService with ChangeNotifier {
         'post-contadores':   (id) => _impresoraSvc.loadContador(id),
         'put-contadores':    (id) => _impresoraSvc.loadContador(id),
         'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
-        'delete-venta-deuda':   (id) => _ventaSvc.removeAVentaDeuda(id), //TODO: movimientos necesita? o corte? o caja?
+        'delete-venta-deuda':(id) => _ventaSvc.removeAVentaDeuda(id), //TODO: movimientos necesita? o corte? o caja?
         'ventaenviada':      (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();

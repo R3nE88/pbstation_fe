@@ -37,7 +37,7 @@ class CajasServices extends ChangeNotifier{
     forLogininit = true;
     //obtener Caja
     final prefs = await SharedPreferences.getInstance();
-    cajaActualId = prefs.getString('caja_id');
+    cajaActualId = prefs.getString(Env.debug ? 'caja_id_debug' : 'caja_id');
     if (cajaActualId!=null && cajaActualId!='buscando'){
       loadCaja(cajaActualId!);
     }
@@ -114,29 +114,6 @@ class CajasServices extends ChangeNotifier{
     notifyListeners();
   }
 
-  /*Future<void> loadMovimientos() async{
-    if (corteActualId==null) return;
-    isLoading = true;
-    try {
-      final url = Uri.parse('$_baseUrl$corteActualId/movimientos');
-      final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
-      );
-      final body = json.decode(resp.body) as List<dynamic>; // <-- Lista
-      movimientos = body.map((item) {
-        final mov = MovimientosCajas.fromMap(item as Map<String, dynamic>);
-        mov.id = item['id']?.toString();
-        return mov;
-      }).toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print(e);
-      }
-      isLoading = false;
-    }
-    isLoading = false;
-  }*/
-
   Future<void> createCaja(Cajas caja) async {
     isLoading = true;
     try {
@@ -156,7 +133,7 @@ class CajasServices extends ChangeNotifier{
         cajaActual = nuevo;
         cajaActualId = cajaActual!.id;
         final prefs = await SharedPreferences.getInstance();
-        prefs.setString('caja_id', cajaActualId!);
+        prefs.setString(Env.debug ? 'caja_id_debug' : 'caja_id', cajaActualId!);
 
         if (kDebugMode) {
           print('caja creada!');
@@ -259,7 +236,7 @@ class CajasServices extends ChangeNotifier{
         cajaActual = null;
         cajaActualId = null;
         final prefs = await SharedPreferences.getInstance();
-        prefs.remove('caja_id');
+        prefs.remove(Env.debug ? 'caja_id_debug' : 'caja_id');
       } else {
         debugPrint('Error al actualizar caja: ${resp.statusCode} ${resp.body}');
       }
@@ -272,9 +249,6 @@ class CajasServices extends ChangeNotifier{
   }
 
   Future<void> actualizarDatosCorte(Cortes corte, String id) async {
-    print('Actualizar corte!!!!');
-    print(corte.movimientosCaja.first.id!);
-
     isLoading = true;
     corte.id = id;
     
@@ -306,7 +280,7 @@ class CajasServices extends ChangeNotifier{
     cajaActual = null;
     cajaActualId = null;
     final prefs = await SharedPreferences.getInstance();
-    prefs.remove('caja_id');
+    prefs.remove(Env.debug ? 'caja_id_debug' : 'caja_id');
     notifyListeners();
   }
 
@@ -428,5 +402,25 @@ class CajasServices extends ChangeNotifier{
     }
     isLoadingHistorial = false;
     notifyListeners();
+  }
+
+  Future<double> obtenerTCDeVenta(String ventaId) async {
+    try {
+      final url = Uri.parse('$_baseUrl/ventas/$ventaId/tipo-cambio');
+      final resp = await http.get(
+        url, headers: {'tkn': Env.tkn}
+      );
+
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body);
+        return data['tipo_cambio'] as double;
+      } else if (resp.statusCode == 404) {
+        throw Exception('No se encontró el tipo de cambio para esta venta');
+      } else {
+        throw Exception('Error al obtener tipo de cambio: ${resp.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
   }
 }

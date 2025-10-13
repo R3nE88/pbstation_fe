@@ -46,7 +46,7 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
         children: [
           AlertDialog(
             backgroundColor: AppTheme.containerColor2,
-            title: const Text('Para continuar ingrese su contraseña\nde Administrador',textAlign: TextAlign.center, textScaler: TextScaler.linear(0.8)),
+            title: const Text('🔒 Para continuar ingrese la contraseña\nde algun Administrador',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
             content: SizedBox(
               width: 300,
               child: Form(

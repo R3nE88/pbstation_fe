@@ -1,5 +1,7 @@
+import 'package:pbstation_frontend/env.dart';
+
 class Constantes{
-  static const String baseUrl = '//127.0.0.1:8000/';   //'//127.0.0.1:8000/'; //http://192.168.1.108:8000/docs
+  static final String baseUrl = Env.debug ? '//127.0.0.1:8000/' : '//api.theprinterboy.com/';
   static const double anchoMaximo = 25; //TODO: Agregar esto a ajustes y mover a configuracion
   static const double altoMaximo = 25; //Agregar esto a ajustes? para modificar el valor
   static late final String version;

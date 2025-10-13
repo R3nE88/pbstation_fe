@@ -34,9 +34,12 @@ class Ventas {
     Decimal? cambio,
     required this.liquidado,
     bool? wasDeuda,
+    bool? cancelado,
+    this.motivoCancelacion,
   })  : abonadoTotal = abonadoTotal ?? Decimal.parse('0'),
         cambio = cambio ?? Decimal.parse('0'),
-        wasDeuda = wasDeuda ?? false;
+        wasDeuda = wasDeuda ?? false,
+        cancelado = cancelado ?? false;
 
   String? id;
   String? folio;
@@ -68,6 +71,8 @@ class Ventas {
   Decimal cambio;
   bool liquidado;
   bool wasDeuda;
+  bool cancelado;
+  String? motivoCancelacion;
 
   factory Ventas.fromJson(String str) => Ventas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -105,6 +110,8 @@ class Ventas {
     cambio: Decimal.parse(json['cambio']), 
     liquidado: json['liquidado'],
     wasDeuda: json['was_deuda'],
+    cancelado: json['cancelado'] ?? false,
+    motivoCancelacion: json['motivo_cancelacion']
   );
 
   Map<String, dynamic> toMap() => {
@@ -138,5 +145,7 @@ class Ventas {
     'cambio': cambio,
     'liquidado':liquidado,
     'was_deuda':wasDeuda,
+    'cancelado': cancelado,
+    'motivo_cancelacion': motivoCancelacion
   };
 }

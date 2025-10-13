@@ -153,7 +153,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     double entrada = 0;
     if (_efectivo){
       entrada += _efectivoImporte;
-      entrada += CalculosDinero().dolarAPesos(_dolarImporte);
+      entrada += CalculosDinero().dolarAPesos(_dolarImporte,  CajasServices.cajaActual!.tipoCambio);
     }
     if (_tarjeta){
       entrada += _tarjetaImporte;
@@ -287,7 +287,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte);
+    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte, CajasServices.cajaActual!.tipoCambio);
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -397,7 +397,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte);
+    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte, CajasServices.cajaActual!.tipoCambio); //TODO: puedo pagar deudas si no tengo caja? si no tengo caja esto va a fallar!!
     
     Decimal? abonadoMx;
     Decimal? abonadoUs;
@@ -530,7 +530,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                     items: _opciones.map((impresora) {
                       return DropdownMenuItem<Impresoras>(
                         value: impresora,
-                        child: Text(impresora.modelo),
+                        child: Text('#${impresora.numero} ${impresora.modelo}'),
                       );
                     }).toList(),
                     onChanged: (val) => setState(() => _opcionSeleccionada = val),
@@ -828,7 +828,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: _transRefCtrl,
                                     focusNode: _focusReferenciaTransferencia,
                                     canRequestFocus: _transferencia,
-                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
                                     buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                                     //maxLength: 10,
                                     decoration: const InputDecoration(
@@ -995,8 +995,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   }
 }
 
-
-class VentaRealizadaDialog extends StatelessWidget {
+class VentaRealizadaDialog extends StatefulWidget {
   const VentaRealizadaDialog({
     super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false, this.datosDeuda
   });
@@ -1008,60 +1007,85 @@ class VentaRealizadaDialog extends StatelessWidget {
   final Map<String, double>? datosDeuda;
 
   @override
-  Widget build(BuildContext context) {
-    FocusNode boton = FocusNode();
+  State<VentaRealizadaDialog> createState() => _VentaRealizadaDialogState();
+}
 
-    //imprimir ticket, abrir caja
-    !isDeuda ?
-    Ticket.imprimirTicketVenta(context, venta, folio)
-    : 
-    Ticket.imprimirTicketDeudaPagada(context, venta, folio, datosDeuda);
-    
-    Row formField(String mensaje, double value, InputDecoration decoration) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text('$mensaje  ', style: AppTheme.subtituloPrimario),
-          SizedBox(
-            height: 30,
-            width: 150,
-            child: TextFormField(
-              controller: TextEditingController(text: Formatos.pesos.format(value)),
-              canRequestFocus: false,
-              inputFormatters: [ MoneyInputFormatter() ],
-              readOnly: true,
-              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-              maxLength: 10,
-              decoration: decoration
-            )
+class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
+  FocusNode boton = FocusNode();
+  bool finish = false;
+
+  Row formField(String mensaje, double value, InputDecoration decoration) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text('$mensaje  ', style: AppTheme.subtituloPrimario),
+        SizedBox(
+          height: 30,
+          width: 150,
+          child: TextFormField(
+            controller: TextEditingController(text: Formatos.pesos.format(value)),
+            canRequestFocus: false,
+            inputFormatters: [ MoneyInputFormatter() ],
+            readOnly: true,
+            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+            maxLength: 10,
+            decoration: decoration
           )
-        ],
-      );
+        )
+      ],
+    );
+  }
+
+  void submited(){
+    setState(() {finish;});
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    
+    //imprimir ticket, abrir caja
+    !widget.isDeuda ?
+    Ticket.imprimirTicketVenta(context, widget.venta, widget.folio)
+    : 
+    Ticket.imprimirTicketDeudaPagada(context, widget.venta, widget.folio, widget.datosDeuda);
+  }
+
+  @override
+  void dispose() {
+    boton.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (finish){
+      return const SimpleLoading();
     }
-    
-    
+        
     //si no es deuda
-    return !isDeuda ? AlertDialog(
+    return !widget.isDeuda ? AlertDialog(
       backgroundColor: AppTheme.containerColor2,
       title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', venta.recibidoTotal.toDouble(), AppTheme.inputDecorationSeccess),
+          formField('Recibido:', widget.venta.recibidoTotal.toDouble(), AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
-          formField('Total:', venta.total.toDouble(), AppTheme.inputDecorationCustom), 
+          formField('Total:', widget.venta.total.toDouble(), AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),
-          venta.cambio.toDouble() == 0 
-          ? formField('Adeudo:',  adeudo, AppTheme.inputDecorationWaringGrave)
-          : formField('Cambio:', venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
+          widget.venta.cambio.toDouble() == 0 
+          ? formField('Adeudo:',  widget.adeudo, AppTheme.inputDecorationWaringGrave)
+          : formField('Cambio:', widget.venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
         ],
       ),
       actions: [
         ElevatedButton(
           autofocus: true,
           focusNode: boton,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Continuar', style: TextStyle(    fontWeight: FontWeight.w700))
+          onPressed: () => submited(),
+          child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
         )
       ],
     ) 
@@ -1072,18 +1096,18 @@ class VentaRealizadaDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          formField('Recibido:', datosDeuda!['deuda_recibido']!, AppTheme.inputDecorationSeccess),
+          formField('Recibido:', widget.datosDeuda!['deuda_recibido']!, AppTheme.inputDecorationSeccess),
           const SizedBox(height: 15),
-          formField('Total:', datosDeuda!['deuda_total']!, AppTheme.inputDecorationCustom), 
+          formField('Total:', widget.datosDeuda!['deuda_total']!, AppTheme.inputDecorationCustom), 
           const SizedBox(height: 15),
-          formField('Cambio:', datosDeuda!['deuda_cambio']!, AppTheme.inputDecorationWaring),           
+          formField('Cambio:', widget.datosDeuda!['deuda_cambio']!, AppTheme.inputDecorationWaring),           
         ],
       ),
       actions: [
         ElevatedButton(
           autofocus: true,
           focusNode: boton,
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => submited(),
           child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
         )
       ],

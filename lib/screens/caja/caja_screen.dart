@@ -2,10 +2,12 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
+import 'package:pbstation_frontend/screens/caja/dialog/venta_dialog.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -25,6 +27,7 @@ class _CajaScreenState extends State<CajaScreen> {
   List<Ventas> _ventasParaMostrar = [];
   bool _initLoad = false;
   late Cortes _corteSelected;
+  List<Cortes>? _cortesHistorial;
   late Cajas _cajaSelected;
 
   @override
@@ -38,6 +41,7 @@ class _CajaScreenState extends State<CajaScreen> {
   }
 
   void datosIniciales(){
+     print('datos iniciales');
     final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
     ventasSvc.loadVentasDeCaja().whenComplete(
       () {
@@ -65,46 +69,58 @@ class _CajaScreenState extends State<CajaScreen> {
     );
   }
 
-  Decimal sumarTotal (List<Ventas> ventas){
-    Decimal sumaTotal = Decimal.zero;
-    for (var venta in ventas) {
-      sumaTotal += venta.abonadoTotal;
-    }
-    return sumaTotal;
-  }
+  Decimal sumarTotal(List<Ventas> ventas) => 
+    ventas.fold(Decimal.zero, (sum, venta) => sum + venta.abonadoTotal);
 
-  void filtrarVentasPor(Map<String, String>? opcion) async{
-    if (opcion==null) return;
-    //Si es un corte
-    if (opcion.keys.first=='corte'){
-      final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-      final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-      Loading.displaySpinLoading(context);
-      List<String> ventasIds = cajaSvc.cortesDeCaja.firstWhere((element) => element.id == opcion.values.first).ventasIds;
-      _ventasParaMostrar = await ventaSvc.loadVentasDeCortes(ventasIds);
-      setState(() {});
-      if (!mounted) return;
-      Navigator.pop(context);
-    }
-    //Si es un usuario
-    if (opcion.keys.first=='users'){
-      List<Ventas> tmp = [];
-      for (var venta in Provider.of<VentasServices>(context, listen: false).ventasDeCaja) {
-        if (venta.usuarioId == opcion.values.first){
-          tmp.add(venta);
+  void filtrarVentasPor(Map<String, String>? opcion) async {
+    if (opcion == null) return;
+    
+    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
+    final ventasSource = widget.readMode 
+        ? ventaSvc.ventasDeCajaHistorial 
+        : ventaSvc.ventasDeCaja;
+
+    List<Ventas> ventasFiltradas = [];
+
+    switch (opcion.keys.first) {
+      case 'corte':
+        Loading.displaySpinLoading(context);
+        final cajasSvc = Provider.of<CajasServices>(context, listen: false);
+        final cortesLista = widget.readMode ? _cortesHistorial! : cajasSvc.cortesDeCaja;
+        final ventasIds = cortesLista
+            .firstWhere((element) => element.id == opcion.values.first)
+            .ventasIds;
+        
+        if (widget.readMode) {
+          ventasFiltradas = ventasSource
+              .where((venta) => ventasIds.contains(venta.id))
+              .toList();
+        } else {
+          ventasFiltradas = await ventaSvc.loadVentasDeCortes(ventasIds);
         }
-      }
-      _ventasParaMostrar = tmp;
-      setState(() {});
-    }
-    //Si es la venta total (otro)
-    if (opcion.keys.first=='otro'){
-      _ventasParaMostrar = Provider.of<VentasServices>(context, listen: false).ventasDeCaja;
-      setState(() {});
-    }
+        
+        if (mounted) {
+          setState(() {
+            _ventasParaMostrar = ventasFiltradas;
+            _corteSelected = cortesLista.firstWhere((element) => element.id == opcion.values.first);
+          });
+          Navigator.pop(context);
+        }
+        break;
 
+      case 'users':
+        ventasFiltradas = ventasSource
+            .where((venta) => venta.usuarioId == opcion.values.first)
+            .toList();
+        setState(() => _ventasParaMostrar = ventasFiltradas);
+        break;
+
+      case 'todos':
+        setState(() => _ventasParaMostrar = ventasSource);
+        break;
+    }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     if (widget.readMode==true && widget.caja==null){
@@ -112,8 +128,7 @@ class _CajaScreenState extends State<CajaScreen> {
     }
 
     return Consumer3<UsuariosServices, VentasServices, CajasServices>(
-      builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {
-        
+      builder: (context, usuariosSvc, ventasSvc, cajasSvc, child) {        
         if(widget.caja==null){
           if (Configuracion.esCaja && (CajasServices.cajaActual==null || CajasServices.corteActualId==null)){
             return AbrirCaja(metodo: datosIniciales);
@@ -129,6 +144,7 @@ class _CajaScreenState extends State<CajaScreen> {
           if (usuariosSvc.isLoading || cajasSvc.isLoadingHistorial || ventasSvc.isLoadingHistorial){
             return const LoadingWidget();
           } else if (_initLoad == false){
+            _cortesHistorial = CajasServices.cortesHistorial!;
             _corteSelected = CajasServices.cortesHistorial!.first;
             _cajaSelected = CajasServices.cajaHistorial!;
             _initLoad = true;
@@ -141,11 +157,12 @@ class _CajaScreenState extends State<CajaScreen> {
             children: [
               //Header
               _Header(
-                total: sumarTotal(_ventasParaMostrar),
                 onFiltroCambio: (value) => filtrarVentasPor(value),
                 caja: _cajaSelected,
                 corte: _corteSelected,
+                ventas: _ventasParaMostrar,
                 readMode: widget.readMode,
+                cortesHistorial: _cortesHistorial,
               ), 
               //Body
               Expanded(
@@ -158,12 +175,18 @@ class _CajaScreenState extends State<CajaScreen> {
                         child: ListView.builder(
                           itemCount: _ventasParaMostrar.length,
                           itemBuilder: (context, index) {
-                            return _FilaVentas(index: index, venta: _ventasParaMostrar[index]);
+                            return _FilaVentas(
+                              index: index, 
+                              venta: _ventasParaMostrar[index], 
+                              tc: widget.readMode ? widget.caja!.tipoCambio : CajasServices.cajaActual!.tipoCambio, 
+                              readMode: widget.readMode, 
+                              callback: datosIniciales,
+                            );
                           },
                         ),
                       ),
                     ),
-                    _TablaFooter(total: _ventasParaMostrar.length)
+                    _TablaFooter(total: _ventasParaMostrar.length, venta: sumarTotal(_ventasParaMostrar).toDouble(),)
                   ],
                 )
               ),
@@ -175,175 +198,536 @@ class _CajaScreenState extends State<CajaScreen> {
   }
 }
 
-
-
-class _Header extends StatelessWidget {
-  const _Header({required this.total, required this.onFiltroCambio, required this.corte, required this.caja, this.readMode = false});
-  final Decimal total;
+class _Header extends StatefulWidget {
+  const _Header({required this.onFiltroCambio, required this.corte, required this.caja, required this.ventas, this.readMode = false, required this.cortesHistorial});
   final ValueChanged<Map<String, String>?> onFiltroCambio;
   final Cortes corte;
   final Cajas caja;
+  final List<Ventas> ventas;
   final bool readMode;
+  final List<Cortes>? cortesHistorial;
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  String estado = 'todos'; //'corte' 'users'
+
+  void filtrarVentasPor(Map<String, String>? opcion) async {
+    widget.onFiltroCambio(opcion);
+    
+    if (opcion == null) return;
+    switch (opcion.keys.first) {
+      case 'todos':
+        setState(() { estado = 'todos'; });
+        break;
+      case 'corte':
+        setState(() { estado = 'corte'; });
+        break;
+      case 'users':
+        setState(() { estado = 'users'; });
+        break;
+    }
+  }
+  
+  Widget headerTodos() {
+    final DateTime fechaCaja = DateTime.parse(widget.caja.fechaApertura);
+    final String mes = DateFormat('d - MMMM - yyyy', 'es_MX').format(fechaCaja).toUpperCase();
+    final String horaAper = DateFormat('hh:mm a').format(fechaCaja);
+
+    final DateTime? fechaCie;
+    if (widget.caja.fechaCierre!=null){
+      fechaCie = DateTime.parse(widget.caja.fechaCierre!);
+    } else { fechaCie=null; }
+    final String? horaCie = fechaCie!= null ? DateFormat('hh:mm a').format(fechaCie) : null;
+
+    final String usuarioAbrio = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.caja.usuarioId);
+    final String? usuarioCerro;  
+    if (widget.caja.estado == 'cerrada'){
+      Cortes? corteReciente;
+      if (widget.cortesHistorial != null && widget.cortesHistorial!.isNotEmpty) {
+        final cortesConFecha = widget.cortesHistorial!.where((c) => c.fechaCorte != null).toList();
+        if (cortesConFecha.isNotEmpty) {
+          corteReciente = cortesConFecha.reduce((a, b) {
+            final fechaA = DateTime.parse(a.fechaCorte!);
+            final fechaB = DateTime.parse(b.fechaCorte!);
+            return fechaA.isAfter(fechaB) ? a : b;
+          });
+        }
+      }
+      usuarioCerro = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(corteReciente!.usuarioIdCerro!);
+    } else { usuarioCerro = null; }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.tablaColorHeader,
+            border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            )
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                      ],
+                    ),
+                    const SizedBox(width: 15), // Separación mínima entre grupos
+                    Text(mes, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.8)),
+                  ],
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        RichText(
+                          textAlign: TextAlign.center,
+                          textScaler: const TextScaler.linear(0.8),
+                          text: TextSpan(
+                            style: AppTheme.labelStyle,
+                            children: [
+                              const TextSpan(text: 'Abierto por '),
+                              TextSpan(
+                                text: usuarioAbrio,
+                                style: AppTheme.tituloClaro,
+                              ),
+                              const TextSpan(text: ' a las '),
+                              TextSpan(
+                                text: horaAper,
+                                style: AppTheme.tituloClaro,
+                              ),
+                            ],
+                          ),
+                        ),
+                        usuarioCerro != null
+                        ? RichText(
+                            textAlign: TextAlign.center,
+                            textScaler: const TextScaler.linear(0.8),
+                            text: TextSpan(
+                              style: AppTheme.labelStyle,
+                              children: [
+                                const TextSpan(text: 'Cerrado por '),
+                                TextSpan(
+                                  text: usuarioCerro,
+                                  style: AppTheme.tituloClaro,
+                                ),
+                                const TextSpan(text: ' a las '),
+                                TextSpan(
+                                  text: horaCie,
+                                  style: AppTheme.tituloClaro,
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox(),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget headerCorte() {
+    final DateTime fechaCaja = DateTime.parse(widget.caja.fechaApertura);
+    final String mes = DateFormat('d - MMMM - yyyy', 'es_MX').format(fechaCaja).toUpperCase();
+    final DateTime fechaAper = DateTime.parse(widget.corte.fechaApertura); 
+    final String horaAper = DateFormat('hh:mm a').format(fechaAper);
+    final DateTime? fechaCie;
+    if (widget.corte.fechaCorte!=null){
+      fechaCie = DateTime.parse(widget.corte.fechaCorte!);
+    } else { fechaCie=null; }
+    final String? horaCie = fechaCie!= null ? DateFormat('hh:mm a').format(fechaCie) : null;
+
+    final String usuarioAbrio = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.corte.usuarioId);
+    final String? usuarioCerro;  
+    if (widget.corte.usuarioIdCerro!=null){
+      usuarioCerro = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.corte.usuarioIdCerro!);
+    } else { usuarioCerro = null; }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.tablaColorHeader,
+            border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            )
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(mes, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.8)),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                      ],
+                    ),
+                    const SizedBox(width: 15), // Separación mínima entre grupos
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.1)),
+                        Text(widget.corte.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4))
+                      ],
+                    ),
+                  ],
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        RichText(
+                          textAlign: TextAlign.center,
+                          textScaler: const TextScaler.linear(0.8),
+                          text: TextSpan(
+                            style: AppTheme.labelStyle,
+                            children: [
+                              const TextSpan(text: 'Abierto por '),
+                              TextSpan(
+                                text: usuarioAbrio,
+                                style: AppTheme.tituloClaro,
+                              ),
+                              const TextSpan(text: ' a las '),
+                              TextSpan(
+                                text: horaAper,
+                                style: AppTheme.tituloClaro,
+                              ),
+                            ],
+                          ),
+                        ),
+                        usuarioCerro != null
+                        ? RichText(
+                            textAlign: TextAlign.center,
+                            textScaler: const TextScaler.linear(0.8),
+                            text: TextSpan(
+                              style: AppTheme.labelStyle,
+                              children: [
+                                const TextSpan(text: 'Cerrado por '),
+                                TextSpan(
+                                  text: usuarioCerro,
+                                  style: AppTheme.tituloClaro,
+                                ),
+                                const TextSpan(text: ' a las '),
+                                TextSpan(
+                                  text: horaCie,
+                                  style: AppTheme.tituloClaro,
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox(),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget headerUsers() {
+    final DateTime fechaCaja = DateTime.parse(widget.caja.fechaApertura);
+    final String mes = DateFormat('d - MMMM - yyyy', 'es_MX').format(fechaCaja).toUpperCase();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.tablaColorHeader,
+            border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            )
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
+                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                      ],
+                    ),
+                    const SizedBox(width: 15), // Separación mínima entre grupos
+                    Text(mes, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.8)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final cortesLista = widget.cortesHistorial ?? Provider.of<CajasServices>(context, listen: false).cortesDeCaja;
+    if (cortesLista.length==1){
+      estado = 'corte';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    
-    final DateTime fecha = DateTime.parse(corte.fechaApertura);
-    final mes = DateFormat('MMM', 'es_MX').format(fecha).toUpperCase();
-    final String hora = DateFormat('hh:mm a').format(fecha);
-    final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(corte.usuarioId);
-    
     return Stack(
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.bottomLeft,
       children: [
 
         //Header izqui
-        Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Padding(
+          padding: EdgeInsets.only(left: widget.readMode ? 40 : 15),
+          child: estado == 'todos' 
+            ? headerTodos() 
+            : estado == 'corte' 
+              ? headerCorte() 
+              : estado == 'users' 
+                ? headerUsers() 
+                : const SizedBox(),
+        ),
+        //Header centra/derecho
+        Stack(
+          alignment: Alignment.bottomRight,
           children: [
             Transform.translate(
-              offset: Offset(readMode? 70 :0, -8),
+              offset: const Offset(-15, -60),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
-                  const Text('   TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                  Text(corte.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6))
+                  
+                  _CajaBoton(
+                    label: 'Movimientos',
+                    icon: Icons.swap_horiz,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          MovimientoCajaDialog(cortes: widget.cortesHistorial),
+                          const WindowBar(overlay: true),
+                        ],
+                      ),
+                    ),
+                    cerrar: false,
+                    disabled: false,
+                  ),
+                  SizedBox(width: !widget.readMode ? 15 : 0),
+
+                  widget.readMode==true ? 
+                  BotonDetalles(
+                    estado: estado,
+                    caja: widget.caja,
+                    corte: widget.corte,
+                    ventas: widget.ventas,
+                  ) : const SizedBox(),
+                  
+                  widget.readMode==false ?
+                  _CajaBoton(
+                    label: 'Realizar Corte',
+                    icon: Icons.price_check,
+                    onTap: () => showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          CorteDialog(cierre: false, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                          const WindowBar(overlay: true),
+                        ],
+                      ),
+                    ),
+                    cerrar: false,
+                    disabled: !Configuracion.esCaja,
+                  ): const SizedBox(),
+                  SizedBox(width: widget.readMode==false ? 15: 0),
+
+                  widget.readMode==false ?
+                  _CajaBoton(
+                    label: 'Cerrar Caja',
+                    icon: Icons.point_of_sale,
+                    onTap: () => showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          CorteDialog(cierre: true, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                          const WindowBar(overlay: true),
+                        ],
+                      ),
+                    ),
+                    cerrar: true, 
+                    disabled: !Configuracion.esCaja,
+                  ): const SizedBox(),
                 ],
               ),
             ),
+        
+            
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
+              mainAxisSize: MainAxisSize.min,
+              children: [ 
+
+                //Info ReadMode
+                widget.readMode ? 
                 Padding(
-                  padding: const EdgeInsets.only(left: 13, right: 13, bottom: 13),
+                  padding: const EdgeInsets.only(right: 25),
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.tablaColorHeader,
-                      borderRadius: const BorderRadius.all(Radius.circular(12))
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(15),
+                        topRight: Radius.circular(15),
+                      ),
+                      border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Turno actual abierto por\n$usuario', textAlign: TextAlign.center),
-                          Text('${fecha.day}/$mes/${fecha.year} a las $hora'),
+                          Text(
+                            Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.caja.sucursalId),
+                            style: AppTheme.tituloClaro,
+                          ),
+                          Text('Tipo de cambio: ${Formatos.moneda.format(widget.caja.tipoCambio)}', textScaler: const TextScaler.linear(0.8))
                         ],
                       ),
                     ),
                   ),
-                ),
-                
-                Container(
-                  decoration: BoxDecoration(
-                      color: AppTheme.tablaColorHeader,
-                      border: const Border(bottom: BorderSide(color: Colors.black12, width: 3)),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12)
-                      ),
-                    ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Text('Total: ', textScaler: TextScaler.linear(1.3)),
-                            Text(Formatos.pesos.format(total.toDouble()),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                )
+                : const SizedBox(),
+
+                //Drop Down Button
+                Filtro(onFiltroCambio: (value) => filtrarVentasPor(value), cortesHistorial: widget.cortesHistorial),
+                const SizedBox(height: 88),
               ],
             ),
-          ],
-        ),
-    
-        //Header centra/derecho
-        readMode==false ?
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _CajaBoton(
-                  label: 'Movimientos',
-                  icon: Icons.swap_horiz,
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        MovimientoCajaDialog(),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: false,
-                  disabled: false,
-                ),
-                const SizedBox(width: 15),
-                _CajaBoton(
-                  label: 'Realizar Corte',
-                  icon: Icons.price_check,
-                  onTap: () => showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        CorteDialog(cierre: false),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: false,
-                  disabled: !Configuracion.esCaja,
-                ),
-                const SizedBox(width: 15),
-                _CajaBoton(
-                  label: 'Cerrar Caja',
-                  icon: Icons.point_of_sale,
-                  onTap: () => showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        CorteDialog(cierre: true),
-                        WindowBar(overlay: true),
-                      ],
-                    ),
-                  ),
-                  cerrar: true, 
-                  disabled: !Configuracion.esCaja,
-                ),
-              ],
-            ),
-            const SizedBox(height: 40),
-        
-            //Drop Down Button
-            Filtro(onFiltroCambio: onFiltroCambio),
         
           ],
-        ) : const SizedBox(),
+        )
       ],
     );
   }
 }
 
+class BotonDetalles extends StatelessWidget {
+  const BotonDetalles({
+    super.key, required this.estado, required this.caja, required this.corte, required this.ventas,
+  });
+
+  final String estado;
+  final Cajas caja;
+  final Cortes corte;
+  final List<Ventas> ventas;
+
+  @override
+  Widget build(BuildContext context) {
+    if (estado=='todos'){
+      return const SizedBox();
+      /*return _CajaBoton(
+        label: 'Detalles de la Caja',
+        icon: Icons.price_check,
+        onTap: () => showDialog(
+          context: context,
+          builder: (_) => const Stack(
+            alignment: Alignment.topRight,
+            children: [
+              WindowBar(overlay: true),
+            ],
+          ),
+        ),
+        cerrar: false,
+        disabled: false,
+      );*/
+    } else if (estado=='corte'){
+      return Padding(
+        padding: const EdgeInsets.only(left: 15),
+        child: _CajaBoton(
+          label: 'Detalles del Corte',
+          icon: Icons.price_check,
+          onTap: () => showDialog(
+            context: context,
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                CorteDialog(cierre: false, caja: caja, corte:corte, ventas: ventas, readMode: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
+          ),
+          cerrar: false,
+          disabled: false,
+        ),
+      );
+    }
+    return const SizedBox();
+  }
+}
+
 class Filtro extends StatefulWidget {
-  const Filtro({super.key, required this.onFiltroCambio});
+  const Filtro({super.key, required this.onFiltroCambio, this.cortesHistorial});
 
   final ValueChanged<Map<String, String>?> onFiltroCambio;
+  final List<Cortes>? cortesHistorial;
 
   @override
   State<Filtro> createState() => _FiltroState();
@@ -351,7 +735,7 @@ class Filtro extends StatefulWidget {
 
 class _FiltroState extends State<Filtro> {
   final List<Map<String, String>> opciones = [
-    {'otro':'Todas las ventas del dia'},
+    {'todos':'Todas las ventas del dia'},
   ];
 
   Map<String, String>? _valorSeleccionado;
@@ -362,28 +746,54 @@ class _FiltroState extends State<Filtro> {
   @override
   void initState() {
     super.initState();
-    //Agregar los cortes como opcion
-    for (var corte in Provider.of<CajasServices>(context, listen: false).cortesDeCaja) {
-      opciones.add({'corte': corte.id!});
+    final cajasSvc = Provider.of<CajasServices>(context, listen: false);
+    final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final cortesLista = widget.cortesHistorial ?? cajasSvc.cortesDeCaja;
+    if (cortesLista.length==1){
+      opciones.removeAt(0);
     }
-    //Agregar los empelados como opcion
-    for (var users in Provider.of<UsuariosServices>(context, listen: false).usuarios) {
-      opciones.add({'users': users.id!});
-    }
-
-
+    opciones.addAll(
+      cortesLista.map((corte) => {'corte': corte.id!})
+    );
+    opciones.addAll(
+      usuariosSvc.usuarios.map((user) => {'users': user.id!})
+    );
     _valorSeleccionado = opciones.first;
-    _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
-    });
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() => _isFocused = _focusNode.hasFocus);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  String _getDropdownText(Map<String, String> opcion) {
+    final key = opcion.keys.first;
+    final value = opcion.values.first;
+    
+    if (key == 'todos') return value;
+    
+    if (key == 'corte') {
+      final cajasSvc = Provider.of<CajasServices>(context, listen: false);
+      final cortesLista = widget.cortesHistorial ?? cajasSvc.cortesDeCaja;
+      final corte = cortesLista.firstWhere((element) => element.id == value);
+      final esTurnoActual = CajasServices.corteActualId == corte.id;
+      return 'Turno: ${corte.folio!}${esTurnoActual ? ' (actual)' : ''}';
+    }
+    
+    if (key == 'users') {
+      final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
+      final user = usuariosSvc.usuarios.firstWhere((element) => element.id == value);
+      return user.nombre;
+    }
+    
+    return '';
   }
 
   @override
@@ -393,7 +803,7 @@ class _FiltroState extends State<Filtro> {
       child: Container(
         height: 40,
         decoration: BoxDecoration(
-          color: _isFocused ? AppTheme.containerColor2 : AppTheme.tablaColorHeader,
+          color: _isFocused ? AppTheme.tablaColorHeader.withAlpha(200) : AppTheme.tablaColorHeader,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(15),
             topRight: Radius.circular(15),
@@ -406,24 +816,9 @@ class _FiltroState extends State<Filtro> {
             focusNode: _focusNode,
             value: _valorSeleccionado,
             items: opciones.map((opcion) {
-              late final String texto;
-              if (opcion.keys.first=='otro') {
-                texto = opcion.values.first;
-              } else if (opcion.keys.first=='corte') {
-                Cortes corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja.firstWhere((element) => element.id == opcion.values.first);
-                if (CajasServices.corteActualId == corte.id) {
-                  texto = 'Corte: ${corte.folio!} (turno actual)';
-                } else {
-                  texto = 'Corte: ${corte.folio!}';
-                }
-                
-              } else if (opcion.keys.first=='users'){
-                Usuarios user = Provider.of<UsuariosServices>(context, listen: false).usuarios.firstWhere((element) => element.id == opcion.values.first);
-                texto = user.nombre;
-              }
               return DropdownMenuItem<Map<String, String>>(
                 value: opcion,
-                child: Text(texto),
+                child: Text(_getDropdownText(opcion)),
               );
             }).toList(),
             dropdownColor: AppTheme.containerColor2,
@@ -433,6 +828,7 @@ class _FiltroState extends State<Filtro> {
               widget.onFiltroCambio(nuevo);
               setState(() {
                 _valorSeleccionado = nuevo;
+                _focusNode.unfocus();
                 
               });
             },
@@ -461,7 +857,7 @@ class _TablaHeader extends StatelessWidget {
         children: [
           Expanded(flex: 4, child: Text('Folio', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Cliente', textAlign: TextAlign.center)),
+          Expanded(flex: 5, child: Text('Cliente', textAlign: TextAlign.center)),
           Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
@@ -470,7 +866,7 @@ class _TablaHeader extends StatelessWidget {
           Expanded(flex: 4, child: Tooltip(
             message: 'El color amarillo indica que la cuenta aún está pendiente de pago,\nmientras que el verde señala que ya ha sido liquidada.',
             waitDuration: Duration(milliseconds: 250),
-            child: Text('Pagado', textAlign: TextAlign.center)
+            child: Text('Total pagado', textAlign: TextAlign.center)
           )),
           Expanded(flex: 3, child: Text('Hora', textAlign: TextAlign.center)),
         ],
@@ -480,10 +876,13 @@ class _TablaHeader extends StatelessWidget {
 }
 
 class _FilaVentas extends StatelessWidget {
-  const _FilaVentas({required this.index, required this.venta});
+  const _FilaVentas({required this.index, required this.venta, required this.tc, required this.readMode, required this.callback});
 
   final int index;
   final Ventas venta;
+  final double tc;
+  final bool readMode;
+  final Function() callback;
 
   @override
   Widget build(BuildContext context) {
@@ -497,9 +896,9 @@ class _FilaVentas extends StatelessWidget {
     final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
     //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
 
-    late TextStyle estilo;
+    TextStyle estilo;
     if (venta.liquidado && venta.wasDeuda){
-      estilo = const TextStyle(color: Colors.green, fontWeight: FontWeight.bold);
+      estilo = AppTheme.goodStyle;
     } else if (!venta.liquidado) {
       estilo = AppTheme.warningStyle;
     } else {
@@ -507,36 +906,55 @@ class _FilaVentas extends StatelessWidget {
     }
 
 
-    return Container(
-      padding: const EdgeInsets.all(8),
-      color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Row(
-        children: [
-          Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-        ],
+    return FeedBackButton(
+      onlyVertical: true,
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (_) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              VentaDialog(venta: venta, tc: tc, isActive: !readMode, callback: callback),
+              const WindowBar(overlay: true),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        color: venta.cancelado ? AppTheme.colorError2.withAlpha(125) : index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+        child: Row(
+          children: [
+            Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 5, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            !venta.cancelado ?
+            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center))
+            :
+            Expanded(flex: 4, child: Text('CANCELADO', style: estilo, textAlign: TextAlign.center)),
+            Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _TablaFooter extends StatelessWidget {
-  const _TablaFooter({required this.total});
+  const _TablaFooter({required this.total, required this.venta});
 
   final int total;  
+  final double venta;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(1),
       decoration: BoxDecoration(
         color: AppTheme.tablaColorHeader,
         borderRadius: const BorderRadius.only(
@@ -546,8 +964,18 @@ class _TablaFooter extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Spacer(),
+          
           Text('  Total de ventas: $total   ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const Spacer(),
+
+          Row(
+            children: [
+              const Text('Total: ', textScaler: TextScaler.linear(1.2)),
+              Text(Formatos.pesos.format(venta),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.5)),
+              const SizedBox(width: 8)
+            ],
+          ),
+
         ],
       ),
     );
@@ -571,7 +999,7 @@ class _CajaBoton extends StatelessWidget {
       child: ElevatedButton(
         style: cerrar 
         ? ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 241, 85, 38),
+          backgroundColor: AppTheme.colorError2,
           disabledBackgroundColor: Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8), // Custom radius

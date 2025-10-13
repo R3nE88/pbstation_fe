@@ -8,7 +8,7 @@ class DetallesVenta {
     required this.cantidad,
     this.ancho,
     this.alto,
-    required this.comentarios,
+    this.comentarios,
     required this.descuento,
     required this.descuentoAplicado,
     required this.iva,
@@ -21,7 +21,7 @@ class DetallesVenta {
   int cantidad;
   double? ancho;
   double? alto;
-  String comentarios;
+  String? comentarios;
   int descuento;
   Decimal descuentoAplicado;
   Decimal iva;

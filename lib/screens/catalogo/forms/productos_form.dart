@@ -70,6 +70,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
         child: Text(entry.value),
       );
     }).toList();
+    _tipoSeleccionado = _dropdownItemsTipo.first.value;
 
     _dropdownItemsCat = Constantes.categoria.entries.map((entry) {
       return DropdownMenuItem<String>(
@@ -77,6 +78,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
         child: Text(entry.value),
       );
     }).toList();
+    _categoriaSeleccionada = _dropdownItemsCat.first.value;
   }
 
   @override

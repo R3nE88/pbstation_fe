@@ -11,7 +11,7 @@ class Cotizaciones {
     required this.sucursalId,
     required this.detalles,
     required this.fechaCotizacion,
-    required this.comentariosVenta,
+    this.comentariosVenta,
     required this.subTotal,
     required this.descuento,
     required this.iva,
@@ -26,12 +26,13 @@ class Cotizaciones {
   String sucursalId;
   List<DetallesVenta> detalles;
   String fechaCotizacion;
-  String comentariosVenta;
+  String? comentariosVenta;
   Decimal subTotal;
   Decimal descuento;
   Decimal iva;
   Decimal total;
   bool vigente;
+  //TODO: etablecer bien cuales variables pueden ser null
 
   factory Cotizaciones.fromJson(String str) => Cotizaciones.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());

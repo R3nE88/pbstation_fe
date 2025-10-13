@@ -43,7 +43,8 @@ class SucursalesServices extends ChangeNotifier{
     if (init==false) return;
     try {
       final directory = await getApplicationSupportDirectory();
-      final file = File('${directory.path}/config.json');
+      final String fileName = Env.debug ? 'config_debug' : 'config';
+      final file = File('${directory.path}/$fileName.json');
 
       if (!await file.exists()) {
         sucursalError = true;
@@ -177,7 +178,7 @@ class SucursalesServices extends ChangeNotifier{
     if (sucursalActualID!=null && sucursalActual==null){
       try {
         sucursalActual = sucursales.firstWhere((element) => element.id == sucursalActualID);
-      } catch (e) { sucursalActual = null; }
+      } catch (e) { sucursalActual = null; sucursalActualID = null;}
     }
     
     isLoading = false;

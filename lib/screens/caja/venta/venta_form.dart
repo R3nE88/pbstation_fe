@@ -288,7 +288,7 @@ class _VentaFormState extends State<VentaForm> {
                 pedidoPendiente: !_entregaInmediata, 
                 fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(), 
                 detalles: _detallesVenta,
-                comentariosVenta: _comentarioController.text, 
+                comentariosVenta: _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
                 subTotal: formatearEntrada(_subtotalController.text),
                 descuento: formatearEntrada(_totalDescuentoController.text),
                 iva: formatearEntrada(_totalIvaController.text),
@@ -330,7 +330,7 @@ class _VentaFormState extends State<VentaForm> {
       pedidoPendiente: !_entregaInmediata, 
       fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(),
       detalles: _detallesVenta,
-      comentariosVenta: _comentarioController.text, 
+      comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
       subTotal: formatearEntrada(_subtotalController.text), 
       descuento: formatearEntrada(_totalDescuentoController.text), 
       iva: formatearEntrada(_ivaController.text), 
@@ -409,7 +409,7 @@ class _VentaFormState extends State<VentaForm> {
       sucursalId: SucursalesServices.sucursalActualID!,
       detalles: _detallesVenta, 
       fechaCotizacion: now.toIso8601String(), 
-      comentariosVenta: _comentariosController.text,
+      comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null,
       subTotal: formatearEntrada(_subtotalController.text),
       descuento: formatearEntrada(_totalDescuentoController.text),
       iva: formatearEntrada(_ivaController.text),
@@ -1161,7 +1161,7 @@ class _VentaFormState extends State<VentaForm> {
                             cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
                             ancho: double.parse(_anchoController.text), 
                             alto: double.parse(_altoController.text), 
-                            comentarios: _comentarioController.text,
+                            comentarios: _comentarioController.text.isNotEmpty ? _comentarioController.text : null,
                             descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
                             descuentoAplicado: _descuentoAplicado,
                             iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
@@ -1199,7 +1199,7 @@ class _VentaFormState extends State<VentaForm> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('Precio del dolar: ${Formatos.pesos.format(Configuracion.dolar.toDouble())}'),
+                        Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}'),
                       ],
                     ),
                   ),
@@ -1261,7 +1261,7 @@ class _VentaFormState extends State<VentaForm> {
                                     _cantidadController.text = _detallesVenta[index].cantidad.toString();
                                     _anchoController.text = _detallesVenta[index].ancho.toString();
                                     _altoController.text = _detallesVenta[index].alto.toString();
-                                    _comentarioController.text = _detallesVenta[index].comentarios.toString();
+                                    _comentarioController.text = _detallesVenta[index].comentarios!=null ? _detallesVenta[index].comentarios.toString() : '';
                                     _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
                                     _ivaController.text = _detallesVenta[index].iva.toString();
                                     _productoTotalController.text = _detallesVenta[index].subtotal.toString();
@@ -1337,7 +1337,7 @@ class _VentaFormState extends State<VentaForm> {
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  Tooltip( 
+                                  /*Tooltip(  //TODO: en desarrollo
                                     message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
                                     child: ElevatedButton(
                                       onPressed: (){
@@ -1345,7 +1345,7 @@ class _VentaFormState extends State<VentaForm> {
                                       },
                                       child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
                                     ),
-                                  ),
+                                  ),*/
                                 ],
                               ),
                             ),

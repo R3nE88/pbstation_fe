@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:pbstation_frontend/models/detalles_venta.dart';
 import 'package:pbstation_frontend/services/configuracion.dart';
+import 'package:pbstation_frontend/services/services.dart';
 
 class CalculosDinero {
 
@@ -62,16 +63,16 @@ class CalculosDinero {
     };
   }
 
-  double dolarAPesos(double importe){
+  double dolarAPesos(double importe, double tc){
     Decimal imp = Decimal.parse(importe.toString());
-    Decimal precioDolar = Decimal.parse(Configuracion.dolar.toString());
+    Decimal precioDolar = Decimal.parse(tc.toString());
     Decimal total = (imp * precioDolar).round(scale: 2);
     return total.toDouble();
   }
 
-  double pesosADolar(double importe){
+  double pesosADolar(double importe, double tc){
     Decimal imp = Decimal.parse(importe.toString());
-    Decimal precioDolar = Decimal.parse(Configuracion.dolar.toString());
+    Decimal precioDolar = Decimal.parse(tc.toString());
     Decimal total = (imp / precioDolar).toDecimal();
     return total.toDouble();
   }

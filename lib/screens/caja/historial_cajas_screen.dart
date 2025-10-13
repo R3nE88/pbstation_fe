@@ -57,15 +57,23 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
         children: [
           CajaScreen(readMode: true, caja: _cajaSelected!),
           Transform.translate(
-            offset: const Offset(61, 16),
-            child: ElevatedButton(
-              onPressed: (){
-
-              }, 
-              child: Transform.scale(
-                scale: 2,
-                child: Icon(Icons.chevron_left, color: AppTheme.primario1,)
-              )
+            offset: const Offset(65, 18),
+            child: Transform.scale(
+              scale: 0.8,
+              child: IconButton(
+                onPressed: () {
+                  setState(() {_cajaScreen = false;});
+                },
+                icon: Transform.scale(
+                  scale: 2,
+                  child: const Icon(Icons.chevron_left)
+                ),
+                color: AppTheme.primario1,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                ),
+              ),
             )
           )
         ],
@@ -76,11 +84,11 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
       child: Column(
         children: [ 
 
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
           
-              Tooltip(
+              /*Tooltip( //TODO: en desarrollo
                 message: 'En desarrollo...',
                 verticalOffset: 10,
                 child: ElevatedButton(
@@ -102,9 +110,9 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
                     ],
                   )
                 ),
-              ),
+              ),*/
               
-              Tooltip(
+              /*Tooltip( //TODO: en desarrollo
                 message: 'Proximamente podras filtrar por sucursales...',
                 child: ElevatedButton( //TODO: si no tengo sucursal activa, desactivar este filtro y siempre mostrar todas, y cambiar esto por un dropdownmenu
                   onPressed: (){
@@ -125,7 +133,7 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
                     ],
                   )
                 ),
-              ),
+              ),*/
             ],
           ),
 

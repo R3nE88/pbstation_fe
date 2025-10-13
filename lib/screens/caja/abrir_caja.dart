@@ -93,10 +93,10 @@ class _AbrirCajaState extends State<AbrirCaja> {
   @override
   Widget build(BuildContext context) {
     if (SucursalesServices.sucursalActualID==null){
-      return const Column(
+      return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Necesitas tener una sucursal vinculada a esta terminal\npara acceder a esta pantalla.', style: AppTheme.tituloPrimario, textAlign: TextAlign.center)
+          Text('Necesitas tener una sucursal vinculada a esta terminal\npara acceder a esta pantalla.', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
         ],
       );
     }
@@ -241,6 +241,8 @@ class _AbrirCajaState extends State<AbrirCaja> {
       List<TextEditingController> controllers = [];
       for (var i = 0; i < impresoraSvc.impresoras.length; i++) {
         controllers.add(TextEditingController());
+        double? contador = impresoraSvc.ultimosContadores.entries.firstWhere((element) => element.key == impresoraSvc.impresoras[i].id).value?.cantidad.toDouble();
+        controllers[i].text = contador!=null ? Formatos.numero.format(contador) : '';
       }
       
       return Padding(
@@ -248,7 +250,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
         child: Center(
           child: Container(
             //height: 230,
-            width: 400,
+            width: 350,
             decoration: BoxDecoration(
               color: AppTheme.containerColor1,
               borderRadius: BorderRadius.circular(15)
@@ -276,17 +278,23 @@ class _AbrirCajaState extends State<AbrirCaja> {
                           controller: controllers[index],
                           autofocus: index==0 ? true : false,
                           decoration: InputDecoration(
-                            labelText: impresoraSvc.impresoras[index].modelo
+                            labelText: impresoraSvc.impresoras[index].modelo,
                           ),
                           inputFormatters: [ NumericFormatter() ],
                           buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                           maxLength: 12,
+                          onFieldSubmitted: (value) {
+                            if (index == impresoraSvc.impresoras.length-1){
+                              abrirCaja(controllers);
+                            }
+                          },
                         ) : const SizedBox(),
                       );
                     }), const SizedBox(height: 8),
                 
                     !_loadingToComplete ? ElevatedButton(
                       onPressed: () => abrirCaja(controllers),
+                      autofocus: impresoraSvc.impresoras.isEmpty,
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

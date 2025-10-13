@@ -107,6 +107,8 @@ class AppTheme{
   static Color get colorError => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 228, 15, 0)
       : const Color.fromRGBO(235, 16, 0, 1);
+
+  static const Color colorError2 = Color.fromARGB(255, 241, 85, 38);
   
   static TextStyle get subtituloConstraste => TextStyle(
     color: changeThemeInstance?.isDarkTheme == true ? letraClara : const Color.fromARGB(255, 38, 38, 38)
@@ -126,6 +128,12 @@ class AppTheme{
     color: letraClara,
     fontWeight: FontWeight.w600,
     letterSpacing: 1.2
+  );
+
+  static final TextStyle goodStyle = TextStyle(
+    color: changeThemeInstance?.isDarkTheme == true ? 
+    const Color.fromARGB(255, 87, 222, 91) : Colors.green, 
+    fontWeight: FontWeight.bold
   );
 
   static final TextStyle errorStyle = TextStyle(

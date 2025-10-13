@@ -16,6 +16,7 @@ class _Documentacion {
   //PRODUCTOS_FORM.dart (este si usa formatter)
     ///controllers['precio']!,
 
+    ///final String fechaFormateada = DateFormat('EEEE dd-MMM-yyyy hh:mm a', 'es_MX').format(fecha);
 
   // ESPERAR TIEMPO
   //await Future.delayed(const Duration(seconds: 2));

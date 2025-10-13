@@ -76,7 +76,9 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
       telefono: _controllers['telefono']!.text,
       direccion: _controllers['direccion']!.text,
       localidad: localidad,
-      activo: true
+      activo: true,
+      prefijoFolio: widget.sucEdit?.prefijoFolio ?? ''
+
     );
 
     final respuesta = widget.sucEdit == null

@@ -12,7 +12,7 @@ class VentasEnviadas {
     required this.pedidoPendiente,
     this.fechaEntrega,
     required this.detalles,
-    required this.comentariosVenta,
+    this.comentariosVenta,
     required this.subTotal,
     required this.descuento,
     required this.iva,
@@ -29,7 +29,7 @@ class VentasEnviadas {
   bool pedidoPendiente;
   String? fechaEntrega;
   List<DetallesVenta> detalles;
-  String comentariosVenta;
+  String? comentariosVenta;
   Decimal subTotal;
   Decimal descuento;
   Decimal iva;
