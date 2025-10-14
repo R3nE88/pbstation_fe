@@ -9,6 +9,7 @@ import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
+import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -572,7 +573,7 @@ class _VentaFormState extends State<VentaForm> {
                                     showSecondaryFirst: false,
                                     normalBorder: false, 
                                     icono: Icons.perm_contact_cal_sharp, 
-                                    defaultFirst: false, 
+                                    defaultFirst: true, 
                                     hintText: 'Buscar Cliente', 
                                     error: _clienteError, 
                                   ),
@@ -586,8 +587,22 @@ class _VentaFormState extends State<VentaForm> {
                                   ),
                                   child: Center(
                                     child: FeedBackButton(
-                                      onPressed: () {
-                                        //TODO: agregar cliente
+                                      onPressed: () async{
+                                        Clientes? clienteCreated = await showDialog(
+                                          context: context,
+                                          builder: (_) => const Stack(
+                                            alignment: Alignment.topRight,
+                                            children: [
+                                              ClientesFormDialog(),
+                                              WindowBar(overlay: true),
+                                            ],
+                                          ),
+                                        );
+                                        if (clienteCreated!=null){
+                                          setState(() {
+                                            _clienteSelected = clienteCreated;
+                                          });
+                                        }                                        
                                       },
                                       child: Icon(Icons.add, color: AppTheme.containerColor1, size: 28)
                                     )
@@ -662,13 +677,16 @@ class _VentaFormState extends State<VentaForm> {
                                   padding: const EdgeInsets.all(3),
                                   child: Row(
                                     children: [
-                                      Checkbox(
-                                        focusNode: _checkboxFocus2,
-                                        focusColor: AppTheme.focusColor,
-                                        value: !_entregaInmediata, 
-                                        onChanged: (value)async {
-                                          await elegirFecha();
-                                        } 
+                                      Tooltip(
+                                        message: 'Funcion en desarrollo...',
+                                        child: Checkbox(
+                                          focusNode: _checkboxFocus2,
+                                          focusColor: AppTheme.focusColor,
+                                          value: !_entregaInmediata, 
+                                          onChanged: (value)async {
+                                            //TODO: quitar este comentario await elegirFecha();
+                                          } 
+                                        ),
                                       ),
                                       SizedBox(
                                         width: 140,
@@ -707,7 +725,7 @@ class _VentaFormState extends State<VentaForm> {
                                     Center(
                                       child: FeedBackButton(
                                         onPressed: () async {
-                                          await elegirFecha();
+                                          //TODO: quitar este comentario await elegirFecha();
                                         },
                                         child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
                                       )
@@ -1199,7 +1217,9 @@ class _VentaFormState extends State<VentaForm> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}'),
+                        CajasServices.cajaActual!=null ? 
+                        Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}')
+                        : const SizedBox(),
                       ],
                     ),
                   ),

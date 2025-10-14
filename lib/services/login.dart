@@ -8,7 +8,8 @@ import 'package:pbstation_frontend/models/usuarios.dart';
 class Login {
   final String _baseUrl = 'http:${Constantes.baseUrl}login';
   static late Usuarios usuarioLogeado;
-  static late bool admin;
+  static late final bool isAdmin;
+  static late final bool isSuper;
   bool isLoading = false;
     
   Future<bool> login(String correo, String psw) async {
@@ -34,7 +35,17 @@ class Login {
           usuarioLogeado = Usuarios.fromJson(resp.body);
           usuarioLogeado.id = json.decode(resp.body)['id'];
 
-          admin = usuarioLogeado.rol == 'admin';
+          if (usuarioLogeado.rol == 'admin'){
+            isAdmin = true;
+            isSuper = false;
+          } else if (usuarioLogeado.rol == 'super'){
+            isAdmin = true;
+            isSuper = true;
+          } else {
+            isSuper = false;
+            isSuper = false;
+          }
+
           success = true;
         } catch (e) {
           if (kDebugMode) {

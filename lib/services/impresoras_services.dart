@@ -317,12 +317,14 @@ class ImpresorasServices extends ChangeNotifier{
         updated.id = data['id']?.toString();
         impresoras = impresoras.map((prod) => prod.id == updated.id ? updated : prod).toList();
         
-        notifyListeners();
         isLoading = false;
+        notifyListeners();
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar el producto!');
         }
+        isLoading = false;
+        notifyListeners();
       }
     }
   }

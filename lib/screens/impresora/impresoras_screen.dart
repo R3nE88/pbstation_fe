@@ -29,7 +29,7 @@ class ImpresorasScreen extends StatelessWidget {
                   crossAxisCount: screenSize < 1300 ? 3 : 4,
                   childAspectRatio: 3,
                   children: List.generate(value.impresoras.length+1, (index) {
-                    if (index==0 && Login.admin) return const AgregarImpresora();
+                    if (index==0 && Login.isAdmin) return const AgregarImpresora();
                     final contador = value.ultimosContadores[value.impresoras[index-1].id];
                     return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
                   })
@@ -256,7 +256,7 @@ class ImpresorasCards extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('#${impresora.numero}', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.15)),
-                Login.admin ? MouseRegion(
+                Login.isAdmin ? MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     onTapDown: (details) {

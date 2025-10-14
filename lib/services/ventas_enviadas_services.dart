@@ -72,11 +72,6 @@ class VentasEnviadasServices extends ChangeNotifier{
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
-        /*final Map<String, dynamic> data = json.decode(resp.body);
-        final nuevo = VentasEnviadas.fromMap(data);
-        nuevo.id = data['id']?.toString();
-
-        ventas.add(nuevo);*/ //TODO no deberia guardar ventaporque si envio soy no caja, y solo la caja debe ver esta info
         if (kDebugMode) {
           print('venta enviada!');
         }
@@ -114,7 +109,7 @@ class VentasEnviadasServices extends ChangeNotifier{
         url, headers: headers
         );
       if (resp.statusCode == 204){
-        //ventas.removeWhere((venta) => venta.id==id); TODO lo mismo que arriba
+        ventas.removeWhere((venta) => venta.id==id);
         exito = true;
       }
     } catch (e) {

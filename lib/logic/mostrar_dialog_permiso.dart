@@ -44,11 +44,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
         alignment: Alignment.topRight,
         children: [
           AlertDialog(
-            title: const Text(
-              'Ingresa las credenciales de un administrador para continuar.',
-              textAlign: TextAlign.center,
-              textScaler: TextScaler.linear(0.9),
-            ),
+            title: const Text('🔒 Para continuar ingrese las credenciales\nde algun Administrador',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
             backgroundColor: AppTheme.containerColor2,
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -63,7 +59,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
                       style: AppTheme.textFormField,
                       textAlign: TextAlign.center,
                       decoration: const InputDecoration(
-                        hintText: 'Email',
+                        hintText: 'Email o Telefono',
                         counterText: '',
                       ),
                       validator: (value) =>

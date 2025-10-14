@@ -14,7 +14,8 @@ class Configuracion extends ChangeNotifier{
   static String lastVersion = '0.0.0';
   static late bool esCaja;
   static late String nombrePC;
-  static late String impresora;
+  static late String? impresora;
+  static late String? size;
   static late String cajaActual;
   bool init = false;
   bool loaded = false;
@@ -50,7 +51,8 @@ class Configuracion extends ChangeNotifier{
           esCaja = archivo['es_caja'];
           nombrePC = archivo['nombre_pc'];
           final prefs = await SharedPreferences.getInstance();
-          impresora = prefs.getString('selectedUsbDevice') ?? 'null';
+          impresora = prefs.getString('selectedUsbDevice') ?? null;
+          size = prefs.getString('selectedSize') ?? '58mm';
           //impresora = archivo['impresora'];
         } catch (e) {
           loaded = false;
@@ -64,6 +66,105 @@ class Configuracion extends ChangeNotifier{
       if (kDebugMode) {
         print(e);
       }
+    }
+  }
+
+  /// Actualiza el precio del dólar
+  Future<bool> actualizarPrecioDolar(double nuevoPrecio) async {
+    try {
+      final url = Uri.parse('${_baseUrl}precio-dolar');
+      final resp = await http.put(
+        url,
+        headers: {
+          'tkn': Env.tkn,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'precio_dolar': nuevoPrecio,
+        }),
+      );
+
+      if (resp.statusCode == 200) {
+        dolar = nuevoPrecio;
+        notifyListeners();
+        return true;
+      } else {
+        if (kDebugMode) {
+          print('Error al actualizar precio dólar: ${resp.statusCode}');
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error al actualizar precio dólar: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Actualiza el porcentaje de IVA
+  Future<bool> actualizarIva(int nuevoIva) async {
+    try {
+      final url = Uri.parse('${_baseUrl}iva');
+      final resp = await http.put(
+        url,
+        headers: {
+          'tkn': Env.tkn,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'iva': nuevoIva,
+        }),
+      );
+
+      if (resp.statusCode == 200) {
+        iva = nuevoIva;
+        notifyListeners();
+        return true;
+      } else {
+        if (kDebugMode) {
+          print('Error al actualizar IVA: ${resp.statusCode}');
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error al actualizar IVA: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Actualiza la versión del sistema
+  Future<bool> actualizarVersion(String nuevaVersion) async {
+    try {
+      final url = Uri.parse('${_baseUrl}version');
+      final resp = await http.put(
+        url,
+        headers: {
+          'tkn': Env.tkn,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'last_version': nuevaVersion,
+        }),
+      );
+
+      if (resp.statusCode == 200) {
+        lastVersion = nuevaVersion;
+        notifyListeners();
+        return true;
+      } else {
+        if (kDebugMode) {
+          print('Error al actualizar versión: ${resp.statusCode}');
+        }
+        return false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error al actualizar versión: $e');
+      }
+      return false;
     }
   }
 }

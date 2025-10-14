@@ -82,8 +82,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
               ),
             ),
-            SizedBox(width: Login.admin ? 15 : 0),
-            Login.admin ? ElevatedButton(
+            SizedBox(width: Login.isAdmin ? 15 : 0),
+            Login.isAdmin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
                 builder: (_) => const Stack(
@@ -203,7 +203,7 @@ class FilaCliente extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
-      if (Login.admin) {
+      if (Login.isAdmin) {
         seleccion = await showMenu(
           context: context,
           position: RelativeRect.fromLTRB(

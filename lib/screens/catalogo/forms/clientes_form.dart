@@ -150,19 +150,21 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     if (!mounted) return;
     Navigator.pop(context);
 
-    if (respuesta == 'exito') {
-      Navigator.pop(context);
-    } else {
+    if (respuesta?.contains('error')??true) {
       showDialog(
         context: context,
         builder: (context) => Stack(
           alignment: Alignment.topRight,
           children: [
-            CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
+            CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta??''),
             const WindowBar(overlay: true),
           ],
         ),
       );
+    } else {
+      widget.cliEdit == null ? 
+      cliente.id = respuesta : cliente.id = widget.cliEdit!.id;
+      Navigator.pop(context, cliente);
     }
   }
 

@@ -75,7 +75,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
 
     final usuario = Usuarios(
       nombre: _controllers['nombre']!.text,
-      correo: _controllers['correo']!.text,
+      correo: _controllers['correo']!.text.toLowerCase(),
       telefono: _controllers['telefono']!.text.isEmpty ? null : int.tryParse(_controllers['telefono']!.text),
       psw: widget.usuEdit==null ? _controllers['psw']!.text : null,
       rol: _administrator==true ? 'admin' : 'empleado',

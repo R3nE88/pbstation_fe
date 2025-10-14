@@ -20,10 +20,23 @@ class Ticket {
   static late final VentasServices ventaSvc;
   static late final ImpresorasServices impresoraSvc;   
 
+  static PaperSize _obtenerSize(){
+    switch (Configuracion.size) {
+      case '58mm':
+        return PaperSize.mm58;
+      case '72mm':
+        return PaperSize.mm72;
+      case '80mm':
+        return PaperSize.mm80;
+      default:
+        return PaperSize.mm58;
+    }
+  }
+
   /*static Future<List<int>>_generarQR(String data) async {
     // Using default profile
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
+    final generator = Generator(_obtenerSize(), profile);
     List<int> bytes = [];
 
     String qrData = data;
@@ -51,7 +64,7 @@ class Ticket {
   static Future<List<int>> _generarTicketDeVenta(BuildContext context, Ventas venta, String folio) async {
     // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
+    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
     String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
     List<int> bytes = [];
 
@@ -149,7 +162,7 @@ class Ticket {
   static Future<List<int>> _generarTicketDeudaPagada(BuildContext context, Ventas venta, String folio, Map<String, double> datosDeuda) async {
     // Load default capability profile (includes font and code page info)
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
+    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
     String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
     List<int> bytes = [];
 
@@ -249,7 +262,7 @@ class Ticket {
 
   static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cajas caja, Cortes corte, List<Ventas> ventas, Map<String, TextEditingController> impresoraControllers) async {
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);  // 58mm paper width
+    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
     DateTime fecha = DateTime.parse(corte.fechaApertura);
     String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
     String fechaCorteFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaCorte!));
@@ -528,13 +541,13 @@ class Ticket {
   }
 
   static void imprimirTicketVenta(context, venta, folio) async{
-    if (Configuracion.impresora != 'null') {
-      bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+    if (Configuracion.impresora != null) {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora!);
       UsbDevice device = UsbDevice(
-        name: Configuracion.impresora, 
+        name: Configuracion.impresora!, 
         model: 'x', 
         isDefault: true, 
-        available: true
+        available: true,
       );
       if (connected) {
         cargarServices(context);
@@ -547,10 +560,10 @@ class Ticket {
   }
 
   static void imprimirTicketDeudaPagada(context, venta, folio, datosDeuda) async{
-    if (Configuracion.impresora != 'null') {
-      bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+    if (Configuracion.impresora != null) {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora!);
       UsbDevice device = UsbDevice(
-        name: Configuracion.impresora, 
+        name: Configuracion.impresora!, 
         model: 'x', 
         isDefault: true, 
         available: true
@@ -566,10 +579,10 @@ class Ticket {
   }
 
   static void imprimirTicketCorte(context, Cajas caja, Cortes corte, List<Ventas> ventas, Map<String, TextEditingController> impresoraControllers) async{
-    if (Configuracion.impresora != 'null') {
-      bool connected = await PrintUsb.connect(name: Configuracion.impresora);
+    if (Configuracion.impresora != null) {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora!);
       UsbDevice device = UsbDevice(
-        name: Configuracion.impresora, 
+        name: Configuracion.impresora!, 
         model: 'x', 
         isDefault: true, 
         available: true

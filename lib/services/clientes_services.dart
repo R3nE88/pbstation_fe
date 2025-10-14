@@ -98,7 +98,7 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  Future<String> createCliente(Clientes cliente) async {
+  Future<String?> createCliente(Clientes cliente) async {
     isLoading = true;
 
     final connectionId = WebSocketService.connectionId;
@@ -130,15 +130,17 @@ class ClientesServices extends ChangeNotifier{
         if (kDebugMode) {
           print('cliente creado!');
         }
-        return 'exito';
+
+        cargarClientes(clientes);
+        return nuevo.id;
       } else {
         debugPrint('Error al crear cliente: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
-        return body['detail'];
+        return 'error: ${body['detail']}';
       }
     } catch (e) {
       debugPrint('Exception en createCliente: $e');
-      return 'Hubo un problema al crear el cliente.\n$e';
+      return 'error: Hubo un problema al crear el cliente.\n$e';
     } finally {
       isLoading = false;
       notifyListeners();
@@ -210,6 +212,7 @@ class ClientesServices extends ChangeNotifier{
         clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
 
         filteredClientes = clientes;
+        cargarClientes(clientes);
         notifyListeners();
         return 'exito';
       } else {
@@ -240,13 +243,16 @@ class ClientesServices extends ChangeNotifier{
         updated.id = data['id']?.toString();
         clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
         filteredClientes = clientes;
-
-        notifyListeners();
+        cargarClientes(clientes);
+        
         isLoading = false;
+        notifyListeners();
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar el cliente!');
         }
+        isLoading = false;
+        notifyListeners();
       }
     }
   }

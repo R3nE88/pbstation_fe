@@ -207,7 +207,7 @@ class FilaSucursales extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
-      if (Login.admin) {
+      if (Login.isAdmin) {
         seleccion = await showMenu(
           context: context,
           position: RelativeRect.fromLTRB(

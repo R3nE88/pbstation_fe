@@ -257,12 +257,14 @@ class ProductosServices extends ChangeNotifier{
         
         filteredProductos = productos;
         cargarProductos(productos);
-        notifyListeners();
         isLoading = false;
+        notifyListeners();
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar el producto!');
         }
+        isLoading = false;
+        notifyListeners();
       }
     }
   }

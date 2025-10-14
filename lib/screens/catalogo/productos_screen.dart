@@ -84,8 +84,8 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 ),
               ),
             ),
-            SizedBox(width: Login.admin ? 15 : 0),
-            Login.admin ? ElevatedButton(
+            SizedBox(width: Login.isAdmin ? 15 : 0),
+            Login.isAdmin ? ElevatedButton(
               onPressed: () => showDialog(
                 context: context,
                 builder: (_) => const Stack(
@@ -207,7 +207,7 @@ class FilaProducto extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
-      if (Login.admin) {
+      if (Login.isAdmin) {
         seleccion = await showMenu(
           context: context,
           position: RelativeRect.fromLTRB(

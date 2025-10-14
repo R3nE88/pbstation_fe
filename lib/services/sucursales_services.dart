@@ -243,6 +243,8 @@ class SucursalesServices extends ChangeNotifier{
         if (kDebugMode) {
           print('sucursal creada!');
         }
+
+        cargarSucursales(sucursales);
         return 'exito';
       } else {
         debugPrint('Error al crear sucursal: ${resp.statusCode} ${resp.body}');
@@ -333,8 +335,9 @@ class SucursalesServices extends ChangeNotifier{
             sucursalActual!.id = sucursalActualID;
           }
         }
-        notifyListeners();
 
+        cargarSucursales(sucursales);
+        notifyListeners();
         return 'exito';
       } else {
         debugPrint('Error al actualizar sucursal: ${resp.statusCode} ${resp.body}');
@@ -364,12 +367,15 @@ class SucursalesServices extends ChangeNotifier{
         updated.id = data['id']?.toString();
         sucursales = sucursales.map((cli) => cli.id == updated.id ? updated : cli).toList();
 
-        notifyListeners();
+        cargarSucursales(sucursales);
         isLoading = false;
+        notifyListeners();
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al actualizar a sucursal');
         }
+        isLoading = false;
+        notifyListeners();
       }
     }
   }

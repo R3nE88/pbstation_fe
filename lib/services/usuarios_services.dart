@@ -151,6 +151,8 @@ class UsuariosServices extends ChangeNotifier{
         if (kDebugMode) {
           print('usuario creado!');
         }
+
+        cargarUsuarios(usuarios);
         return 'exito';
       } else {
         debugPrint('Error al crear usuario: ${resp.statusCode} ${resp.body}');
@@ -231,6 +233,7 @@ class UsuariosServices extends ChangeNotifier{
         usuarios = usuarios.map((cli) => cli.id == updated.id ? updated : cli).toList();
 
         filteredUsuarios = usuarios;
+        cargarUsuarios(usuarios);
         notifyListeners();
         return 'exito';
       } else {
@@ -286,12 +289,15 @@ class UsuariosServices extends ChangeNotifier{
         usuarios = usuarios.map((cli) => cli.id == updated.id ? updated : cli).toList();
         filteredUsuarios = usuarios;
 
-        notifyListeners();
+        cargarUsuarios(usuarios);
         isLoading = false;
+        notifyListeners();
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema: updateAUsuario!');
         }
+        isLoading = false;
+        notifyListeners();
       }
     }
   }

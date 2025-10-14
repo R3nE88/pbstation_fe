@@ -72,7 +72,7 @@ class VentaTab {
         totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
         totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
         totalController = TextEditingController(text: Formatos.pesos.format(0)),
-        permisoDeAdmin = Login.admin;
+        permisoDeAdmin = Login.isAdmin;
   
 
   void dispose() {
@@ -114,6 +114,6 @@ class VentaTab {
     totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0));
     totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
     totalController = TextEditingController(text: Formatos.pesos.format(0));
-    permisoDeAdmin = Login.admin;
+    permisoDeAdmin = Login.isAdmin;
   }
 }
