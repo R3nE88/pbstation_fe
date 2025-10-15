@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
-import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -99,11 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                     ),
                   ],
-                ),
-
-                
-
-                
+                ),                
             
                 /*ElevatedButton(
                   onPressed: (){
@@ -112,7 +107,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }, 
                   child: const Text('Elimitar Caja Actual')
                 ),*/
-            
             
                 Column(
                   children: [
@@ -204,10 +198,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Column(
                         children: [
-                          Configuracion.dolar == CajasServices.cajaActual?.tipoCambio ? 
-                          Text('Dolar: ${Formatos.moneda.format(Configuracion.dolar)}', style: AppTheme.subtituloPrimario,)
+                          CajasServices.cajaActual!=null && Configuracion.dolar != CajasServices.cajaActual?.tipoCambio ? 
+                          Text('Dolar: ${Formatos.moneda.format(Configuracion.dolar)}  (De caja: ${Formatos.moneda.format(CajasServices.cajaActual!.tipoCambio)})', style: AppTheme.subtituloPrimario)
                           :
-                          Text('Dolar: ${Formatos.moneda.format(Configuracion.dolar)}  (De caja: ${Formatos.moneda.format(CajasServices.cajaActual!.tipoCambio)})', style: AppTheme.subtituloPrimario),
+                          Text('Dolar: ${Formatos.moneda.format(Configuracion.dolar)}', style: AppTheme.subtituloPrimario),
                           Tooltip(
                             message: Login.isSuper ? '' : 'No tienes permisos para cambiar el precio del dolar',
                             child: Transform.scale(
