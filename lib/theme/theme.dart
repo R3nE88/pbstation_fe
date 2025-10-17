@@ -245,6 +245,8 @@ class AppTheme{
 
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: primario1),
+
     checkboxTheme: CheckboxThemeData(
       side: const BorderSide(color: AppTheme.letraClara),
       checkColor: WidgetStateProperty.all(AppTheme.containerColor1),
@@ -342,6 +344,8 @@ class AppTheme{
   );
 
   static final ThemeData customThemeDark = ThemeData.dark().copyWith(
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: letraClara),
+
     checkboxTheme: CheckboxThemeData(
       side: const BorderSide(color: AppTheme.letraClara),
       checkColor: WidgetStateProperty.all(AppTheme.containerColor1),

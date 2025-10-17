@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/models/pedidos.dart';
 export 'package:pbstation_frontend/models/paginacion_info.dart';
 export 'package:pbstation_frontend/models/cortes.dart';
 export 'package:pbstation_frontend/models/ventas_por_producto.dart';

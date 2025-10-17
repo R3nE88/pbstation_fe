@@ -11,7 +11,7 @@ class Modulos{
   static int subModuloSelected = 0;
 
   static bool deshabilitar(String value){ //Escribir que modulos se deshabilitan para el usuario sin permisos
-    if (Login.usuarioLogeado.rol != 'admin') {
+    if (!Login.isAdmin) {
       if (value == 'historial\nde cajas'){
         return true;
       }
@@ -122,7 +122,7 @@ class Modulos{
       ImpresorasScreen()
     ],
     'pedidos' : [
-      PantallaEnDesarrollo(), //Falta
+      PruebasScreen(),
       PantallaEnDesarrollo(), //Falta
       PantallaEnDesarrollo(), //Falta
     ],

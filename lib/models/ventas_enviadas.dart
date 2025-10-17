@@ -19,6 +19,7 @@ class VentasEnviadas {
     required this.total,
     required this.fechaEnvio,
     required this.compu,
+    this.pedidosIds,
   });
 
   String? id;
@@ -36,6 +37,7 @@ class VentasEnviadas {
   Decimal total;
   String fechaEnvio;
   String compu;
+  List<String>? pedidosIds;
 
   factory VentasEnviadas.fromJson(String str) => VentasEnviadas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -58,6 +60,7 @@ class VentasEnviadas {
     total: Decimal.parse(json['total']),
     fechaEnvio: json['fecha_envio'],
     compu: json['compu'],
+    pedidosIds: List<String>.from(json['pedidos_ids'] ?? []),
   );
 
   Map<String, dynamic> toMap() => {
@@ -75,6 +78,7 @@ class VentasEnviadas {
     'iva': iva,
     'total': total,
     'fecha_envio': fechaEnvio,
-    'compu': compu
+    'compu': compu,
+    'pedidos_ids': pedidosIds
   };
 }

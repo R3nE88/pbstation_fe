@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/services/pedidos_services.dart';
 export 'package:pbstation_frontend/services/impresoras_services.dart';
 export 'package:pbstation_frontend/services/cajas_services.dart';
 export 'package:pbstation_frontend/services/configuracion.dart';

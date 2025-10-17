@@ -19,7 +19,8 @@ class WebSocketService with ChangeNotifier {
     SucursalesServices sucursalesServices,
     CotizacionesServices cotizacionesServices,
     Configuracion configuracion,
-    ImpresorasServices impresoraService
+    ImpresorasServices impresoraService,
+    PedidosService pedidosServices
   ) {
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
@@ -30,6 +31,7 @@ class WebSocketService with ChangeNotifier {
     _instance._cotizacionesSvc = cotizacionesServices;
     _instance._config          = configuracion;
     _instance._impresoraSvc    = impresoraService;
+    _instance._pedidosSvc      = pedidosServices;
 
     _instance._setupHandlers();
     return _instance;
@@ -56,6 +58,7 @@ class WebSocketService with ChangeNotifier {
   late CotizacionesServices _cotizacionesSvc;
   late Configuracion _config;
   late ImpresorasServices _impresoraSvc;
+  late PedidosService _pedidosSvc;
 
   final Map<String, void Function(String)> _handlers = {};
 
@@ -108,12 +111,13 @@ class WebSocketService with ChangeNotifier {
         'post-contadores':   (id) => _impresoraSvc.loadContador(id),
         'put-contadores':    (id) => _impresoraSvc.loadContador(id),
         'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
-        'delete-venta-deuda':(id) => _ventaSvc.removeAVentaDeuda(id), //TODO: movimientos necesita? o corte? o caja?
+        'delete-venta-deuda':(id) => _ventaSvc.removeAVentaDeuda(id), 
+        //TODO: pedidos 'post-pedido'        (id) -> _pedidosSvc.loadAPedido(id),
         'ventaenviada':      (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();
           }
-        },
+        },//TODO: movimientos necesita? o corte? o caja?
 /*
 
         'put-configuracion': (_ ) => _config.loadConfiguracion(),

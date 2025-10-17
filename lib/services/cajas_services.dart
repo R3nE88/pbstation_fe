@@ -406,7 +406,7 @@ class CajasServices extends ChangeNotifier{
 
   Future<double> obtenerTCDeVenta(String ventaId) async {
     try {
-      final url = Uri.parse('$_baseUrl/ventas/$ventaId/tipo-cambio');
+      final url = Uri.parse('${_baseUrl}ventas/$ventaId/tipo-cambio');
       final resp = await http.get(
         url, headers: {'tkn': Env.tkn}
       );

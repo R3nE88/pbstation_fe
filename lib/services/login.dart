@@ -42,7 +42,7 @@ class Login {
             isAdmin = true;
             isSuper = true;
           } else {
-            isSuper = false;
+            isAdmin = false;
             isSuper = false;
           }
 

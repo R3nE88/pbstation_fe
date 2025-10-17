@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/screens/pruebas_screen.dart';
 export 'package:pbstation_frontend/screens/caja/historial_cajas_screen.dart';
 export 'package:pbstation_frontend/screens/caja/adeudos_screen.dart';
 export 'package:pbstation_frontend/screens/catalogo/usuarios_screen.dart';

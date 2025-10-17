@@ -16,15 +16,13 @@ class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
     super.key, 
     required this.venta,
-    required this.rebuild, 
-    this.index = 0,
+    required this.afterProcesar, 
     this.isDeuda = false,
     this.deudaMonto = 0
   });
 
   final Ventas venta;
-  final Function rebuild;
-  final int index;
+  final Function afterProcesar;
   final bool isDeuda;
   final double deudaMonto;
 
@@ -367,27 +365,22 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       await impresoraSvc.sumarContadores(_notificarContadores);
     } 
 
-    if (!mounted) return;
-    Navigator.pop(context, true);
-    
     //Ventana  de venta realizada
+    if (!mounted) return;    
     String folio = venta.folio!;
     await showDialog(
       context: context,
       builder: (context) => Stack(
         alignment: Alignment.topRight,
         children: [
-          VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble()),
+          VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), afterProcesar: widget.afterProcesar, ventaId: venta.id!),
           const WindowBar(overlay: true),
         ],
       )
-    ).then((value) {
-      //Resetear pantalla de venta principal
-      widget.rebuild(widget.index);
-    });
+    );
     
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context, venta.id);
   }
 
   Future<void> procesarDeuda() async{
@@ -466,23 +459,21 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     
     await Provider.of<ClientesServices>(context, listen: false).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
 
-    if (!mounted) return;
-    Navigator.pop(context, true);
-    
+    if (!mounted) return;    
     String folio = venta.folio!;
     await showDialog(
       context: context,
       builder: (context) => Stack(
         alignment: Alignment.topRight,
         children: [
-          VentaRealizadaDialog(venta: deudaPagada, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), isDeuda:true, datosDeuda: datosDeuda),
+          VentaRealizadaDialog(venta: deudaPagada, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), isDeuda:true, datosDeuda: datosDeuda, afterProcesar: widget.afterProcesar, ventaId: venta.id!),
           const WindowBar(overlay: true),
         ],
       )
     );
 
    if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
   @override
   Widget build(BuildContext context) {
@@ -997,7 +988,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
 class VentaRealizadaDialog extends StatefulWidget {
   const VentaRealizadaDialog({
-    super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false, this.datosDeuda
+    super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false, this.datosDeuda, required this.afterProcesar, required this.ventaId
   });
 
   final Ventas venta;
@@ -1005,6 +996,8 @@ class VentaRealizadaDialog extends StatefulWidget {
   final double adeudo;
   final bool isDeuda;
   final Map<String, double>? datosDeuda;
+  final Function afterProcesar;
+  final String ventaId;
 
   @override
   State<VentaRealizadaDialog> createState() => _VentaRealizadaDialogState();
@@ -1036,8 +1029,11 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
     );
   }
 
-  void submited(){
-    setState(() {finish;});
+  void submited()async{
+    setState(() {finish = true;});
+    await Future.delayed(const Duration(milliseconds: 50));
+    await widget.afterProcesar(widget.ventaId);
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -1059,36 +1055,46 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
     if (finish){
-      return const SimpleLoading();
+      return AlertDialog(
+        backgroundColor: AppTheme.containerColor2,
+        content: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator()     
+          ],
+        ),
+      );
     }
-        
+
     //si no es deuda
-    return !widget.isDeuda ? AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
-      title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          formField('Recibido:', widget.venta.recibidoTotal.toDouble(), AppTheme.inputDecorationSeccess),
-          const SizedBox(height: 15),
-          formField('Total:', widget.venta.total.toDouble(), AppTheme.inputDecorationCustom), 
-          const SizedBox(height: 15),
-          widget.venta.cambio.toDouble() == 0 
-          ? formField('Adeudo:',  widget.adeudo, AppTheme.inputDecorationWaringGrave)
-          : formField('Cambio:', widget.venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
+    return !widget.isDeuda ? 
+      AlertDialog(
+        backgroundColor: AppTheme.containerColor2,
+        title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            formField('Recibido:', widget.venta.recibidoTotal.toDouble(), AppTheme.inputDecorationSeccess),
+            const SizedBox(height: 15),
+            formField('Total:', widget.venta.total.toDouble(), AppTheme.inputDecorationCustom), 
+            const SizedBox(height: 15),
+            widget.venta.cambio.toDouble() == 0 
+            ? formField('Adeudo:',  widget.adeudo, AppTheme.inputDecorationWaringGrave)
+            : formField('Cambio:', widget.venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            autofocus: true,
+            focusNode: boton,
+            onPressed: () => submited(),
+            child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
+          )
         ],
-      ),
-      actions: [
-        ElevatedButton(
-          autofocus: true,
-          focusNode: boton,
-          onPressed: () => submited(),
-          child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
-        )
-      ],
-    ) 
+      ) 
     : //Si si es deuda
     AlertDialog(
       backgroundColor: AppTheme.containerColor2,

@@ -5,7 +5,6 @@ import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/venta_dialog.dart';
-import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -175,10 +174,7 @@ class FilaDeuda extends StatelessWidget {
     final detalles = Provider.of<ProductosServices>(context, listen: false).obtenerDetallesComoTexto(deuda.detalles);
     Decimal? monto = obtenerMontoPendiente(deuda.id!);
     Decimal abonadoTotal = (deuda.abonadoMxn??Decimal.zero) + (deuda.abonadoUs??Decimal.zero) + (deuda.abonadoTarj??Decimal.zero) + (deuda.abonadoTrans??Decimal.zero);
-    final bool isActive = Provider.of<VentasServices>(context, listen: false)
-    .ventasDeCaja
-    .any((element) => element.id == deuda.id);
-
+    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
 
     /*void mostrarMenu(BuildContext context, Offset offset) async {
       late final String? seleccion;
@@ -279,6 +275,8 @@ class FilaDeuda extends StatelessWidget {
       }
     }*/
 
+    bool deudaDeCajaACtual = ventaSvc.ventasDeCaja.any((venta) => venta.id == deuda.id);
+    
     return FeedBackButton(
       onlyVertical: true,
       onPressed: () {
@@ -287,7 +285,7 @@ class FilaDeuda extends StatelessWidget {
           builder: (_) => Stack(
             alignment: Alignment.topRight,
             children: [
-              VentaDialog(venta: deuda, tc: 0, isActive: isActive, callback: (){}, fromDeudas: true,),
+              VentaDialog(venta: deuda, tc: deudaDeCajaACtual ? CajasServices.cajaActual!.tipoCambio : 0, isActive: deudaDeCajaACtual, callback: (){}, fromDeudas: true,),
               const WindowBar(overlay: true),
             ],
           ),

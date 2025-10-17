@@ -1,1554 +1,1856 @@
 /*
+import 'dart:io';
 
 import 'package:decimal/decimal.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
-import 'package:pbstation_frontend/logic/ticket.dart';
-import 'package:pbstation_frontend/models/models.dart';
-import 'package:pbstation_frontend/services/login.dart';
-import 'package:pbstation_frontend/widgets/caja/voucher_board.dart';
-import 'package:pbstation_frontend/widgets/loading.dart';
-import 'package:pbstation_frontend/widgets/separador.dart';
-import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
+import 'package:pbstation_frontend/logic/venta_state.dart';
+import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
+import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/busqueda_field.dart';
+import 'package:pbstation_frontend/widgets/seleccionador_hora.dart';
+import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
-enum StepStage { contadores, esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
+class VentaForm extends StatefulWidget {
+  const VentaForm({super.key, required this.index, required this.rebuild});
 
-class CorteDialog extends StatefulWidget {
-  const CorteDialog({super.key, required this.cierre});
-
-  final bool cierre;
+  final int index;
+  final Function rebuild;
 
   @override
-  State<CorteDialog> createState() => _CorteDialogState();
+  State<VentaForm> createState() => _VentaFormState();
 }
 
-class _CorteDialogState extends State<CorteDialog> {
-  StepStage stage = StepStage.contadores;
+class _VentaFormState extends State<VentaForm> {
+  //Variables
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _checkboxFocus1 = FocusNode();
+  final _checkboxFocus2 = FocusNode();
 
-  // Impresoras controllers (uno por impresora)
-  final Map<String, TextEditingController> impresoraControllers = {};
+  late Clientes? _clienteSelected;
+  late bool _entregaInmediata;
+  late DateTime? _fechaEntrega;
+  late List<Productos> _productos;
+  late List<DetallesVenta> _detallesVenta;
+  late final TextEditingController _comentariosController;
 
-  final List<VentasPorProducto> _ventasPorProducto = [];
-  final List<Ventas> _ventasConDescuentos = [];
-  final Map<String, List<Ventas>> _ventasPorUsuario = {};
-  Decimal _subtotal = Decimal.zero;
-  Decimal _iva = Decimal.zero;
-  Decimal _total = Decimal.zero;
-  Decimal _abonadoMxn = Decimal.zero;
-  Decimal _abonadoUs = Decimal.zero;
-  Decimal _abonadoTarjD = Decimal.zero;
-  Decimal _abonadoTarjC = Decimal.zero;
-  Decimal _abonadoTrans = Decimal.zero;
+  //Todos estos son para agregar al DetallesVentaelected
+  late Productos? _productoSelected;
+  late final TextEditingController _precioController;
+  late final TextEditingController _cantidadController;
+  late final TextEditingController _anchoController;
+  late final TextEditingController _altoController;
+  late final TextEditingController _comentarioController;
+  late final TextEditingController _descuentoController;
+  late Decimal _descuentoAplicado;
+  late final TextEditingController _ivaController;
+  late final TextEditingController _productoTotalController;
 
-  // Denominaciones: ahora con tipo ('billete' | 'moneda') y valor
-  final List<Map<String, dynamic>> denominacionesMxn = [
-    {'value': 1000.0, 'kind': 'billete'},
-    {'value': 500.0, 'kind': 'billete'},
-    {'value': 200.0, 'kind': 'billete'},
-    {'value': 100.0, 'kind': 'billete'},
-    {'value': 50.0, 'kind': 'billete'},
-    {'value': 20.0, 'kind': 'billete'}, // billete de 20
-    {'value': 20.0, 'kind': 'moneda'},   // moneda de 20 (sí existe)
-    {'value': 10.0, 'kind': 'moneda'},
-    {'value': 5.0, 'kind': 'moneda'},
-    {'value': 2.0, 'kind': 'moneda'},
-    {'value': 1.0, 'kind': 'moneda'},
-    {'value': 0.5, 'kind': 'moneda'},
-  ];
-  final List<Map<String, dynamic>> denominacionesDlls = [
-    {'value': 100.0, 'kind': 'billete'},
-    {'value': 50.0, 'kind': 'billete'},
-    {'value': 20.0, 'kind': 'billete'},
-    {'value': 10.0, 'kind': 'billete'},
-    {'value': 5.0, 'kind': 'billete'},
-    {'value': 2.0, 'kind': 'billete'},
-    {'value': 1.0, 'kind': 'billete'}, 
-    {'value': 0.50, 'kind': 'half dollar'},
-    {'value': 0.25, 'kind': 'quarter'},
-    {'value': 0.10, 'kind': 'dime'},
-    {'value': 0.05, 'kind': 'nickel'},
-    {'value': 0.01, 'kind': 'penny'},
-  ];
+  late final TextEditingController _subtotalController;
+  late final TextEditingController _totalDescuentoController;
+  late final TextEditingController _totalIvaController;
+  late final TextEditingController _totalController;
 
-  //Esto es para que funcione el autoFocus del dolar
-  List<FocusNode> denominacionesDolarFocus = []; 
+  bool _anchoError = false;
+  bool _altoError = false;
+  bool _clienteError = false;
+  bool _detallesError = false;
 
-  //Para calcular el total
-  double efectivoPesos = 0;
-  double efectivoDolares = 0;
-  double efectivoDolaresAPeso = 0;
+  final _f8FocusNode = FocusNode();
+  late final bool Function(KeyEvent event) _keyHandler;
+  bool _canFocus = true;
 
-  // Controllers para cada denominación (lista paralela a `denominaciones`)
-  final List<TextEditingController> denomControllersMxn = [];
-  final List<TextEditingController> denomControllersDlls = [];
+  late bool _permisoDeAdmin;  
 
-  bool loadingImpresoras = false;
-  bool performingRetiro = false;
-  //int segundosTotales = 20;
-  late int segundosRestantes;
-
-  FocusNode primerFocusDlls = FocusNode();
-
-  // Voucher controllers
-  List<TextEditingController> debitoControllers = [];
-  List<TextEditingController> creditoControllers = [];
-  List<TextEditingController> transferenciaControllers = [];
-
-  final FocusNode _voucherButtonFocus = FocusNode();
-
-  DateTime fechaApertura = DateTime.parse(CajasServices.corteActual!.fechaApertura);
-  late String fechaAperturaFormatted;
-  DateTime fechaCorte = DateTime.now();
-  late String fechaCorteFormatted;
-
-  int reporteFinalPage = 1;
-
+  //pedidos
+  late List<File> _fileSeleccionado;
+  late bool _fromVentaEnviada;
+  late List<String> _pedidosIds;
 
   @override
   void initState() {
     super.initState();
-    //formatear fecha
-    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
-    CajasServices.corteActual!.fechaCorte = fechaCorte.toIso8601String();
-    CajasServices.corteActual!.usuarioIdCerro = Login.usuarioLogeado.id!;
-    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
-  
-    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-    _ventasPorProducto.addAll(ventasSvc.consolidarVentasPorProducto(ventasSvc.ventasDeCorteActual));
+    _permisoDeAdmin = VentasStates.tabs[widget.index].permisoDeAdmin;
 
-    //ReporteFinalDescuentosYVendedores
-    final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-    for (var venta in ventaSvc.ventasDeCorteActual) {
-      //Descuento
-      if (venta.descuento > Decimal.parse('0')){
-        _ventasConDescuentos.add(venta);
-      }
-      // Agrupar por usuario_id
-      final usuarioId = venta.usuarioId; 
-      _ventasPorUsuario.putIfAbsent(usuarioId, () => []);
-      _ventasPorUsuario[usuarioId]!.add(venta);
-    }
+    _clienteSelected = VentasStates.tabs[widget.index].clienteSelected;
+    _entregaInmediata = VentasStates.tabs[widget.index].entregaInmediata;
+    _fechaEntrega = VentasStates.tabs[widget.index].fechaEntrega;
+    _productos = VentasStates.tabs[widget.index].productos;
+    _detallesVenta = VentasStates.tabs[widget.index].detallesVenta;
+    _comentariosController = VentasStates.tabs[widget.index].comentariosController;
 
-    //ReporteFinalVenta
-    for (var venta in _ventasPorProducto) {
-      _subtotal += venta.subTotal;
-    }
-    for (var venta in _ventasPorProducto) {
-      _iva += venta.iva;
-    }
-    for (var venta in _ventasPorProducto) {
-      _total += venta.total;
-    }
+    //Todos estos son para agregar al productoSelected
+    _productoSelected = VentasStates.tabs[widget.index].productoSelected;
+    _precioController = VentasStates.tabs[widget.index].precioController;
+    _cantidadController = VentasStates.tabs[widget.index].cantidadController;
+    _anchoController = VentasStates.tabs[widget.index].anchoController;
+    _altoController = VentasStates.tabs[widget.index].altoController;
+    _comentarioController = VentasStates.tabs[widget.index].comentarioController;
+    _descuentoController = VentasStates.tabs[widget.index].descuentoController;
+    _descuentoAplicado = VentasStates.tabs[widget.index].descuentoAplicado;
+    _ivaController = VentasStates.tabs[widget.index].ivaController;
+    _productoTotalController = VentasStates.tabs[widget.index].productoTotalController;
+    _fromVentaEnviada = VentasStates.tabs[widget.index].fromVentaEnviada;
+    _fileSeleccionado = VentasStates.tabs[widget.index].fileSeleccionado;
+    _pedidosIds = VentasStates.tabs[widget.index].pedidosIds;
 
-    //ReporteFinalMovimientos
-    final ventas = Provider.of<VentasServices>(context, listen: false);
-    for (var venta in ventas.ventasDeCorteActual) {
-      if (venta.abonadoMxn!=null){
-        _abonadoMxn += venta.abonadoMxn!;
-      }
-      if (venta.abonadoUs!=null){
-        _abonadoUs += venta.abonadoUs!;
-      }
-      if (venta.abonadoTarj!=null){
-        if (venta.tipoTarjeta == 'debito'){
-          _abonadoTarjD += venta.abonadoTarj!;
-        } else if(venta.tipoTarjeta == 'credito'){
-          _abonadoTarjC += venta.abonadoTarj!;
-        }
-      }
-      if (venta.abonadoTrans!=null){
-        _abonadoTrans += venta.abonadoTrans!;
-      }
-    }
+    _subtotalController = VentasStates.tabs[widget.index].subtotalController;
+    _totalDescuentoController = VentasStates.tabs[widget.index].totalDescuentoController;
+    _totalIvaController = VentasStates.tabs[widget.index].totalIvaController;
+    _totalController = VentasStates.tabs[widget.index].totalController;
 
-    // inicializa controladores de denominación (debe coincidir con denominaciones.length)
-    for (var _ in denominacionesMxn) {
-      denomControllersMxn.add(TextEditingController());
-    }
-    for (var _ in denominacionesDlls) {
-      denomControllersDlls.add(TextEditingController());
-    }
-
-    for (var i = 0; i < denominacionesDlls.length; i++) {
-      denominacionesDolarFocus.add(FocusNode());
-    }
-
-    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
-    setState(() => loadingImpresoras = true);
-    impresoraSvc.loadImpresoras(true).whenComplete(() {
-      _ensureImpresoraControllers(impresoraSvc);
-      setState(() => loadingImpresoras = false);
-    });
-  }
-
-  void _ensureImpresoraControllers(ImpresorasServices svc) {
-    // solo crear si hacen falta (evita recrear en build)
-    if (impresoraControllers.length != svc.impresoras.length) {
-      impresoraControllers.clear();
-      for (var impresora in svc.impresoras) {
-        impresoraControllers[impresora.id!] = TextEditingController();
-      }
-    }
-  }
-
-@override
-void dispose() {
-  //FocusScope.of(context).unfocus(); //TODO: me dio error: FlutterError (Looking up a deactivated widget's ancestor is unsafe. At this point the state of the widget's element tree is no longer stable. To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.)
-  _voucherButtonFocus.unfocus();
-  
-  for (var node in denominacionesDolarFocus) {
-    if (node.hasFocus) {
-      node.unfocus();
-    }
-  }
-  
-  // Esperar un frame antes de dispose
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    for (var c in impresoraControllers.values) {
-      c.dispose();
-    }
-    for (var c in denomControllersMxn) {
-      c.dispose();
-    }
-    for (var c in denomControllersDlls) {
-      c.dispose();
-    }
-
-    for (var i = 0; i < denominacionesDolarFocus.length; i++) {
-      denominacionesDolarFocus[i].dispose();
-    }
-    _voucherButtonFocus.dispose();
-  });
-
-  super.dispose();
-}
-
-  Cortes _corte(String comentario){
-    //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(efectivoDolares).toString());
-    Decimal contadoPesos = Decimal.parse(efectivoPesos.toString());
-    Decimal contadoDolares = Decimal.parse(efectivoDolares.toString());
-    Decimal contadoDebito = contarVouchers(debitoControllers);
-    Decimal contadoCredito = contarVouchers(creditoControllers);
-    Decimal contadoTransf = contarVouchers(transferenciaControllers);
-    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
-
-    //Venta
-    final ventas = Provider.of<VentasServices>(context, listen: false);
-    Decimal abonadoMxn = Decimal.parse('0');
-    Decimal abonadoUs = Decimal.parse('0');
-    Decimal abonadoTarjD = Decimal.parse('0');
-    Decimal abonadoTarjC = Decimal.parse('0');
-    Decimal abonadoTrans = Decimal.parse('0');
-    for (var venta in ventas.ventasDeCorteActual) {
-      if (venta.abonadoMxn!=null){
-        abonadoMxn += venta.abonadoMxn!;
-      }
-      if (venta.abonadoUs!=null){
-        abonadoUs += venta.abonadoUs!;
-      }
-      if (venta.abonadoTarj!=null){
-        if (venta.tipoTarjeta == 'debito'){
-          abonadoTarjD += venta.abonadoTarj!;
-        } else if(venta.tipoTarjeta == 'credito'){
-          abonadoTarjC += venta.abonadoTarj!;
-        }
-      }
-      if (venta.abonadoTrans!=null){
-        abonadoTrans += venta.abonadoTrans!;
-      }
-    }
-    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    Decimal ventaTotal = abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
-
-    //Diferencia
-    Decimal diferencia = Decimal.parse('0');
-
-    Cortes corte = Cortes(
-      id: CajasServices.corteActualId,
-      folio: CajasServices.corteActual!.folio,
-      usuarioId: CajasServices.corteActual!.usuarioId, 
-      usuarioIdCerro: CajasServices.corteActual!.usuarioIdCerro,
-      sucursalId: CajasServices.corteActual!.sucursalId, 
-      fechaApertura: CajasServices.corteActual!.fechaApertura,
-      fechaCorte: CajasServices.corteActual!.fechaCorte,
-      contadoresFinales: convertir(impresoraControllers),
-      fondoInicial: CajasServices.corteActual!.fondoInicial, 
-      conteoPesos: contadoPesos,
-      conteoDolares: contadoDolares,
-      conteoDebito: contadoDebito, 
-      conteoCredito: contadoCredito, 
-      conteoTransf: contadoTransf, 
-      conteoTotal: totalContado,
-      ventaPesos: abonadoMxn,
-      ventaDolares: abonadoUs,
-      ventaDebito: abonadoTarjD,
-      ventaCredito: abonadoTarjC,
-      ventaTransf: abonadoTrans,
-      ventaTotal: ventaTotal,
-      diferencia: (diferencia + ventaTotal) - totalContado,
-      movimientosCaja: CajasServices.corteActual!.movimientosCaja,
-      desglosePesos: mapearDesglose(true),
-      desgloseDolares: mapearDesglose(false),
-      ventasIds: CajasServices.corteActual!.ventasIds,
-      comentarios: comentario,
-      isCierre: widget.cierre
-    );
-
-    return corte;
-  }
-
-  void terminarCorte(String comentario) async{
-    FocusScope.of(context).unfocus();
-    Loading.displaySpinLoading(context);
-
-    //Cerrar Corte
-    Cortes corte = _corte(comentario);
-    final cajasSvc = Provider.of<CajasServices>(context, listen: false);
-    await cajasSvc.actualizarDatosCorte(corte, CajasServices.corteActualId!);
-    CajasServices.corteActual=null;
-    CajasServices.corteActualId=null;
-    if (!mounted) return;
-    Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual.clear();
-
-    //Cerrar Caja
-    if (widget.cierre){
-      Decimal ventaTotal = Decimal.zero;
-      for (var corteCaja in cajasSvc.cortesDeCaja) {
-        ventaTotal += corteCaja.ventaTotal ?? Decimal.zero;
-      }
-
-      Cajas caja = Cajas(
-        id: CajasServices.cajaActualId,
-        folio: CajasServices.cajaActual!.folio,
-        usuarioId: CajasServices.cajaActual!.usuarioId, 
-        sucursalId: CajasServices.cajaActual!.sucursalId, 
-        fechaApertura: CajasServices.cajaActual!.fechaApertura, 
-        fechaCierre: corte.fechaCorte,
-        ventaTotal: ventaTotal,
-        estado: 'cerrada', 
-        cortesIds: CajasServices.cajaActual!.cortesIds, 
-        tipoCambio: CajasServices.cajaActual!.tipoCambio
-      );
-      await cajasSvc.cerrarCaja(caja);
-      if (!mounted) return;
-      final ventasSvc = Provider.of<VentasServices>(context, listen: false);
-      ventasSvc.ventasDeCaja.clear();
-      cajasSvc.cortesDeCaja.clear();
-      //cajasSvc.movimientos.clear();
-    }
-  
-    if (!mounted) return;
-    Navigator.pop(context);
-    Navigator.pop(context);
-  }
-
-  Map<String, int> convertir(Map<String, TextEditingController> origen) {
-    return origen.map((key, controller) {
-      final valorTexto = controller.text.trim();
-      final valorEntero = int.tryParse(valorTexto) ?? 0; // por si está vacío o no es número
-      return MapEntry(key, valorEntero);
-    });
-  }
-
-  double calculateTotalMxn() {
-    double total = 0.0;
-    for (var i = 0; i < denomControllersMxn.length; i++) {
-      final text = denomControllersMxn[i].text.trim();
-      if (text.isEmpty) continue;
-      final intCount = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final value = denominacionesMxn[i]['value'] as double;
-      total += intCount * value;
-    }
-    return total;
-  }
-
-  double calculateTotalDolares(){
-    double total = 0.0;
-    for (var i = 0; i < denomControllersDlls.length; i++) {
-      final text = denomControllersDlls[i].text.trim();
-      if (text.isEmpty) continue;
-      final intCount = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final value = denominacionesDlls[i]['value'] as double;
-      total += intCount * value;
-    }
-    return total;
-  }
-
-  void _nextStage() async {
-    switch (stage) {
-      case StepStage.contadores:
-        setState(() {
-          performingRetiro = true;
-          stage = StepStage.esperandoRetiro;
-          }
-        );
-        break;
-      case StepStage.esperandoRetiro:
-        break;
-      case StepStage.conteoPesos:
-        setState(() => stage = StepStage.conteoDolares);
-        denominacionesDolarFocus.first.requestFocus();
-        break;
-      case StepStage.conteoDolares:
-        for (var node in denominacionesDolarFocus) {
-          if (node.hasFocus) {
-            node.unfocus();
+    _keyHandler = (KeyEvent event) {
+      if (event is KeyDownEvent) {
+        if (event.logicalKey == LogicalKeyboardKey.f8) {
+          if (mounted && _canFocus) {
+            _f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
+            procesarPago();
           }
         }
-        setState(() => stage = StepStage.voucher);
-        break;
-
-      case StepStage.voucher:
-        _voucherButtonFocus.unfocus();
-        setState(() => stage = StepStage.terminado);
-        break;
-      case StepStage.terminado:
-        if(reporteFinalPage==2){
-          setState(() {});
-        }
-        break;
-    }
-  }
-
-  Widget _buildContadores(ImpresorasServices impresoraSvc) {
-    if (loadingImpresoras) {
-      return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
-    }
-
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...List.generate(impresoraSvc.impresoras.length, (i) {
-            final modelo = impresoraSvc.impresoras[i].modelo;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: KeyboardListener(
-                onKeyEvent: (event) {
-                  if (event.logicalKey == LogicalKeyboardKey.enter && event is KeyDownEvent) {
-                    _nextStage();
-                  }
-                },
-                focusNode: FocusNode(
-                  canRequestFocus: false
-                ),
-                child: TextFormField(
-                  controller: impresoraControllers[impresoraSvc.impresoras[i].id],
-                  autofocus: i == 0,
-                  decoration: InputDecoration(labelText: modelo),
-                  inputFormatters: [NumericFormatter()],
-                  textInputAction: TextInputAction.done, 
-                  keyboardType: TextInputType.number,
-                  maxLength: 12,
-                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                  onFieldSubmitted: (value) => _nextStage,
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Regresar')),
-              const SizedBox(width: 15),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEsperandoRetiro() {
-    final impresoraSvc = Provider.of<ImpresorasServices>(context);
-
-    return SizedBox(
-      width: 340,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Wrap(
-              //mainAxisAlignment: MainAxisAlignment.center,
-              alignment: WrapAlignment.center,
-              children: [
-                const Text('¡Ahora retira el Fondo de  ', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
-                Text(Formatos.pesos.format(CajasServices.corteActual!.fondoInicial.toDouble()), style: AppTheme.tituloClaro.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
-                const Text('para continuar con el conteo del corte!', style: AppTheme.subtituloPrimario, textAlign: TextAlign.center),
-              ],
-            ),
-          ),
-          if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
-          const SizedBox(height: 12),
-
-          Row( 
-            mainAxisAlignment: impresoraSvc.impresoras.isEmpty ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
-            children: [
-              impresoraSvc.impresoras.isEmpty ?
-              ElevatedButton(
-                onPressed: (){
-                  Navigator.pop(context);
-                }, 
-                //child: Text('Continuar ($segundosRestantes)')
-                child: const Text('Regresar')
-              ) : const SizedBox(),
-
-              ElevatedButton(
-                autofocus: true,
-                onPressed: (){
-                  setState(() {
-                    performingRetiro = false;
-                    stage = StepStage.conteoPesos;
-                  });
-                }, 
-                //child: Text('Continuar ($segundosRestantes)')
-                child: const Text('Continuar')
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConteoStep() {
-    return SizedBox(
-      width: 520,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: List.generate(denominacionesMxn.length, (i) {
-              final den = denominacionesMxn[i];
-              final ctrl = denomControllersMxn[i];
-              final value = den['value'] as double;
-              final kind = den['kind'] as String;
-              String label;
-              if (kind == 'billete') {
-                // billetes no tienen decimales (mostrar int)
-                label = 'Billetes de \$${value.toInt()}';
-              } else {
-                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
-                label = value >= 1 ? 'Monedas de \$${value.toInt()}' : 'Monedas de \$${value.toString()}';
-              }
-              return SizedBox(
-                width: 240,
-                child: TextFormField(
-                  controller: ctrl,
-                  autofocus: i==0,
-                  decoration: InputDecoration(labelText: label),
-                  inputFormatters: [NumericFormatter()],
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = '0'; }
-                    setState(() { efectivoPesos = calculateTotalMxn(); });
-                  },
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total contado: ${Formatos.pesos.format(efectivoPesos)}', style: AppTheme.subtituloPrimario),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConteoDolaresStep() {
-    return SizedBox(
-      width: 520,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: List.generate(denominacionesDlls.length, (i) {
-              final den = denominacionesDlls[i];
-              final ctrl = denomControllersDlls[i];
-              final value = den['value'] as double;
-              final kind = den['kind'] as String;
-              String label;
-              if (kind == 'billete') {
-                // billetes no tienen decimales (mostrar int)
-                label = 'Billetes de \$${value.toInt()}';
-              } else {
-                // monedas: si es >=1 mostrar sin decimales, si es decimal mostrar el valor tal cual
-                label = '$kind \$${value.toStringAsFixed(2)}';
-              }
-              
-              return SizedBox(
-                width: 240,
-                child: TextFormField(
-                  controller: ctrl,
-                  //focusNode:  i==0 ? primerFocusDlls : FocusNode(),
-                  focusNode: denominacionesDolarFocus[i],
-                  decoration: InputDecoration(labelText: label),
-                  inputFormatters: [NumericFormatter()],
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    if(value.isEmpty){ ctrl.text = '0'; }
-                    setState(() {
-                      efectivoDolares = calculateTotalDolares();
-                      efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares);
-                    });
-                  },
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total contado: ${Formatos.dolares.format(efectivoDolares)} (${Formatos.pesos.format(efectivoDolaresAPeso)})', style: AppTheme.subtituloPrimario),
-              ElevatedButton(onPressed: _nextStage, child: const Text('Continuar')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleVoucherControllers(List<TextEditingController> debitoCtrl, List<TextEditingController> creditoCtrl, List<TextEditingController> transferenciaCtrl,) {
-    setState(() {
-      debitoControllers = debitoCtrl;
-      creditoControllers = creditoCtrl;
-      transferenciaControllers = transferenciaCtrl;
-    });
-  }
-
-  Widget buildVoucherStep() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        VoucherBoard(
-          onControllersChanged: _handleVoucherControllers,
-          callback: () => _nextStage(),
-          focusButton: _voucherButtonFocus,
-        ),
-      ],
-    );
-  }
-
-  Widget buildReporteFinal(
-    int page, 
-    List<VentasPorProducto> ventas, 
-    List<Ventas> ventasConDescuentos,
-    Map<String, List<Ventas>> ventasPorUsuario, 
-    Decimal subtotal, 
-    Decimal iva, 
-    Decimal total,
-    Decimal abonadoMxn,
-    Decimal abonadoUs,
-    Decimal abonadoTarjD,
-    Decimal abonadoTarjC,
-    Decimal abonadoTrans
-    ){
-    final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
-    final TextEditingController ctrl = TextEditingController();
-
-    if (CajasServices.corteActualId==null) return const SizedBox();
-
-    return SizedBox(
-      width: 1000,
-      height: 616,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-      
-          //Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Text('#Corte: '),
-                  Text(CajasServices.corteActual?.folio ?? 'error', style: AppTheme.tituloClaro),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text('Tipo de cambio: '),
-                  Text(Formatos.pesos.format(Configuracion.dolar), style: AppTheme.tituloClaro),
-                ],
-              ),
-            ],
-          ),
-          
-          //Header2
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Text('Abierta: '),
-                  Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  const Text(' por '),
-                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioId), style: AppTheme.tituloClaro),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text('Hora del corte: '),
-                  Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
-                  const Text(' por '),
-                  Text(usuariosSvc.obtenerNombreUsuarioPorId(CajasServices.corteActual!.usuarioIdCerro!), style: AppTheme.tituloClaro),
-                ],
-              ),
-            ],
-          ), const SizedBox(height: 15),
-
-          //Body 1
-          page==1 ?Expanded(
-            child: Row(
-              children: [
-                ReporteFinalVenta(ventasPorProducto: ventas, subtotal: subtotal, iva: iva, total: total,),
-                const SizedBox(width: 10),
-                ReporteFinalDescuentosYVendedores(
-                  ventasConDescuentos: ventasConDescuentos,
-                  ventasPorUsuario: ventasPorUsuario,
-                  callback: (){
-                    reporteFinalPage=2;
-                    _nextStage();
-                  },
-                ),
-              ],
-            )
-          ) 
-          : 
-          //Body 2
-          Expanded(
-            child: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                Row(
-                  children: [
-                    ReporteFinalMovimientos(
-                      contadoPesos: Decimal.parse(efectivoPesos.toString()), 
-                      contadoDolares: Decimal.parse(efectivoDolares.toString()), 
-                      contadoDebito: contarVouchers(debitoControllers), 
-                      contadoCredito: contarVouchers(creditoControllers), 
-                      contadoTransf: contarVouchers(transferenciaControllers), 
-                      abonadoMxn: abonadoMxn, 
-                      abonadoUs: abonadoUs, 
-                      abonadoTarjD: abonadoTarjD, 
-                      abonadoTarjC: abonadoTarjC, 
-                      abonadoTrans: abonadoTrans, 
-                    ),
-                    const SizedBox(width: 10),
-                    ReporteFinalDesgloseDinero(
-                      desglosePesos: mapearDesglose(true),
-                      desgloseDolares: mapearDesglose(false),
-                      impresoraControllers: impresoraControllers,
-                      ctrl: ctrl,
-                    ),
-                  ],
-                ),
-                
-                //Botones finales
-                Row( 
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          reporteFinalPage=1;
-                          //page=1;
-                        });
-                        
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Transform.translate(
-                            offset: const Offset(-8, 1.5),
-                            child: const Icon(Icons.chevron_left_outlined, size: 25)
-                          ),
-                          const Text('Regresar'),
-                        ],
-                      )
-                    ), const SizedBox(width: 20),
-
-                    Tooltip(
-                      message: 'Funcion En Desarrollo...',
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Descargar PDF'),
-                            Transform.translate(
-                              offset: const Offset(8, 1.5),
-                              child: const Icon(Icons.picture_as_pdf_outlined, size: 25)
-                            )
-                          ],
-                        )
-                      ),
-                    ), const SizedBox(width: 20),
-
-                    Tooltip(
-                      message: 'Funcion En Desarrollo...',
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('Enviar Por Correo'),
-                            Transform.translate(
-                              offset: const Offset(8, 1.5),
-                              child: const Icon(Icons.email_outlined, size: 25)
-                            )
-                          ],
-                        )
-                      ),
-                    ), const SizedBox(width: 20),
-
-                    ElevatedButton(
-                      onPressed: () => Ticket.imprimirTicketCorte(context, _corte(ctrl.text), impresoraControllers),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Imprimir Ticket'),
-                          Transform.translate(
-                            offset: const Offset(8, 1.5),
-                            child: const Icon(Icons.print_outlined, size: 25)
-                          )
-                        ],
-                      )
-                    ), const SizedBox(width: 20),
-
-                    ElevatedButton(
-                      onPressed: () => terminarCorte(ctrl.text),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(widget.cierre ? 'Finalizar Dia' : 'Finalizar'),
-                          Transform.translate(
-                            offset: const Offset(8, 1.5),
-                            child: const Icon(Icons.done, size: 25)
-                          )
-                        ],
-                      ), 
-                    ),
-                  ],
-                ),
-              ],
-            )
-          ),
-        ],
-      )
-    );
-  }
-
-  List<Desglose> mapearDesglose(bool pesos) {
-    List<Desglose> lista = [];
-
-    if (pesos) {
-      for (var i = 0; i < denominacionesMxn.length; i++) {
-        if (denomControllersMxn[i].text.isNotEmpty) {
-          double denominacion = denominacionesMxn[i]['value'] as double;
-          int cantidad = int.parse(denomControllersMxn[i].text.replaceAll(',', ''));
-          lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
-        }
       }
+      return false; // false para no consumir el evento
+    };
+    HardwareKeyboard.instance.addHandler(_keyHandler);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _checkboxFocus1.dispose();
+    _checkboxFocus2.dispose();
+    _f8FocusNode.dispose();
+    HardwareKeyboard.instance.removeHandler(_keyHandler);
+    super.dispose();
+  }
+  
+  //Metodos
+  Decimal formatearEntrada(String entrada){
+    return Decimal.parse(entrada.replaceAll('MX\$', '').replaceAll(',', '')); 
+  }
+
+  void calcularSubtotal(){
+    if (_productoSelected== null) { return; }
+
+    Decimal precio = _productoSelected!.precio;
+    _precioController.text = Formatos.pesos.format(precio.toDouble());
+    int descuento = int.tryParse(_descuentoController.text.replaceAll('%', '')) ?? 0;
+    int cantidad = 0;
+    if (_cantidadController.text.isNotEmpty){
+      cantidad = int.tryParse(_cantidadController.text.replaceAll(',', '')) ?? 0;
+    } else { cantidad = 0; }
+
+    CalculosDinero calcular = CalculosDinero();
+    late final Map<String, dynamic> resultado;
+    if (_productoSelected?.requiereMedida == true && _anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+       resultado = calcular.calcularSubtotalConMedida(precio, cantidad, Decimal.parse(_anchoController.text), Decimal.parse(_altoController.text), descuento);
     } else {
-      for (var i = 0; i < denominacionesDlls.length; i++) {
-        if (denomControllersDlls[i].text.isNotEmpty) {
-          double denominacion = denominacionesDlls[i]['value'] as double;
-          int cantidad = int.parse(denomControllersDlls[i].text.replaceAll(',', ''));
-          lista.add(Desglose(denominacion: denominacion, cantidad: cantidad));
-        }
-      }
+      resultado = calcular.calcularSubtotal(precio, cantidad, descuento);
     }
-    return lista;
+      _ivaController.text = Formatos.pesos.format(resultado['iva']);
+      _productoTotalController.text = Formatos.pesos.format(resultado['total']);
+      _descuentoAplicado = resultado['descuento'];
+      VentasStates.tabs[widget.index].descuentoAplicado = _descuentoAplicado;
   }
 
-  Decimal contarVouchers(List<TextEditingController> lista){
-    Decimal total = Decimal.parse('0');
-    for (var item in lista) {
-      total += item.text.isNotEmpty ? Decimal.parse(item.text.replaceAll('MX\$', '').replaceAll(',', '')) : Decimal.parse('0');
-    }
-    return total;
+  void calcularTotal(){
+    CalculosDinero calcular = CalculosDinero();
+    final Map<String, dynamic> resultado = calcular.calcularTotal(_detallesVenta);
+
+    _subtotalController.text = Formatos.pesos.format(resultado['subtotal']);
+    _totalDescuentoController.text = Formatos.pesos.format(resultado['descuento']);
+    _totalIvaController.text = Formatos.pesos.format(resultado['iva']);
+    _totalController.text = Formatos.pesos.format(resultado['total']);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final impresoraSvc = Provider.of<ImpresorasServices>(context);
-    // Aseguramos controladores si impresoras ya cargadas (por si cambia after init)
-    if (impresoraControllers.length != impresoraSvc.impresoras.length && !loadingImpresoras) {
-      _ensureImpresoraControllers(impresoraSvc);
-    }
+  void limpiarCamposProducto() {
+    _productoSelected = null;
+    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
+    _precioController.text = Formatos.pesos.format(0);
+    _cantidadController.text = '1';
+    _anchoController.text = '1';
+    _altoController.text = '1';
+    _comentarioController.clear();
+    _descuentoController.text = '0%';
+    _ivaController.text = Formatos.pesos.format(0);
+    _productoTotalController.text = Formatos.pesos.format(0);
+    _fileSeleccionado.clear();
+    VentasStates.tabs[widget.index].fileSeleccionado.clear();
+    _fromVentaEnviada = false;
+    VentasStates.tabs[widget.index].fromVentaEnviada = false;
+    _pedidosIds.clear();
+    VentasStates.tabs[widget.index].pedidosIds.clear();
 
-    //Si no tengo impresoras y estoy en la primera ventana, ignorarla
-    if (!loadingImpresoras){
-      if (impresoraSvc.impresoras.isEmpty && stage == StepStage.contadores){
-        stage = StepStage.esperandoRetiro;
-        performingRetiro = true;
-      }
-    }
-
-
-    Widget content;
-    String title = 'Corte de Caja';
-
-    switch (stage) {
-      case StepStage.contadores:
-        title = 'Registrar Contadores';
-        content = _buildContadores(impresoraSvc);
-        break;
-      case StepStage.esperandoRetiro:
-        title = '';
-        content = _buildEsperandoRetiro();
-        break;
-      case StepStage.conteoPesos:
-        title = 'Conteo de Efectivo (MXN)';
-        content = _buildConteoStep();
-        break;
-      case StepStage.conteoDolares:
-        title = 'Conteo de Efectivo (DLLS)';
-        content = _buildConteoDolaresStep();
-        break;
-      case StepStage.voucher:
-        title = 'Conteo de Voucher';
-        content = buildVoucherStep();
-        break;
-      case StepStage.terminado:
-        title = '';
-        content = buildReporteFinal(
-          reporteFinalPage,
-          _ventasPorProducto,
-          _ventasConDescuentos,
-          _ventasPorUsuario,
-          _subtotal,
-          _iva,
-          _total,
-          _abonadoMxn,
-          _abonadoUs,
-          _abonadoTarjD,
-          _abonadoTarjC,
-          _abonadoTrans
-          );
-        break;
-    }
-
-    return AlertDialog(
-      elevation: 2,
-      backgroundColor: AppTheme.containerColor2,
-      title: title.isNotEmpty ? 
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title),
-          stage == StepStage.voucher ? 
-          Transform.translate(
-            offset: const Offset(0, -10),
-            child: const Tooltip(
-              mouseCursor: SystemMouseCursors.click,
-              message: 
-'''TAB -> Siguiente
-Enter -> Descender
----------------------------
-Ademas puedes navegar
-con las flechas.''',
-              waitDuration: Durations.short1,
-              child: Icon(Icons.help_outline, color: AppTheme.letraClara,)
-            )
-          ) : const SizedBox()
-        ],
-      ) 
-      : null,
-      content: content,
-    );
   }
-}
 
-class ReporteFinalVenta extends StatelessWidget {
-  const ReporteFinalVenta({
-    super.key, 
-    required this.ventasPorProducto, 
-    required this.subtotal, 
-    required this.iva, 
-    required this.total,
-  });
-
-  final List<VentasPorProducto> ventasPorProducto;
-  final Decimal subtotal;
-  final Decimal iva;
-  final Decimal total;
-
-  @override
-  Widget build(BuildContext context) {
-    final productos = Provider.of<ProductosServices>(context, listen: false);
-    
-    return Expanded(
-      flex: 10,
-      child: Stack(
-        alignment: AlignmentGeometry.bottomCenter,
-        children: [
-          Column(
-            children: [
-              const Separador(
-                texto: 'Ventas por Articulos',
-              ),
-              Container(
-                color: AppTheme.tablaColorHeader,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical : 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(flex: 3 , child: Center(child: Text('Cant'))),
-                      Expanded(flex: 10, child: Center(child: Text('Articulos'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Subtotal'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Iva'))),
-                      Expanded(flex: 8,  child: Center(child: Text('Total'))),
-                    ],
+  Future<void> elegirFecha()async{
+    final DateTime? selectedDate = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Dialog(
+              backgroundColor: AppTheme.containerColor1,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                width: MediaQuery.of(context).size.height * 0.5,
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    textTheme: const TextTheme(
+                      bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
+                    ),
+                    colorScheme: ColorScheme.light(
+                      primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
+                      onSurface: Colors.white, // Color del texto en general
+                    ),
                   ),
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  color: AppTheme.tablaColor1,
-                  child: ListView.builder(
-                    itemCount: ventasPorProducto.length,
-                    itemBuilder: (context, index) {
-                      Productos? producto = productos.obtenerProductoPorId(ventasPorProducto[index].productoId);
-                      
-                      return FilaProductos(
-                        cantidad: ventasPorProducto[index].cantidad, 
-                        articulo: producto!=null ? '${producto.descripcion}s' : 'no se encontro', 
-                        iva: Decimal.parse(ventasPorProducto[index].iva.toString()), 
-                        subtotal: Decimal.parse(ventasPorProducto[index].subTotal.toString()), 
-                        total: Decimal.parse(ventasPorProducto[index].total.toString()), 
-                        color: index+1
-                      );
+                  child: CalendarDatePicker(
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 31)),
+                    onDateChanged: (selectedDate) {
+                      Navigator.pop(context, selectedDate);
                     },
                   ),
                 ),
               ),
-              Container(
-                color: AppTheme.tablaColorHeader,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical : 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Expanded(flex: 13, child: Center(child: Text('Total:'))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble())))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble())))),
-                      Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble())))),
-                    ],
+            ),
+            const WindowBar(overlay: true),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+    final TimeOfDay? selectedTime = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const Stack(
+          alignment: Alignment.topRight,
+          children: [
+            SeleccionadorDeHora(),
+            WindowBar(overlay: true),
+          ],
+        );
+      },
+    );
+
+    if (selectedDate == null || selectedTime == null) {
+      setState(() {
+        _entregaInmediata = true;
+        _fechaEntrega = null;
+        VentasStates.tabs[widget.index].fechaEntrega = null;
+        _checkboxFocus1.requestFocus();
+      });
+      return; // Si no se seleccionó fecha o hora, no hacer nada
+    }
+
+    DateTime fechaSeleccionada = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );                                        
+
+    setState(() {
+      _checkboxFocus2.requestFocus();
+      _entregaInmediata = false;
+      VentasStates.tabs[widget.index].entregaInmediata = false;    
+      _fechaEntrega = fechaSeleccionada;
+      VentasStates.tabs[widget.index].fechaEntrega = fechaSeleccionada;                                    
+    });
+
+    if (!mounted) return;
+    FocusScope.of(context).nextFocus();
+  }
+
+  void retrocederFocus(int veces, c) {
+    for (int i = 0; i < veces; i++) {
+      FocusScope.of(c).previousFocus();
+    }
+  }
+
+  void procesarPago() async{
+    if(!Configuracion.esCaja) return;
+    
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
+      return;
+    }
+
+    _canFocus = false;
+    await showDialog(
+      context: context,
+      builder: (_) {
+        
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ProcesarPago(
+              venta: Ventas(
+                clienteId: _clienteSelected!.id!,
+                usuarioId: VentasStates.tabs[widget.index].usuarioQueEnvioId != null ? VentasStates.tabs[widget.index].usuarioQueEnvioId! : Login.usuarioLogeado.id!,
+                sucursalId: SucursalesServices.sucursalActualID!,
+                pedidoPendiente: !_entregaInmediata, 
+                fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(), 
+                detalles: _detallesVenta,
+                comentariosVenta: _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
+                subTotal: formatearEntrada(_subtotalController.text),
+                descuento: formatearEntrada(_totalDescuentoController.text),
+                iva: formatearEntrada(_totalIvaController.text),
+                total: formatearEntrada(_totalController.text), 
+                recibidoTotal: Decimal.zero,
+                liquidado: false, 
+              ),
+            ),
+            const WindowBar(overlay: true),
+          ],
+        );
+        
+      } 
+    ).then((value) async {
+      if (value!=null){ //Esto es para verificar si no cancele el procesar pago
+        if (!_fromVentaEnviada && !_entregaInmediata) { //solo crear pedido desde caja si no es venta enviada
+        
+          String detallesComentarios = '';
+          for (var i = 0; i < _detallesVenta.length; i++) {
+            if (_detallesVenta[i].comentarios!=null){
+              if (_detallesVenta[i].comentarios!.isNotEmpty){
+                if (_detallesVenta.length == i+1){
+                  detallesComentarios += '${_detallesVenta[i].comentarios}';
+                } else {
+                  detallesComentarios += '${_detallesVenta[i].comentarios}&&';
+                }
+              }
+            }
+          }
+          Pedidos pedido = Pedidos(
+            clienteId: _clienteSelected!.id!, 
+            usuarioId: Login.usuarioLogeado.id!, 
+            sucursalId: SucursalesServices.sucursalActualID!, 
+            ventaId: value, 
+            fecha: DateTime.now().toIso8601String(),
+            fechaEntrega: _fechaEntrega!.toIso8601String(),
+            archivos: [],
+            descripcion: detallesComentarios,
+            estado: 'en espera'
+          );
+
+          widget.rebuild(widget.index);
+
+          if (!mounted) return;
+          await showDialog(
+            barrierDismissible: false, // Evita que se cierre al hacer clic fuera
+            context: context, 
+            builder: (context) {
+              return CreandoPedido(pedido: pedido, files: const []);
+            },
+          );
+          
+        } else { //ya una vez pagado y con pedido pendiente, confirmar pedido!
+          widget.rebuild(widget.index);
+          
+          for (var pedidoId in _pedidosIds) {
+            if (!mounted) return;
+            final pedidosService = Provider.of<PedidosService>(context, listen: false);
+            await pedidosService.actualizarVentaPedido(
+              pedidoId: pedidoId,
+              ventaId: value,
+            );
+          }
+        }
+      }
+
+      _canFocus = true;
+    });
+  }
+
+  void procesarEnvio()async{
+    if(Configuracion.esCaja) return;
+
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
+      return;
+    }
+
+    Loading.displaySpinLoading(context);
+
+    Future<void> enviarHelper(List<String>? value) async{
+      //Y luego enviar venta!
+      VentasEnviadas venta = VentasEnviadas(
+        clienteId: _clienteSelected!.id!, 
+        usuarioId: Login.usuarioLogeado.id!,
+        usuarioNombre: Login.usuarioLogeado.nombre, 
+        sucursalId: SucursalesServices.sucursalActualID!,
+        pedidoPendiente: !_entregaInmediata, 
+        fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(),
+        detalles: _detallesVenta,
+        comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
+        subTotal: formatearEntrada(_subtotalController.text), 
+        descuento: formatearEntrada(_totalDescuentoController.text), 
+        iva: formatearEntrada(_ivaController.text), 
+        total: formatearEntrada(_totalController.text),
+        fechaEnvio: DateTime.now().toIso8601String(),
+        compu: Configuracion.nombrePC,
+        pedidosIds: value
+      );
+
+      final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
+      await ventaEnviada.enviarVenta(venta);
+
+      if(!mounted) return;
+      Navigator.pop(context);
+
+      widget.rebuild(widget.index);
+
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!context.mounted) return;
+            Navigator.of(context).pop(); // Cierra el cuadro después de 2 segundos
+          });
+
+          return Stack(
+            alignment: Alignment.topRight,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.containerColor2,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    '¡Enviado a caja!',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ), //const SizedBox(height: 10,)
+              ),
+              const WindowBar(overlay: true),
+            ],
+          );
+        },
+      );
+    }
+
+    //Crear pedido primero
+    String detallesComentarios = '';
+    for (var detalle in _detallesVenta) {
+      detallesComentarios += '${detalle.comentarios}&&';
+    }
+    Pedidos pedido = Pedidos(
+      clienteId: _clienteSelected!.id!, 
+      usuarioId: Login.usuarioLogeado.id!, 
+      sucursalId: SucursalesServices.sucursalActualID!, 
+      ventaId: 'esperando', 
+      fecha: DateTime.now().toIso8601String(),
+      fechaEntrega: _fechaEntrega!.toIso8601String(),
+      archivos: [],
+      descripcion: detallesComentarios,
+      //estado: 'en espera' if no arhivo en espera : pendiente
+    );
+    
+
+    //TODO: subir pedidos, sin archivo
+      /*for (var i = 0; i < _detallesVenta.length; i++) {
+        if (_detallesVenta[i].archivos!=null){
+          if (_detallesVenta[i].archivos!.isNotEmpty){
+            Pedidos pedido = Pedidos(
+              clienteId: _clienteSelected!.id!, 
+              usuarioId: Login.usuarioLogeado.id!, 
+              sucursalId: SucursalesServices.sucursalActualID!, 
+              ventaId: 'esperando', 
+              fecha: DateTime.now().toIso8601String(),
+              fechaEntrega: _fechaEntrega!.toIso8601String(),
+              archivos: [],
+              descripcion: _detallesVenta[i].comentarios,
+            );
+            pedidos.add(pedido);
+          }
+        }
+      }*/
+
+      /*if (pedidos.isNotEmpty){
+        //TODO: es la continuacion de lo de arriba
+        /*if (!mounted) return;
+        await showDialog(
+          barrierDismissible: false,
+          context: context, 
+          builder: (context) {
+            return CreandoPedidos(pedidos: pedidos, files:const []);
+          },
+        ).then((value) async { 
+          await enviarHelper(value);
+        });*/
+      } else {
+        await enviarHelper(null);
+      }*/
+      
+
+
+    /*
+    final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
+    await ventaEnviada.enviarVenta(venta);
+
+    if(!mounted) return;
+    Navigator.pop(context);
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!context.mounted) return;
+          Navigator.of(context).pop(); // Cierra el cuadro después de 2 segundos
+        });
+
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.containerColor2,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '¡Enviado a caja!',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const WindowBar(overlay: true),
+          ],
+        );
+      },
+    ).then((value) async {
+      List<Pedidos> pedidos = [];
+      List<List<File>> files = [];
+      for (var i = 0; i < _detallesVenta.length; i++) {
+        if (_detallesVenta[i].archivos!=null){
+          if (_detallesVenta[i].archivos!.isNotEmpty){
+            Pedidos pedido = Pedidos(
+              clienteId: _clienteSelected!.id!, 
+              usuarioId: Login.usuarioLogeado.id!, 
+              sucursalId: SucursalesServices.sucursalActualID!, 
+              ventaId: 'esperando', 
+              fecha: DateTime.now().toIso8601String(),
+              fechaEntrega: _fechaEntrega!.toIso8601String(),
+              archivos: [],
+              descripcion: _detallesVenta[i].comentarios,
+            );
+            pedidos.add(pedido);
+            files.add(_detallesVenta[i].archivos!);
+          }
+        }
+      }
+      
+      widget.rebuild(widget.index);
+
+      if (!mounted) return;
+      await showDialog(
+        barrierDismissible: false, // Evita que se cierre al hacer clic fuera
+        context: context, 
+        builder: (context) {
+          return CreandoPedidos(pedidos: pedidos, files:files);
+        },
+      );
+    });*/
+  }
+
+  void procesarCotizacion() async{
+    if (_detallesVenta.isEmpty || _clienteSelected==null){
+      if (_clienteSelected==null){setState((){_clienteError = true;});}
+      if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
+      return;
+    }
+    _canFocus = false;
+
+    final bool continuar = await showDialog(
+      context: context, 
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.backgroundColor,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('¿Deseas continuar y guardar estos\ndatos de venta como una cotizacion?', textAlign: TextAlign.center),
+              const SizedBox(height: 15),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: (){
+                      Navigator.pop(context, false);
+                    }, child: const Text('Regresar')
+                  ),
+                  ElevatedButton(
+                    onPressed: (){
+                      Navigator.pop(context, true);
+                    }, child: const Text('Continuar')
+                  ),
+                ],
+              ),
             ],
           ),
-          Transform.translate(
-            offset: const Offset(0, 15),
-            child: const Text('El total puede ser mayor al monto realmente cobrado, ya que no incluye ventas pendientes.', textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.8))
-          ),
-        ],
-      )
-    );
-  }
-}
+        );
+      } 
+    ) ?? false;
+    if (!continuar) return;
 
-class ReporteFinalDescuentosYVendedores extends StatelessWidget {
-  const ReporteFinalDescuentosYVendedores({
-    super.key, 
-    required this.ventasConDescuentos,
-    required this.ventasPorUsuario,
-    required this.callback,
-  });
-  final List<Ventas> ventasConDescuentos;
-  final Map<String, List<Ventas>> ventasPorUsuario;
-  final Function callback;
+    //Realizar cotizacion///////////////////
+    if(!mounted) return;
+    Loading.displaySpinLoading(context);
+
+    final cotizacionSvc = Provider.of<CotizacionesServices>(context, listen: false);
+    final productoSvc = Provider.of<ProductosServices>(context, listen: false);
+    final DateTime now = DateTime.now();
+    
+    for (var detalle in _detallesVenta) { //Agregar precio actual a la cotizacion
+      detalle.cotizacionPrecio = productoSvc.productos.firstWhere((element) => element.id == detalle.productoId).precio;
+    } 
+
+    final cotizacion = Cotizaciones(
+      clienteId: _clienteSelected!.id!, 
+      usuarioId: Login.usuarioLogeado.id!,
+      sucursalId: SucursalesServices.sucursalActualID!,
+      detalles: _detallesVenta, 
+      fechaCotizacion: now.toIso8601String(), 
+      comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null,
+      subTotal: formatearEntrada(_subtotalController.text),
+      descuento: formatearEntrada(_totalDescuentoController.text),
+      iva: formatearEntrada(_ivaController.text),
+      total: formatearEntrada(_totalController.text), 
+      vigente: true
+    );
+
+    String folio = await cotizacionSvc.createCotizacion(cotizacion);
+    
+    DateTime lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+    String vigencia = '${lastDayOfMonth.day}/${lastDayOfMonth.month}/${lastDayOfMonth.year}';
+    //Realizar cotizacion finalizado ///////////////
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    
+    await showDialog(
+      context: context,
+      builder: (_) {
+        
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            AlertDialog(
+              backgroundColor: AppTheme.containerColor2,
+              title: const Center(child: Text('  ¡Cotizacion guardada!  ')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'La cotización será válida hasta el último\ndía del mes en curso.', 
+                    style: TextStyle(color: Colors.white38),
+                    textAlign: TextAlign.center,
+                  ), const SizedBox(height: 10),
+                  const Text('Vigencia:', textScaler: TextScaler.linear(1.1)),
+                  Text(vigencia, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.25)),
+                  const SizedBox(height: 10),
+                  SelectableText('Folio: $folio', textScaler: const TextScaler.linear(1.1)),
+                  
+                  const SizedBox(height: 25),
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.print, color: Colors.transparent),
+                            Transform.translate(
+                              offset: const Offset(0, -1.5),
+                              child: const Text('  Imprimir')
+                            ),
+                            const Icon(Icons.print),
+                          ],
+                        )
+                      ), const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.send, color: Colors.transparent),
+                            Transform.translate(
+                              offset: const Offset(0, -1.5),
+                              child:  const Text('  Enviar por WhatsApp'),
+                            ),
+                            const Icon(Icons.send),
+                          ],
+                        )
+                      ), const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: (){}, 
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.email, color: Colors.transparent),
+                            Transform.translate(
+                              offset: const Offset(0, -1.5),
+                              child: const Text('  Enviar por Correo'),
+                            ),
+                            const Icon(Icons.email),
+                          ],
+                        )
+                      )
+                    ],
+                  )
+                ],
+              ),
+            ),
+            const WindowBar(overlay: true),
+          ],
+        );
+        
+      } 
+    ).then((value) {
+      setState(() {
+        _canFocus = true;
+      });
+      //limpiar screen
+      widget.rebuild(widget.index);
+    });
+
+  }
+
+  Future<void> seleccionarArchivos() async {
+    Loading.displaySpinLoading(context);
+    final result = await FilePicker.platform.pickFiles(
+      lockParentWindow: true,
+      allowMultiple: true,
+      dialogTitle: 'Selecciona los archivos para el pedido',
+    );
+    if (result != null) {
+      setState(() {
+        _fileSeleccionado = result.paths.map((p) => File(p!)).toList();
+        VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
+      });
+    }
+    if (_fileSeleccionado.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {    
-    final usuariosQueVendieron = ventasPorUsuario.keys.toList();
+    final productosServices = Provider.of<ProductosServices>(context);
+    final clientesServices = Provider.of<ClientesServices>(context);
+    
+    InputDecoration totalDecoration = AppTheme.inputDecorationCustom.copyWith(
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _detallesError ? Colors.red : AppTheme.letraClara)
+      )
+    );
 
-    return Expanded(
-      flex: 10,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          const Separador(texto: 'Ventas con Descuentos'),
-          Container(
-            color: AppTheme.tablaColorHeader,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical : 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Flexible( //Contenido (Body)
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.containerColor1,
+          borderRadius: const BorderRadius.only(topRight: Radius.circular(15), bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: FocusScope(
+            canRequestFocus: _canFocus,
+            child: Form(
+              key: _formKey,
+
+              child: Column(
                 children: [
-                  Expanded(flex: 6,  child: Center(child: Text('Folio'))),
-                  Expanded(flex: 10, child: Center(child: Text('Vendedor'))),
-                  Expanded(flex: 8,  child: Center(child: Text('Se Descuento'))),
-                  Expanded(flex: 8,  child: Center(child: Text('Se Cobro'))),
+                  
+                  //primera fila
+                  Row( 
+                    children: [
+
+                      Expanded(
+                        child: Column( //Formulario de clientes
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   Cliente *', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: BusquedaField<Clientes>(
+                                    items: clientesServices.clientes,
+                                    selectedItem: _clienteSelected,
+                                    onItemSelected: (Clientes? selected) {
+                                      setState(() {
+                                        _clienteSelected = selected;
+                                        VentasStates.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
+                                        if (_clienteSelected!=null){ _clienteError = false; }
+                                      });
+                                    },
+                                    onItemUnselected: (){
+                                      debugPrint('No se selecciono nada!');
+                                    },
+                                    displayStringForOption: (cliente) => cliente.nombre, 
+                                    secondaryDisplayStringForOption: (cliente) => cliente.telefono.toString(), 
+                                    showSecondaryFirst: false,
+                                    normalBorder: false, 
+                                    icono: Icons.perm_contact_cal_sharp, 
+                                    defaultFirst: true, 
+                                    hintText: 'Buscar Cliente', 
+                                    error: _clienteError, 
+                                  ),
+                                ),
+                                Container(
+                                  height: 40,
+                                  width: 42,
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.letraClara,
+                                    borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
+                                  ),
+                                  child: Center(
+                                    child: FeedBackButton(
+                                      onPressed: () async{
+                                        Clientes? clienteCreated = await showDialog(
+                                          context: context,
+                                          builder: (_) => const Stack(
+                                            alignment: Alignment.topRight,
+                                            children: [
+                                              ClientesFormDialog(),
+                                              WindowBar(overlay: true),
+                                            ],
+                                          ),
+                                        );
+                                        if (clienteCreated!=null){
+                                          setState(() {
+                                            _clienteSelected = clienteCreated;
+                                          });
+                                        }                                        
+                                      },
+                                      child: Icon(Icons.add, color: AppTheme.containerColor1, size: 28)
+                                    )
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      ), const SizedBox(width: 15),
+                      
+                      Column( //Fecha de Entrega
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('  Fecha de Entrega:', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
+                          Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(43, 255, 255, 255),
+                              border: Border.all(color: AppTheme.letraClara),
+                              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(3),
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    focusNode: _checkboxFocus1,
+                                    value: _entregaInmediata, 
+                                    focusColor: AppTheme.focusColor,
+                                    onChanged: (value){
+                                      if (_entregaInmediata==true){
+                                        return;
+                                      }
+                                      setState(() {
+                                        _fechaEntrega = null;
+                                        VentasStates.tabs[widget.index].fechaEntrega = null;
+                                        _checkboxFocus1.requestFocus();
+                                        _entregaInmediata = value!;
+                                        VentasStates.tabs[widget.index].entregaInmediata = value;
+                                      });
+                                    } 
+                                  ),
+                                  const Text('Entrega inmediata   ')
+                                ],
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                      
+                      Column(  //Fecha de Entrega otro dia
+                        crossAxisAlignment: CrossAxisAlignment.start, 
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // ignore: prefer_const_constructors
+                          Row(
+                            children: [
+                              const Text(''),
+                              _entregaInmediata ? 
+                                const Text('  ¿Es un pedido?', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                              : const Text('  Esta venta sera un pedido', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color.fromARGB(43, 255, 255, 255),
+                                  border: Border.all(color: AppTheme.letraClara),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(3),
+                                  child: Row(
+                                    children: [
+                                      Checkbox(
+                                        focusNode: _checkboxFocus2,
+                                        focusColor: AppTheme.focusColor,
+                                        value: !_entregaInmediata, 
+                                        onChanged: (value)async {
+                                          await elegirFecha();
+                                        } 
+                                      ),
+                                      SizedBox(
+                                        width: 140,
+                                        child: _fechaEntrega==null ? const Text(
+                                          'Crear pedido  '
+                                        ) :
+                                        Center(
+                                          child: Text(
+                                          //'${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
+                                          DateFormat('dd / MMM / yyyy', 'es_MX').format(_fechaEntrega!).toUpperCase(),
+                                          style: AppTheme.tituloClaro,
+                                          )
+                                        )
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 40,
+                                width: 120,
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.letraClara,
+                                  borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Text(
+                                        _fechaEntrega == null ? '--:--:--   ' : DateFormat('hh:mm a', 'en_US').format(_fechaEntrega!), 
+                                        style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)
+                                      ),
+                                    ),
+                                    Center(
+                                      child: FeedBackButton(
+                                        onPressed: () async {
+                                          await elegirFecha();
+                                        },
+                                        child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
+                                      )
+                                    ),
+                                    const SizedBox(width: 10)
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
+                      )
+                    ],
+                  ), const SizedBox(height: 10),
+                      
+                  //segunda fila
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      
+                      Expanded(
+                        child: Column( //Formulario de Producto
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   Producto *', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            BusquedaField<Productos>(
+                              items: productosServices.productos,
+                              selectedItem:   _productoSelected,
+                              onItemSelected: (Productos? selected) {
+                                setState(() {
+                                  _productoSelected = selected;
+                                  VentasStates.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
+                                  calcularSubtotal();
+                                });
+                              },
+                              onItemUnselected: (){
+                                limpiarCamposProducto();
+                              },
+                              displayStringForOption: (producto) => producto.descripcion, 
+                              normalBorder: true, 
+                              icono: Icons.copy, 
+                              defaultFirst: false, 
+                              secondaryDisplayStringForOption: (producto) => producto.codigo.toString(), 
+                              hintText: 'F2', 
+                              teclaFocus: LogicalKeyboardKey.f2, 
+                              error: false,
+                            )
+                          ],
+                        ),
+                      ), const SizedBox(width: 15),
+                      
+                      Column( //Precio por unidad
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Tooltip(
+                            message: '¡Precio sin IVA!',
+                            child: Text(' Precio/Unidad', style: AppTheme.subtituloPrimario)
+                          ),
+                          const SizedBox(height: 2),
+                          SizedBox(
+                            height: 40,
+                            width: 110,
+                            child: TextFormField(
+                              controller: _precioController,
+                              canRequestFocus: false,
+                              readOnly: true,
+                            ),
+                          )
+                        ],
+                      ), const SizedBox(width: 15),
+                      
+                      Column( //Precio por unidad
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('   Cantidad', style: AppTheme.subtituloPrimario),
+                          const SizedBox(height: 2),
+                          SizedBox(
+                            height: 40,
+                            width: 100,
+                            child: Focus(
+                              canRequestFocus: false,
+                              onFocusChange: (value) {
+                                if (value==false && _cantidadController.text == ''){
+                                  _cantidadController.text = '1';
+                                  setState(() {
+                                    calcularSubtotal();
+                                  });
+                                }
+                              },
+                              child: TextFormField(
+                                controller: _cantidadController,
+                                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                maxLength: 6,
+                                inputFormatters: [ NumericFormatter() ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    calcularSubtotal();
+                                  });
+                                },
+                              ),
+                            ),
+                          )
+                        ],
+                      ), //const SizedBox(width: 15),
+                      
+                      _productoSelected?.requiereMedida==true ? Padding(
+                        padding: const EdgeInsets.only(left: 15),
+                        child: Row(
+                          children: [
+                            Column( //Precio por unidad
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('   Ancho', style: AppTheme.subtituloPrimario),
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 40,
+                                  width: 100,
+                                  child: TextFormField(
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 4,
+                                    controller: _anchoController,
+                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                    onChanged: (value) {
+                                      if (value.isNotEmpty && value != '0') {
+                                        setState(() {
+                                          _anchoError = false;
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _anchoError = true;
+                                        });
+                                      }
+                                      
+                                      //No exeder el limite de anchura
+                                      if (value.isNotEmpty){
+                                        if (value=='.'){
+                                          value='';
+                                          return;
+                                        }
+                                        if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
+                                          _anchoController.text = Constantes.anchoMaximo.toString();
+                                        }
+                                      }
+                        
+                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                        if (_anchoController.text != '0' && _altoController.text != '0') {
+                                          setState(() {
+                                            calcularSubtotal();
+                                          });
+                                        }
+                                      }
+                                    },
+                                  ),
+                                )
+                              ],
+                            ), const SizedBox(width: 15),
+                                        
+                            Column( //Precio por unidad
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('   Alto', style: AppTheme.subtituloPrimario),
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 40,
+                                  width: 100,
+                                  child: TextFormField(
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 4,
+                                    controller: _altoController,
+                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                    onChanged: (value) {
+                                      if (value.isNotEmpty && value != '0') {
+                                        setState(() {
+                                          _altoError = false;
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _altoError = true;
+                                        });
+                                      }
+                        
+                                      //No exeder el limite de altura
+                                      if (value.isNotEmpty){
+                                        if (value=='.'){
+                                          value='';
+                                          return;
+                                        }
+                                        if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
+                                          _altoController.text = Constantes.altoMaximo.toString();
+                                        }
+                                      }
+                                      
+                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                        if (_anchoController.text != '0' && _altoController.text != '0') {
+                                          setState(() {
+                                            calcularSubtotal();
+                                          });
+                                        }
+                                      }
+                                    },
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ) : const SizedBox(),
+                     
+
+                      !_entregaInmediata ? 
+                        _fileSeleccionado.isEmpty ?
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: ElevatedButtonIcon(
+                              text: 'Subir archivo', 
+                              icon: Icons.upload, 
+                              onPressed: () => seleccionarArchivos()
+                            ),
+                          )
+                        : Tooltip(
+                         message: _fileSeleccionado
+                          .map((f) => f.path.split('\\').last)
+                          .join('\n'),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Container(
+                              width: 156,
+                              decoration: BoxDecoration(
+                                color: AppTheme.letraClara,
+                                borderRadius: BorderRadius.circular(22)
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Center(
+                                  child: Text(
+                                    _fileSeleccionado.length > 1 ?
+                                      '${_fileSeleccionado.length} Archivos subidos'
+                                      : 
+                                      '1 Archivo subido',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: AppTheme.containerColor1,
+                                      fontWeight: FontWeight.w700,
+                                      //fontSize: 12
+                                    )
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox()
+                    
+                    ],
+                  ), const SizedBox(height: 10),
+
+                  //tercer fila 
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column( //Formulario de Producto
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   Comentario', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            TextFormField(
+                              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                              maxLength: 100,
+                              controller: _comentarioController,
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),  const SizedBox(width: 15),
+                      
+                      Expanded(
+                        child: Column( //Formulario de Producto
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   % Descuento', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Focus(
+                                    canRequestFocus: false,
+                                    onFocusChange: (hasFocus) {
+                                      if (!hasFocus) {
+                                        if (_descuentoController.text.isEmpty) {
+                                          _descuentoController.text = '0';
+                                          calcularSubtotal();
+                                        }
+                                        _descuentoController.text = '${_descuentoController.text.replaceAll('%', '')}%';
+                                      } else {
+                                        _descuentoController.text = '';
+                                        calcularSubtotal();
+                                      }
+                                    },
+                                    child: TextFormField(
+                                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                      canRequestFocus: _permisoDeAdmin,
+                                      readOnly: !_permisoDeAdmin,
+                                      maxLength: 4,
+                                      controller: _descuentoController,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      decoration: _permisoDeAdmin 
+                                      ? const InputDecoration(
+                                        isDense: true,
+                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                      )
+                                      : const InputDecoration(
+                                        isDense: true,
+                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: AppTheme.letraClara
+                                          ),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            bottomLeft: Radius.circular(30),
+                                          )
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: AppTheme.letraClara,
+                                            width: 2
+                                          ),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            bottomLeft: Radius.circular(30),
+                                          )
+                                        )
+                                      ),
+                                      onChanged: (value) {
+                                        if (_descuentoController.text.isEmpty) {
+                                          _descuentoController.text = '0';
+                                        }
+                                        if (int.parse(_descuentoController.text) > 100) {
+                                          _descuentoController.text = '100';
+                                        } 
+                                        calcularSubtotal();
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                _permisoDeAdmin
+                                ? const SizedBox()
+                                : Container(
+                                  height: 40,
+                                  width: 42,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(30),
+                                      bottomRight: Radius.circular(30),
+                                    )
+                                  ),
+                                  child: FocusScope(
+                                    canRequestFocus: false,
+                                    child: IconButton(
+                                      onPressed: () async{
+                                        bool? permiso = await mostrarDialogoPermiso(context);
+                                        if (permiso!=null){
+                                          if (permiso == true) {
+                                            setState(() {
+                                              _permisoDeAdmin=true;
+                                              VentasStates.tabs[widget.index].permisoDeAdmin=true;
+                                            });
+                                          }
+                                        }
+                                      }, 
+                                      icon: Transform.translate(
+                                        offset: const Offset(-2.5, 0),
+                                        child: Icon(
+                                          Icons.lock, 
+                                          color: AppTheme.containerColor2, 
+                                          size: 24
+                                        ),
+                                      )
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ), const SizedBox(width: 15),
+                      
+                      Expanded(
+                        child: Column( //Formulario de Producto
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('   IVA (${Configuracion.iva}%)', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 40,
+                              child: TextFormField(
+                                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                maxLength: 3,
+                                controller: _ivaController,
+                                canRequestFocus: false,
+                                readOnly: true,
+                              ),
+                            )
+                          ],
+                        ),
+                      ), const SizedBox(width: 15),
+                      
+                      Expanded(
+                        child: Column( //Formulario de Producto
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   Total', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 40,
+                              child: TextFormField(
+                                controller: _productoTotalController,
+                                canRequestFocus: false,
+                                readOnly: true,
+                              ),
+                            )
+                          ],
+                        ),
+                      ), const SizedBox(width: 15),
+                      
+                      ElevatedButtonIcon(
+                        onPressed: (){
+                          if (_productoSelected == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Center(child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 15),
+                                  child: Text('Seleccione un producto antes de agregarlo.'),
+                                )),
+                                backgroundColor: Colors.red.withAlpha(100),
+                              )
+                            );
+                            return;
+                          }
+                          
+                          if (_productoSelected!.requiereMedida == true){
+                            bool isValid = true;
+                            if (_anchoController.text.isEmpty || _anchoController.text == '0') {
+                              isValid = false;
+                              setState(() {
+                                _anchoError = true;
+                              });                            
+                            }
+                            if (_altoController.text.isEmpty || _altoController.text == '0') {
+                              isValid = false;
+                              setState(() {
+                                _altoError = true;
+                              });
+                            }
+                            if (!isValid) {
+                              return;
+                            }
+                          }
+
+                          List<File> archivos = [];
+                          archivos.addAll(_fileSeleccionado);
+            
+                          DetallesVenta detalle = DetallesVenta(
+                            productoId: _productoSelected!.id!,
+                            cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
+                            ancho: double.parse(_anchoController.text), 
+                            alto: double.parse(_altoController.text), 
+                            comentarios: _comentarioController.text.isNotEmpty ? _comentarioController.text : null,
+                            descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
+                            descuentoAplicado: _descuentoAplicado,
+                            iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            archivos: archivos
+                          );
+              
+                          _productos.add(_productoSelected!);
+                        
+                          setState(() {
+                            _detallesError = false;
+                            _detallesVenta.add(detalle);
+                            calcularTotal();
+                            limpiarCamposProducto();
+                          });
+            
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          });             
+                        }, 
+                        text: 'Agregar Producto',
+                        icon: Icons.add,
+                      )
+                      
+                    ],
+                  ),
+                      
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 2, right: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        CajasServices.cajaActual!=null ? 
+                        Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}')
+                        : const SizedBox(),
+                      ],
+                    ),
+                  ),
+                      
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Cabecera
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                            color: AppTheme.tablaColorHeader,
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(child: Text('Cantidad', textAlign: TextAlign.center)),
+                              Expanded(flex: 4, child: Text('Producto', textAlign: TextAlign.center)),
+                              Expanded(flex: 2, child: Text('Precio/Unidad', textAlign: TextAlign.center)),
+                              Expanded(flex: 2, child: Text('Subtotal', textAlign: TextAlign.center)),
+                              Expanded(flex: 2, child: Text('Descuento', textAlign: TextAlign.center)),
+                              Expanded(child: Text('IVA', textAlign: TextAlign.center)),
+                              Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center)),
+                            ],
+                          ),
+                        ),
+                        // Lista de datos
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            ),
+                            child: _detallesVenta.isNotEmpty ? ListView.builder(
+                              controller: _scrollController,
+                              itemCount: _detallesVenta.length,
+                              itemBuilder: (context, index) {
+                                return FilaDetalles(
+                                  index: index, 
+                                  detalle: _detallesVenta[index], 
+                                  producto: _productos[index],
+                                  onDelete: () {
+                                    _detallesVenta.removeAt(index);
+                                    _productos.removeAt(index);
+                                    calcularTotal();
+                                    setState(() {});
+                                  },
+                                  onModificate: () {
+                                    try {
+                                      _productoSelected = productosServices.productos.firstWhere((p) => p.id == _detallesVenta[index].productoId);
+                                    } catch (e) {
+                                      return;
+                                    }
+
+                                    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
+                                    _precioController.text = _productoSelected!.precio.toString();
+                                    _cantidadController.text = _detallesVenta[index].cantidad.toString();
+                                    _anchoController.text = _detallesVenta[index].ancho.toString();
+                                    _altoController.text = _detallesVenta[index].alto.toString();
+                                    _comentarioController.text = _detallesVenta[index].comentarios!=null ? _detallesVenta[index].comentarios.toString() : '';
+                                    _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
+                                    _ivaController.text = _detallesVenta[index].iva.toString();
+                                    _productoTotalController.text = _detallesVenta[index].subtotal.toString();
+                                    _fileSeleccionado = _detallesVenta[index].archivos??[];
+                                    VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
+                                    calcularSubtotal();
+            
+                                    _detallesVenta.removeAt(index);
+                                    _productos.removeAt(index);
+                                    calcularTotal();
+                                    setState(() {});
+                                  },
+                                );
+                              },
+                            ) : const FilaDetalles(index: -1),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                      
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      
+                      Expanded(
+                        flex: 5,
+                        child: TextFormField(
+                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                          maxLength: 250,
+                          controller: _comentariosController,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            hintText: 'Comentarios de la venta',
+                            hintStyle: TextStyle(color: AppTheme.letra70),
+                            isDense: true,
+                            contentPadding: EdgeInsets.only(left: 10, top: 20),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white),
+                              borderRadius: BorderRadius.all(Radius.circular(12))
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
+                              borderRadius: BorderRadius.all(Radius.circular(12))
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      Expanded(
+                        flex: 8,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Configuracion.esCaja ? 
+                                    ElevatedButton(
+                                      focusNode: _f8FocusNode,
+                                      onPressed: (){
+                                        procesarPago();
+                                      },
+                                      style: AppTheme.botonPrincipalStyle,
+                                      child: const Text('      Procesar Pago  (F8)     ', 
+                                        style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                      ),
+                                    ) 
+                                  : ElevatedButton(
+                                    focusNode: _f8FocusNode,
+                                    onPressed: (){
+                                      procesarEnvio();
+                                    },
+                                    style: AppTheme.botonPrincipalStyle,
+                                    child: const Text('      Enviar a Caja  (F8)     ', 
+                                      style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  /*Tooltip(  //TODO: en desarrollo
+                                    message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
+                                    child: ElevatedButton(
+                                      onPressed: (){
+                                        //procesarCotizacion(); TODO: deshabilitado
+                                      },
+                                      child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
+                                    ),
+                                  ),*/
+                                ],
+                              ),
+                            ),
+
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('Subtotal:  ', style: AppTheme.subtituloPrimario),
+                                    SizedBox(
+                                      height: 32,
+                                      width: 150,
+                                      child: TextFormField(
+                                        controller: _subtotalController,
+                                        canRequestFocus: false,
+                                        readOnly: true,
+                                        decoration: totalDecoration,
+                                      )
+                                    )
+                                  ],
+                                ), 
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('- Descuento:  ', style: AppTheme.subtituloPrimario),
+                                    SizedBox(
+                                      height: 32,
+                                      width: 150,
+                                      child: TextFormField(
+                                        controller: _totalDescuentoController,
+                                        canRequestFocus: false,
+                                        readOnly: true,
+                                        decoration: totalDecoration,
+                                      )
+                                    )
+                                  ],
+                                ), 
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('+ IVA:  ', style: AppTheme.subtituloPrimario),
+                                    SizedBox(
+                                      height: 32,
+                                      width: 150,
+                                      child: TextFormField(
+                                        controller: _totalIvaController,
+                                        canRequestFocus: false,
+                                        readOnly: true,
+                                        decoration: totalDecoration,
+                                      )
+                                    )
+                                  ],
+                                ), 
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('Total:  ', style: AppTheme.tituloPrimario),
+                                    SizedBox(
+                                      height: 36,
+                                      width: 150,
+                                      child: TextFormField(
+                                        controller: _totalController,
+                                        canRequestFocus: false,
+                                        readOnly: true,
+                                        decoration: totalDecoration,
+                                        style: const TextStyle(fontSize: 22),
+                                      )
+                                    )
+                                  ],
+                                ), 
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),
           ),
-          Expanded(
-            flex: 8, 
-            child: Container(
-              color: AppTheme.tablaColor1,
-              child: ListView.builder(
-                itemCount: ventasConDescuentos.length,
-                itemBuilder: (context, index) {
-                  return FilaDescuentos(venta: ventasConDescuentos[index], color: index+1);
-                },
-              ),
-            )
-          ),
-          const SizedBox(height: 10),
-          const Separador(texto: 'Ventas por Vendedor'),
-          Container(
-            color: AppTheme.tablaColorHeader,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical : 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(flex: 3, child: Center(child: Text('Vendedor'))),
-                  Expanded(child: Center(child: Text('Ventas'))),
-                  Expanded(flex: 2, child: Center(child: Text('Total'))),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 5,
-            child: Container(
-              color: AppTheme.tablaColor1,
-              child: ListView.builder(
-                itemCount: usuariosQueVendieron.length,
-                itemBuilder: (context, index) {
-                  final usuarioId = usuariosQueVendieron[index];
-                  final ventasDeEsteUsuario = ventasPorUsuario[usuarioId]!;
-
-                  return FilaPorVendedor(
-                    usuarioId: usuarioId,
-                    ventas: ventasDeEsteUsuario, 
-                    color: index+1);
-                },
-              ),
-            )
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(onPressed: (){
-            callback();
-          }, child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Siguiente'),
-              Transform.translate(
-                offset: const Offset(8, 1.5),
-                child: const Icon(Icons.chevron_right_sharp, size: 25)
-              )
-            ],
-          ))
-        ],
+        ),
       ),
     );
   }
 }
 
-class ReporteFinalMovimientos extends StatelessWidget {
-  const ReporteFinalMovimientos({
-    super.key, 
-    required this.contadoPesos, 
-    required this.contadoDolares, 
-    required this.contadoDebito, 
-    required this.contadoCredito, 
-    required this.contadoTransf, 
-    required this.abonadoMxn, 
-    required this.abonadoUs, 
-    required this.abonadoTarjD, 
-    required this.abonadoTarjC, 
-    required this.abonadoTrans,
+class FilaDetalles extends StatelessWidget {
+  const FilaDetalles({
+    super.key, required this.index, this.detalle, this.producto, this.onDelete, this.onModificate
   });
 
-  final Decimal contadoPesos;
-  final Decimal contadoDolares;
-  final Decimal contadoDebito;
-  final Decimal contadoCredito;
-  final Decimal contadoTransf;
-  final Decimal abonadoMxn;
-  final Decimal abonadoUs;
-  final Decimal abonadoTarjD;
-  final Decimal abonadoTarjC;
-  final Decimal abonadoTrans;
+  final int index;
+  final DetallesVenta? detalle;
+  final Productos? producto;
+  final VoidCallback? onDelete;
+  final VoidCallback? onModificate;
 
   @override
   Widget build(BuildContext context) {
-    //Calcular Movimientos
-    Cortes corte = CajasServices.corteActual!;
-    Decimal entrada = Decimal.parse('0');
-    Decimal salida = Decimal.parse('0');
-
-    for (var movimiento in corte.movimientosCaja) {
-      if (movimiento.tipo=='entrada'){
-        entrada += Decimal.parse(movimiento.monto.toString());
-      } else if (movimiento.tipo=='retiro'){
-        salida += Decimal.parse(movimiento.monto.toString());
-      }
+    if (index == -1) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: AppTheme.tablaColor1
+            ),
+            child: const Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
+          ),
+        ],
+      );
     } 
 
-    //sistema
-    //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
-    double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble());
-    Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
-
-    //Contado
-    Decimal contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble()).toString());
-    Decimal totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
-
-    //diferencia
-    Decimal diferencia = total - totalContado;
-
-    double mx = abonadoMxn.toDouble();
-
-    return Expanded(
-      flex: 2,
-      child: Column(
-        children: [
-          const Separador(texto: 'Movimientos De Caja'),
-          Fila(texto: 'Entrada de dinero', precio: '+${Formatos.pesos.format(entrada.toDouble())}', color: 2),
-          Fila(texto: 'Salida de dinero', precio: '-${Formatos.pesos.format(salida.toDouble())}', color: 1),
-          Fila(texto: 'Efectivo (MX)', precio: mx < 0 ? Formatos.pesos.format(mx) : '+${Formatos.pesos.format(mx)}', color: 2),
-          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(abonadoUs.toDouble())}', dolar: Formatos.dolares.format(abonadoMxToUsd), color: 1),
-          Fila(texto: 'Tarjeta de Debito', precio: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', color: 2),
-          Fila(texto: 'Tarjeta de Credito', precio: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', color: 1),
-          Fila(texto: 'Transferencia', precio: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', color: 2),
-          Fila(texto: 'Total', precio: Formatos.pesos.format(total.toDouble()), color: 0),
-          const SizedBox(height: 15),
-          const Separador(texto: 'Dinero Entregado'),
-          Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
-          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
-          Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
-          Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
-          Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
-          Fila(texto: 'Total', precio: Formatos.pesos.format(totalContado.toDouble()), color: 0),
-          const SizedBox(height: 15),
-          const Separador(texto: 'Diferencia'),
-          Fila(texto: 'Movimientos de Caja', precio: Formatos.pesos.format(total.toDouble()), color: 1),
-          Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
-          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse('0') ? 'Faltante: ${Formatos.pesos.format(diferencia.toDouble())}' : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
-        ],
-      )
-    );
-  }
-}
-
-class ReporteFinalDesgloseDinero extends StatelessWidget {
-  const ReporteFinalDesgloseDinero({
-    super.key, 
-    required this.desglosePesos, 
-    required this.desgloseDolares, 
-    required this.impresoraControllers, 
-    required this.ctrl,
-  });
-
-  final List<Desglose> desglosePesos;
-  final List<Desglose> desgloseDolares;
-  final Map<String, TextEditingController> impresoraControllers;
-  final TextEditingController ctrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: 3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          const Separador(texto: 'Desglose Dinero Entregado', reducido: true),
-          const Row(
-            children: [
-              Expanded(child: Fila(texto: 'Pesos', precio: '', color: 0)),
-              SizedBox(width: 10),
-              Expanded(child: Fila(texto: 'Dolares', precio: '', color: 0)),
-            ],
-          ),
-          Expanded(
-            flex: 9,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    color: AppTheme.tablaColor1,
-                    child: ListView.builder(
-                      itemCount: desglosePesos.length,
-                      itemBuilder: (context, index) {
-                        final d = desglosePesos[index];
-                        return FilaDesglose(
-                          denominacion: d.denominacion,
-                          cantidad: d.cantidad,
-                          color: index + 1,
-                          dolar: false
-                        );
-                      },
-                    )
-                  )
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    color: AppTheme.tablaColor1,
-                    child: ListView.builder(
-                      itemCount: desgloseDolares.length,
-                      itemBuilder: (context, index) {
-                        final d = desgloseDolares[index];
-                        return FilaDesglose(
-                          denominacion: d.denominacion,
-                          cantidad: d.cantidad,
-                          color: index + 1,
-                          dolar: true
-                        );
-                      },
-                    )
-                  )
-                ),
-              ],
-            ),
-          ), const SizedBox(height: 10),
-          
-          const Separador(texto: 'Contadores'),
-          Expanded(
-            flex: 6,
-            child: ReporteFinalContadores(impresoraControllers: impresoraControllers)
-          ), const SizedBox(height: 10),
-
-          const Separador(texto: 'Comentarios'),
-          TextFormField(
-            controller: ctrl,
-            maxLines: 2,
-            decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color.fromARGB(159, 255, 255, 255), width: 2)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white, width: 2)),
-              contentPadding: const EdgeInsets.all(8),
-            ),
-          ),
-
-          const SizedBox(height: 48),
-        ],
-      )
-    );
-  }
-
-}
-
-class ReporteFinalContadores extends StatelessWidget {
-  const ReporteFinalContadores({
-    super.key, required this.impresoraControllers,
-  });
-
-  final Map<String, TextEditingController> impresoraControllers;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          color: AppTheme.tablaColorHeader,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(flex: 10, child: Center(child: Text('Impresora', style: AppTheme.tituloClaro))),
-                Expanded(flex: 12, child: Center(child: Text('Calculado            Real', style: AppTheme.tituloClaro))),
-                Expanded(flex: 7,  child: Center(child: Text('  Diferencia', style: AppTheme.tituloClaro))),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: Consumer<ImpresorasServices>(
-            builder: (context, value, child) {
-              return Container(
-                color: AppTheme.tablaColor1,
-                child: ListView.builder(
-                  itemCount: value.impresoras.length,
-                  itemBuilder: (context, index) {
-                    int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
-                    return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1);
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-        //Text('Si la diferencia es negativa significa que hubo merma o no se registro alguna impresion en el sistema', style: AppTheme.tituloClaro, textScaler: TextScaler.linear(0.7)),
-      ],
-    );
-  }
-}
-
-class FilaProductos extends StatelessWidget {
-  const FilaProductos({
-    super.key, 
-    required this.cantidad, 
-    required this.articulo, 
-    required this.subtotal, 
-    required this.iva, 
-    required this.total,
-    required this.color,   
-  });
-
-  final int cantidad;
-  final String articulo;
-  final Decimal subtotal;
-  final Decimal iva;
-  final Decimal total;
-  final int color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex: 3, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 10, child: Center(child: Text(articulo, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(subtotal.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(iva.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: AppTheme.subtituloConstraste))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class FilaDescuentos extends StatelessWidget {
-  const FilaDescuentos({
-    super.key, 
-    required this.color, required this.venta,   
-  });
-
-  final Ventas venta;
-  final int color;
-
-  @override
-  Widget build(BuildContext context) {
-    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex: 6,  child: Center(child: Text(venta.folio!, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 10, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(venta.usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 8, child: Center(child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class FilaPorVendedor extends StatelessWidget {
-  const FilaPorVendedor({
-    super.key, 
-    required this.usuarioId,
-    required this.ventas,    
-    required this.color, 
-  });
-
-  final String usuarioId;
-  final List<Ventas> ventas;
-  final int color;
-
-  @override
-  Widget build(BuildContext context) {
-    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-
-    Decimal total = Decimal.parse('0');
-    for (var venta in ventas) {
-      total += venta.abonadoTotal;
+    String descripcionProducto = producto!.descripcion;
+    if(producto!.requiereMedida){
+      descripcionProducto += ' (${detalle!.ancho} x ${detalle!.alto})';
     }
 
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex: 3, child: Center(child: Text(usuarioSvc.obtenerNombreUsuarioPorId(usuarioId), maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(ventas.length.toString(), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 2,child: Center(child: Text(Formatos.pesos.format(total.toDouble()), style: AppTheme.subtituloConstraste))),
-          ],
+    void mostrarMenu(BuildContext context, Offset offset) async {
+      final seleccion = await showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(
+          offset.dx,
+          offset.dy,
+          offset.dx,
+          offset.dy,
         ),
-      ),
-    );
-  }
-}
-
-class Fila extends StatelessWidget {
-  const Fila({
-    super.key, required this.texto, required this.precio, required this.color, this.dolar
-  });
-
-  final String texto;
-  final String precio;
-  final String? dolar;
-  final int color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
-        child: dolar==null ? Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
-            Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
-          ],
-        ) : Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(texto, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
-            Row(
+        color: AppTheme.dropDownColor,
+        elevation: 2,
+        items: [
+          const PopupMenuItem(
+            value: 'modificar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('+(${dolar!})', style: TextStyle(color: AppTheme.colorContraste.withAlpha(220)), textScaler: const TextScaler.linear(0.9)),
-                Text(precio, style: color==0 ?  AppTheme.tituloClaro : AppTheme.subtituloConstraste),
+                Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+                Text('  Modificar', style: AppTheme.subtituloPrimario),
               ],
             ),
-            
+          ),
+          const PopupMenuItem(
+            value: 'eliminar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                Text('  Eliminar', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      if (seleccion == 'modificar') {
+        // Lógica para modificar
+        onModificate!();
+      } else if (seleccion == 'eliminar') {
+        // Lógica para eliminar
+        onDelete!();
+      }
+    }
+    
+
+    return GestureDetector(
+      onSecondaryTapDown: (details) {
+        mostrarMenu(context, details.globalPosition);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        color: index % 2 == 0
+            ? AppTheme.tablaColor1
+            : AppTheme.tablaColor2,
+        child: Row(
+          children: [
+            Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text(descripcionProducto, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
       ),
@@ -1556,65 +1858,92 @@ class Fila extends StatelessWidget {
   }
 }
 
-class FilaDesglose extends StatelessWidget {
-  const FilaDesglose({
-    super.key, required this.denominacion, required this.cantidad, required this.color, required this.dolar,
+
+class CreandoPedido extends StatefulWidget {
+  const CreandoPedido({
+    super.key,
+    required this.pedido, required this.files,
   });
 
-  final double denominacion;
-  final int cantidad;
-  final int color;
-  final bool dolar;
-  
+  final Pedidos pedido;
+  final List<File> files;
+
   @override
-  Widget build(BuildContext context) {
-    double total = denominacion * cantidad;
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal:  8, vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex: 2, child: Center(child: Text('${denominacion}x', style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(cantidad.toString(), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 3, child: Center(child: Text(dolar?Formatos.dolares.format(total):Formatos.pesos.format(total), style: AppTheme.subtituloConstraste))),
-          ],
-        ),
-      ),
-    );
-  }
+  State<CreandoPedido> createState() => _CreandoPedidoState();
 }
 
-class FilaContadores extends StatelessWidget {
-  const FilaContadores({
-    super.key, 
-    required this.impresora,
-    required this.cantidadAnotada,
-    required this.color,
-  });
+class _CreandoPedidoState extends State<CreandoPedido> {
+  int pedidosListos = 1;
+  List<String> pedidosIds = [];
 
-  final Impresoras impresora;
-  final int cantidadAnotada;
-  final int color;
+  @override
+  void initState() {
+    super.initState();
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+      subirPedido();
+    });
+  }
+
+  void subirPedido() async {
+    final pedidosService = Provider.of<PedidosService>(context, listen: false);
+    String pedidoId = await pedidosService.createPedido(
+      pedido: widget.pedido,
+      archivos: widget.files,
+    );
+    pedidosIds.add(pedidoId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
-    int cantidad = impresoraSvc.ultimosContadores[impresora.id]?.cantidad ?? 0;
-    return Container(
-      color: color==0 ? AppTheme.tablaColorHeader : color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex: 8, child: Center(child: Text(impresora.modelo, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))),
-          ],
+    final pedidosService = Provider.of<PedidosService>(context);
+
+    return AlertDialog(
+      backgroundColor: AppTheme.containerColor2,
+      title: Center(
+        child: Text(
+          pedidosService.isLoading ? 
+            'Creando Pedido...'
+          : '¡Pedido realizado con éxito!', 
+          textScaler: const TextScaler.linear(0.75)
         ),
+      ),
+      content: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+      
+          // 📤 SUBIR ARCHIVOS
+          if (!pedidosService.isLoading)
+            Column(
+              children: [
+                
+                ElevatedButton(
+                  onPressed: ()=> Navigator.pop(context, pedidosIds), 
+                  child: const Text('Cerrar')
+                )
+              ],
+            )
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Subiendo archivo...'),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LinearProgressIndicator(
+                    value: pedidosService.uploadProgress,
+                    minHeight: 6,
+                    color: AppTheme.isDarkTheme ? AppTheme.secundario1 : AppTheme.primario1,
+                  ),
+                ),
+                Text(
+                  '${(pedidosService.uploadProgress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          
+        ],
       ),
     );
   }

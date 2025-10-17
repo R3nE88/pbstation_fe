@@ -319,21 +319,25 @@ class FilaProducto extends StatelessWidget {
       }
     }
     
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        mostrarMenu(context, details.globalPosition);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: Row(
-          children: [
-            Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: const TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          ],
+    return FeedBackButton(
+      onlyVertical: true,
+      onPressed: (){},
+      child: GestureDetector(
+        onSecondaryTapDown: (details) {
+          mostrarMenu(context, details.globalPosition);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8.0),
+          color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+          child: Row(
+            children: [
+              Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: const TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            ],
+          ),
         ),
       ),
     );

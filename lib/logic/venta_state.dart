@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
@@ -49,6 +51,9 @@ class VentaTab {
   TextEditingController totalIvaController;
   TextEditingController totalController;
   bool permisoDeAdmin;
+  List<File> fileSeleccionado;
+  bool fromVentaEnviada;
+  List<String> pedidosIds;
 
   VentaTab()
       : clienteSelected = null,
@@ -72,7 +77,10 @@ class VentaTab {
         totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
         totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
         totalController = TextEditingController(text: Formatos.pesos.format(0)),
-        permisoDeAdmin = Login.isAdmin;
+        permisoDeAdmin = Login.isAdmin,
+        fileSeleccionado = [],
+        fromVentaEnviada = false,
+        pedidosIds = [];
   
 
   void dispose() {
@@ -115,5 +123,8 @@ class VentaTab {
     totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
     totalController = TextEditingController(text: Formatos.pesos.format(0));
     permisoDeAdmin = Login.isAdmin;
+    fileSeleccionado = [];
+    fromVentaEnviada = false;
+    pedidosIds = [];
   }
 }

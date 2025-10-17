@@ -313,6 +313,8 @@ class _VentaScreenState extends State<VentaScreen> {
             VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
           }
           VentasStates.tabs[index].detallesVenta = venta.detalles;
+          VentasStates.tabs[index].fromVentaEnviada = true;
+          VentasStates.tabs[index].pedidosIds = venta.pedidosIds ?? [];
           VentasStates.tabs[index].comentariosController.text = venta.comentariosVenta??'';
           VentasStates.tabs[index].subtotalController.text = Formatos.pesos.format(venta.subTotal.toDouble());
           VentasStates.tabs[index].totalDescuentoController.text = Formatos.pesos.format(venta.descuento.toDouble());

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:decimal/decimal.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +71,12 @@ class _VentaFormState extends State<VentaForm> {
   late final bool Function(KeyEvent event) _keyHandler;
   bool _canFocus = true;
 
-  late bool _permisoDeAdmin;
+  late bool _permisoDeAdmin;  
+
+  //pedidos
+  late List<File> _fileSeleccionado;
+  late bool _fromVentaEnviada;
+  late List<String> _pedidosIds;
 
   @override
   void initState() {
@@ -93,6 +101,9 @@ class _VentaFormState extends State<VentaForm> {
     _descuentoAplicado = VentasStates.tabs[widget.index].descuentoAplicado;
     _ivaController = VentasStates.tabs[widget.index].ivaController;
     _productoTotalController = VentasStates.tabs[widget.index].productoTotalController;
+    _fromVentaEnviada = VentasStates.tabs[widget.index].fromVentaEnviada;
+    _fileSeleccionado = VentasStates.tabs[widget.index].fileSeleccionado;
+    _pedidosIds = VentasStates.tabs[widget.index].pedidosIds;
 
     _subtotalController = VentasStates.tabs[widget.index].subtotalController;
     _totalDescuentoController = VentasStates.tabs[widget.index].totalDescuentoController;
@@ -173,6 +184,8 @@ class _VentaFormState extends State<VentaForm> {
     _descuentoController.text = '0%';
     _ivaController.text = Formatos.pesos.format(0);
     _productoTotalController.text = Formatos.pesos.format(0);
+    _fileSeleccionado.clear();
+    VentasStates.tabs[widget.index].fileSeleccionado.clear();
   }
 
   Future<void> elegirFecha()async{
@@ -266,11 +279,71 @@ class _VentaFormState extends State<VentaForm> {
 
   void procesarPago() async{
     if(!Configuracion.esCaja) return;
+
+    print(_fromVentaEnviada);
     
     if (_detallesVenta.isEmpty || _clienteSelected==null){
       if (_clienteSelected==null){setState((){_clienteError = true;});}
       if (_detallesVenta.isEmpty){setState(() {_detallesError = true;});}
       return;
+    }
+
+    void afterProcesar(value) async{
+      if (value!=null){ //Esto es para verificar si no cancele el procesar pago
+        if (!_entregaInmediata){ // si es pedido
+          if (!_fromVentaEnviada) { //solo crear pedido desde caja si no es venta enviada
+            String detallesComentarios = '';
+            for (var i = 0; i < _detallesVenta.length; i++) {
+              if (_detallesVenta[i].comentarios!=null){
+                if (_detallesVenta[i].comentarios!.isNotEmpty){
+                  if (_detallesVenta.length == i+1){
+                    detallesComentarios += '${_detallesVenta[i].comentarios}';
+                  } else {
+                    detallesComentarios += '${_detallesVenta[i].comentarios}&&';
+                  }
+                }
+              }
+            }
+
+            Pedidos pedido = Pedidos(
+              clienteId: _clienteSelected!.id!, 
+              usuarioId: Login.usuarioLogeado.id!, 
+              sucursalId: SucursalesServices.sucursalActualID!, 
+              ventaId: value, 
+              fecha: DateTime.now().toIso8601String(),
+              fechaEntrega: _fechaEntrega!.toIso8601String(),
+              archivos: [],
+              descripcion: detallesComentarios,
+              estado: 'en espera'
+            );
+
+            widget.rebuild(widget.index);
+
+            if (!mounted) return;
+            await showDialog(
+              barrierDismissible: false, // Evita que se cierre al hacer clic fuera
+              context: context, 
+              builder: (context) {
+                return CreandoPedido(pedido: pedido, files: const []);
+              },
+            );
+            
+          } else { //ya una vez pagado y con pedido pendiente, confirmar pedido!
+            widget.rebuild(widget.index);
+            
+            for (var pedidoId in _pedidosIds) {
+              if (!mounted) return;
+              final pedidosService = Provider.of<PedidosService>(context, listen: false);
+              await pedidosService.actualizarVentaPedido(
+                pedidoId: pedidoId,
+                ventaId: value,
+              );
+            }
+          }
+        }
+      }
+
+      _canFocus = true;
     }
 
     _canFocus = false;
@@ -297,19 +370,14 @@ class _VentaFormState extends State<VentaForm> {
                 recibidoTotal: Decimal.zero,
                 liquidado: false, 
               ),
-              rebuild: widget.rebuild, 
-              index: widget.index,
+              afterProcesar: afterProcesar,
             ),
             const WindowBar(overlay: true),
           ],
         );
         
       } 
-    ).then((value) {
-      //setState(() { //TODO: verificar si esto funciona sin el setState
-        _canFocus = true;
-      //});
-    },);
+    );
   }
 
   void procesarEnvio()async{
@@ -323,33 +391,154 @@ class _VentaFormState extends State<VentaForm> {
 
     Loading.displaySpinLoading(context);
 
-    VentasEnviadas venta = VentasEnviadas(
-      clienteId: _clienteSelected!.id!, 
-      usuarioId: Login.usuarioLogeado.id!,
-      usuarioNombre: Login.usuarioLogeado.nombre, 
-      sucursalId: SucursalesServices.sucursalActualID!,
-      pedidoPendiente: !_entregaInmediata, 
-      fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(),
-      detalles: _detallesVenta,
-      comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
-      subTotal: formatearEntrada(_subtotalController.text), 
-      descuento: formatearEntrada(_totalDescuentoController.text), 
-      iva: formatearEntrada(_ivaController.text), 
-      total: formatearEntrada(_totalController.text),
-      fechaEnvio: DateTime.now().toIso8601String(),
-      compu: Configuracion.nombrePC
-    );
+    Future<void> enviarHelper(List<String>? value) async{
+      //Y luego enviar venta!
+      VentasEnviadas venta = VentasEnviadas(
+        clienteId: _clienteSelected!.id!, 
+        usuarioId: Login.usuarioLogeado.id!,
+        usuarioNombre: Login.usuarioLogeado.nombre, 
+        sucursalId: SucursalesServices.sucursalActualID!,
+        pedidoPendiente: !_entregaInmediata, 
+        fechaEntrega: _entregaInmediata ? null : _fechaEntrega?.toIso8601String(),
+        detalles: _detallesVenta,
+        comentariosVenta:  _comentariosController.text.isNotEmpty ? _comentariosController.text : null, 
+        subTotal: formatearEntrada(_subtotalController.text), 
+        descuento: formatearEntrada(_totalDescuentoController.text), 
+        iva: formatearEntrada(_ivaController.text), 
+        total: formatearEntrada(_totalController.text),
+        fechaEnvio: DateTime.now().toIso8601String(),
+        compu: Configuracion.nombrePC,
+        pedidosIds: value
+      );
 
-    final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
-    await ventaEnviada.enviarVenta(venta);
+      final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
+      await ventaEnviada.enviarVenta(venta);
 
-    if(!mounted) return;
-    Navigator.pop(context);
+      if(!mounted) return;
+      Navigator.pop(context);
 
-    Loading.mostrarMensaje(context, '¡Enviado a Caja!');
+      widget.rebuild(widget.index);
 
-    widget.rebuild(widget.index);
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!context.mounted) return;
+            Navigator.of(context).pop(); // Cierra el cuadro después de 2 segundos
+          });
 
+          return Stack(
+            alignment: Alignment.topRight,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.containerColor2,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    '¡Enviado a caja!',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const WindowBar(overlay: true),
+            ],
+          );
+        },
+      );
+    }
+
+    if (!_entregaInmediata){ //Si es un pedido
+      //Crear pedido primero
+      String detallesComentarios = '';
+      for (var i = 0; i < _detallesVenta.length; i++) {
+        if (_detallesVenta[i].comentarios!=null){
+          if (_detallesVenta[i].comentarios!.isNotEmpty){
+            if (_detallesVenta.length == i+1){
+              detallesComentarios += '${_detallesVenta[i].comentarios}';
+            } else {
+              detallesComentarios += '${_detallesVenta[i].comentarios}&&';
+            }
+          }
+        }
+      }
+      List<File> archivos = [];
+      for (var detalle in _detallesVenta) {
+        if(detalle.archivos!=null){
+          if (detalle.archivos!.isNotEmpty){
+            for (var archivo in detalle.archivos!) {
+              archivos.add(archivo);
+            }
+          }
+        }
+      } 
+
+      Pedidos pedido = Pedidos(
+        clienteId: _clienteSelected!.id!, 
+        usuarioId: Login.usuarioLogeado.id!, 
+        sucursalId: SucursalesServices.sucursalActualID!, 
+        ventaId: 'esperando', 
+        fecha: DateTime.now().toIso8601String(),
+        fechaEntrega: _fechaEntrega!.toIso8601String(),
+        archivos: [],
+        descripcion: detallesComentarios,
+        estado: archivos.isEmpty ? 'en espera' : 'pendiente'
+      );
+
+      await showDialog(
+        barrierDismissible: false,
+        context: context, 
+        builder: (context) {
+          return CreandoPedido(pedido: pedido, files: archivos);
+        },
+      ).then((value) async { 
+        // y luego procesar envio
+        await enviarHelper(value);
+      });
+    } else { // si no es un pedido, simplemente enviar
+      await enviarHelper(null);
+    }
+    
+    
+    
+    //TODO: subir pedidos, sin archivo
+      /*for (var i = 0; i < _detallesVenta.length; i++) {
+        if (_detallesVenta[i].archivos!=null){
+          if (_detallesVenta[i].archivos!.isNotEmpty){
+            Pedidos pedido = Pedidos(
+              clienteId: _clienteSelected!.id!, 
+              usuarioId: Login.usuarioLogeado.id!, 
+              sucursalId: SucursalesServices.sucursalActualID!, 
+              ventaId: 'esperando', 
+              fecha: DateTime.now().toIso8601String(),
+              fechaEntrega: _fechaEntrega!.toIso8601String(),
+              archivos: [],
+              descripcion: _detallesVenta[i].comentarios,
+            );
+            pedidos.add(pedido);
+          }
+        }
+      }*/
+
+      /*if (pedidos.isNotEmpty){
+        //TODO: es la continuacion de lo de arriba
+        /*if (!mounted) return;
+        await showDialog(
+          barrierDismissible: false,
+          context: context, 
+          builder: (context) {
+            return CreandoPedidos(pedidos: pedidos, files:const []);
+          },
+        ).then((value) async { 
+          await enviarHelper(value);
+        });*/
+      } else {
+        await enviarHelper(null);
+      }*/
+      
   }
 
   void procesarCotizacion() async{
@@ -515,6 +704,26 @@ class _VentaFormState extends State<VentaForm> {
 
   }
 
+  Future<void> seleccionarArchivos() async {
+    Loading.displaySpinLoading(context);
+    final result = await FilePicker.platform.pickFiles(
+      lockParentWindow: true,
+      allowMultiple: true,
+      dialogTitle: 'Selecciona los archivos para el pedido',
+    );
+    if (result != null) {
+      setState(() {
+        _fileSeleccionado = result.paths.map((p) => File(p!)).toList();
+        VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
+      });
+    }
+    if (_fileSeleccionado.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {    
     final productosServices = Provider.of<ProductosServices>(context);
@@ -539,12 +748,14 @@ class _VentaFormState extends State<VentaForm> {
             canRequestFocus: _canFocus,
             child: Form(
               key: _formKey,
+
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  
+                  //primera fila
                   Row( 
                     children: [
-                      
+
                       Expanded(
                         child: Column( //Formulario de clientes
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,15 +823,13 @@ class _VentaFormState extends State<VentaForm> {
                             )
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ), const SizedBox(width: 15),
                       
                       Column( //Fecha de Entrega
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(' Fecha de Entrega:', style: AppTheme.subtituloPrimario),
+                          const Text('  Fecha de Entrega:', style: AppTheme.subtituloPrimario),
                           const SizedBox(height: 2),
                           Container(
                             height: 40,
@@ -650,7 +859,7 @@ class _VentaFormState extends State<VentaForm> {
                                       });
                                     } 
                                   ),
-                                  const Text('Se entrega en este momento  ')
+                                  const Text('Entrega inmediata   ')
                                 ],
                               ),
                             ),
@@ -658,11 +867,19 @@ class _VentaFormState extends State<VentaForm> {
                         ],
                       ),
                       
-                      Column( 
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Column(  //Fecha de Entrega otro dia
+                        crossAxisAlignment: CrossAxisAlignment.start, 
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(''),
+                          // ignore: prefer_const_constructors
+                          Row(
+                            children: [
+                              const Text(''),
+                              _entregaInmediata ? 
+                                const Text('  ¿Es un pedido?', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                              : const Text('  Esta venta sera un pedido', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                            ],
+                          ),
                           const SizedBox(height: 2),
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -677,25 +894,23 @@ class _VentaFormState extends State<VentaForm> {
                                   padding: const EdgeInsets.all(3),
                                   child: Row(
                                     children: [
-                                      Tooltip(
-                                        message: 'Funcion en desarrollo...',
-                                        child: Checkbox(
-                                          focusNode: _checkboxFocus2,
-                                          focusColor: AppTheme.focusColor,
-                                          value: !_entregaInmediata, 
-                                          onChanged: (value)async {
-                                            //TODO: quitar este comentario await elegirFecha();
-                                          } 
-                                        ),
+                                      Checkbox(
+                                        focusNode: _checkboxFocus2,
+                                        focusColor: AppTheme.focusColor,
+                                        value: !_entregaInmediata, 
+                                        onChanged: (value)async {
+                                          await elegirFecha();
+                                        } 
                                       ),
                                       SizedBox(
                                         width: 140,
                                         child: _fechaEntrega==null ? const Text(
-                                          'Entregar en otro día  '
+                                          'Crear pedido  '
                                         ) :
                                         Center(
                                           child: Text(
-                                          '${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
+                                          //'${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
+                                          DateFormat('dd / MMM / yyyy', 'es_MX').format(_fechaEntrega!).toUpperCase(),
                                           style: AppTheme.tituloClaro,
                                           )
                                         )
@@ -725,7 +940,7 @@ class _VentaFormState extends State<VentaForm> {
                                     Center(
                                       child: FeedBackButton(
                                         onPressed: () async {
-                                          //TODO: quitar este comentario await elegirFecha();
+                                          await elegirFecha();
                                         },
                                         child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
                                       )
@@ -739,11 +954,11 @@ class _VentaFormState extends State<VentaForm> {
                         ],
                       )
                     ],
-                  ),
+                  ), const SizedBox(height: 10),
                       
-                  const SizedBox(height: 10),
-                      
+                  //segunda fila
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       
                       Expanded(
@@ -777,19 +992,20 @@ class _VentaFormState extends State<VentaForm> {
                             )
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ), const SizedBox(width: 15),
                       
                       Column( //Precio por unidad
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(' Precio/Unidad', style: AppTheme.subtituloPrimario),
+                          const Tooltip(
+                            message: '¡Precio sin IVA!',
+                            child: Text(' Precio/Unidad', style: AppTheme.subtituloPrimario)
+                          ),
                           const SizedBox(height: 2),
                           SizedBox(
                             height: 40,
-                            width: 100,
+                            width: 110,
                             child: TextFormField(
                               controller: _precioController,
                               canRequestFocus: false,
@@ -797,9 +1013,7 @@ class _VentaFormState extends State<VentaForm> {
                             ),
                           )
                         ],
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ), const SizedBox(width: 15),
                       
                       Column( //Precio por unidad
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -834,126 +1048,170 @@ class _VentaFormState extends State<VentaForm> {
                             ),
                           )
                         ],
-                      ),
+                      ), //const SizedBox(width: 15),
                       
-                      const SizedBox(width: 15),
-                      
-                      _productoSelected?.requiereMedida==true ? Row(
-                        children: [
-                          Column( //Precio por unidad
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('   Ancho', style: AppTheme.subtituloPrimario),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                height: 40,
-                                width: 100,
-                                child: TextFormField(
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 4,
-                                  controller: _anchoController,
-                                  inputFormatters: [ DecimalInputFormatter() ],
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                  onChanged: (value) {
-                                    if (value.isNotEmpty && value != '0') {
-                                      setState(() {
-                                        _anchoError = false;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        _anchoError = true;
-                                      });
-                                    }
-                                    
-                                    //No exeder el limite de anchura
-                                    if (value.isNotEmpty){
-                                      if (value=='.'){
-                                        value='';
-                                        return;
-                                      }
-                                      if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
-                                        _anchoController.text = Constantes.anchoMaximo.toString();
-                                      }
-                                    }
-
-                                    if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
-                                      if (_anchoController.text != '0' && _altoController.text != '0') {
+                      _productoSelected?.requiereMedida==true ? Padding(
+                        padding: const EdgeInsets.only(left: 15),
+                        child: Row(
+                          children: [
+                            Column( //Precio por unidad
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('   Ancho', style: AppTheme.subtituloPrimario),
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 40,
+                                  width: 100,
+                                  child: TextFormField(
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 4,
+                                    controller: _anchoController,
+                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                    onChanged: (value) {
+                                      if (value.isNotEmpty && value != '0') {
                                         setState(() {
-                                          calcularSubtotal();
+                                          _anchoError = false;
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _anchoError = true;
                                         });
                                       }
-                                    }
-                                  },
-                                ),
-                              )
-                            ],
-                          ),
-                
-                          const SizedBox(width: 15),
-                
-                          Column( //Precio por unidad
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('   Alto', style: AppTheme.subtituloPrimario),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                height: 40,
-                                width: 100,
-                                child: TextFormField(
-                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                  maxLength: 4,
-                                  controller: _altoController,
-                                  inputFormatters: [ DecimalInputFormatter() ],
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                  onChanged: (value) {
-                                    if (value.isNotEmpty && value != '0') {
-                                      setState(() {
-                                        _altoError = false;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        _altoError = true;
-                                      });
-                                    }
-
-                                    //No exeder el limite de altura
-                                    if (value.isNotEmpty){
-                                      if (value=='.'){
-                                        value='';
-                                        return;
+                                      
+                                      //No exeder el limite de anchura
+                                      if (value.isNotEmpty){
+                                        if (value=='.'){
+                                          value='';
+                                          return;
+                                        }
+                                        if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
+                                          _anchoController.text = Constantes.anchoMaximo.toString();
+                                        }
                                       }
-                                      if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
-                                        _altoController.text = Constantes.altoMaximo.toString();
+                        
+                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                        if (_anchoController.text != '0' && _altoController.text != '0') {
+                                          setState(() {
+                                            calcularSubtotal();
+                                          });
+                                        }
                                       }
-                                    }
-                                    
-                                    if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
-                                      if (_anchoController.text != '0' && _altoController.text != '0') {
+                                    },
+                                  ),
+                                )
+                              ],
+                            ), const SizedBox(width: 15),
+                                        
+                            Column( //Precio por unidad
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('   Alto', style: AppTheme.subtituloPrimario),
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 40,
+                                  width: 100,
+                                  child: TextFormField(
+                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    maxLength: 4,
+                                    controller: _altoController,
+                                    inputFormatters: [ DecimalInputFormatter() ],
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                    onChanged: (value) {
+                                      if (value.isNotEmpty && value != '0') {
                                         setState(() {
-                                          calcularSubtotal();
+                                          _altoError = false;
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _altoError = true;
                                         });
                                       }
-                                    }
-                                  },
-                                ),
-                              )
-                            ],
-                          ),
-                        ],
+                        
+                                      //No exeder el limite de altura
+                                      if (value.isNotEmpty){
+                                        if (value=='.'){
+                                          value='';
+                                          return;
+                                        }
+                                        if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
+                                          _altoController.text = Constantes.altoMaximo.toString();
+                                        }
+                                      }
+                                      
+                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                        if (_anchoController.text != '0' && _altoController.text != '0') {
+                                          setState(() {
+                                            calcularSubtotal();
+                                          });
+                                        }
+                                      }
+                                    },
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
                       ) : const SizedBox(),
+                     
+
+                      !_entregaInmediata ? 
+                        _fileSeleccionado.isEmpty ?
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: ElevatedButtonIcon(
+                              text: 'Subir archivo', 
+                              icon: Icons.upload, 
+                              onPressed: () => seleccionarArchivos()
+                            ),
+                          )
+                        : Tooltip(
+                         message: _fileSeleccionado
+                          .map((f) => f.path.split('\\').last)
+                          .join('\n'),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 15),
+                            child: Container(
+                              width: 156,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 134, 188, 255),
+                                borderRadius: BorderRadius.circular(22)
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Center(
+                                  child: Text(
+                                    _fileSeleccionado.length > 1 ?
+                                      '${_fileSeleccionado.length} Archivos subidos'
+                                      : 
+                                      ' Archivo subido ',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: AppTheme.containerColor1,
+                                      fontWeight: FontWeight.w700,
+                                      //fontSize: 12
+                                    )
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox()
+                    
                     ],
-                  ),
-                      
-                  const SizedBox(height: 10),
-                      
+                  ), const SizedBox(height: 10),
+
+                  //tercer fila 
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      
                       Expanded(
                         flex: 2,
                         child: Column( //Formulario de Producto
@@ -973,9 +1231,7 @@ class _VentaFormState extends State<VentaForm> {
                             )
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ),  const SizedBox(width: 15),
                       
                       Expanded(
                         child: Column( //Formulario de Producto
@@ -1091,9 +1347,7 @@ class _VentaFormState extends State<VentaForm> {
                             ),
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ), const SizedBox(width: 15),
                       
                       Expanded(
                         child: Column( //Formulario de Producto
@@ -1114,9 +1368,7 @@ class _VentaFormState extends State<VentaForm> {
                             )
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(width: 15),
+                      ), const SizedBox(width: 15),
                       
                       Expanded(
                         child: Column( //Formulario de Producto
@@ -1131,16 +1383,13 @@ class _VentaFormState extends State<VentaForm> {
                                 controller: _productoTotalController,
                                 canRequestFocus: false,
                                 readOnly: true,
-                                //initialValue: '\$0.00',
                               ),
                             )
                           ],
                         ),
-                      ),
+                      ), const SizedBox(width: 15),
                       
-                      const SizedBox(width: 15),
-                      
-                      ElevatedButton(
+                      ElevatedButtonIcon(
                         onPressed: (){
                           if (_productoSelected == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -1154,7 +1403,7 @@ class _VentaFormState extends State<VentaForm> {
                             );
                             return;
                           }
-            
+                          
                           if (_productoSelected!.requiereMedida == true){
                             bool isValid = true;
                             if (_anchoController.text.isEmpty || _anchoController.text == '0') {
@@ -1173,6 +1422,9 @@ class _VentaFormState extends State<VentaForm> {
                               return;
                             }
                           }
+
+                          List<File> archivos = [];
+                          archivos.addAll(_fileSeleccionado);
             
                           DetallesVenta detalle = DetallesVenta(
                             productoId: _productoSelected!.id!,
@@ -1183,7 +1435,8 @@ class _VentaFormState extends State<VentaForm> {
                             descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
                             descuentoAplicado: _descuentoAplicado,
                             iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
-                            subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', ''))
+                            subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+                            archivos: archivos
                           );
               
                           _productos.add(_productoSelected!);
@@ -1203,10 +1456,8 @@ class _VentaFormState extends State<VentaForm> {
                             );
                           });             
                         }, 
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('Agregar Producto', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700) ),
-                        ),
+                        text: 'Agregar Producto',
+                        icon: Icons.add,
                       )
                       
                     ],
@@ -1276,6 +1527,7 @@ class _VentaFormState extends State<VentaForm> {
                                     } catch (e) {
                                       return;
                                     }
+
                                     VentasStates.tabs[widget.index].productoSelected = _productoSelected;
                                     _precioController.text = _productoSelected!.precio.toString();
                                     _cantidadController.text = _detallesVenta[index].cantidad.toString();
@@ -1285,6 +1537,8 @@ class _VentaFormState extends State<VentaForm> {
                                     _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
                                     _ivaController.text = _detallesVenta[index].iva.toString();
                                     _productoTotalController.text = _detallesVenta[index].subtotal.toString();
+                                    _fileSeleccionado = _detallesVenta[index].archivos??[];
+                                    VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
                                     calcularSubtotal();
             
                                     _detallesVenta.removeAt(index);
@@ -1306,6 +1560,7 @@ class _VentaFormState extends State<VentaForm> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      
                       Expanded(
                         flex: 5,
                         child: TextFormField(
@@ -1329,24 +1584,28 @@ class _VentaFormState extends State<VentaForm> {
                           ),
                         ),
                       ),
+                      
                       Expanded(
                         flex: 8,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            
                             Expanded(
                               child: Column(
                                 children: [
-                                  Configuracion.esCaja ? ElevatedButton(
-                                    focusNode: _f8FocusNode,
-                                    onPressed: (){
-                                      procesarPago();
-                                    },
-                                    style: AppTheme.botonPrincipalStyle,
-                                    child: const Text('      Procesar Pago  (F8)     ', 
-                                      style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
-                                    ),
-                                  ) : ElevatedButton(
+                                  Configuracion.esCaja ? 
+                                    ElevatedButton(
+                                      focusNode: _f8FocusNode,
+                                      onPressed: (){
+                                        procesarPago();
+                                      },
+                                      style: AppTheme.botonPrincipalStyle,
+                                      child: const Text('      Procesar Pago  (F8)     ', 
+                                        style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                      ),
+                                    ) 
+                                  : ElevatedButton(
                                     focusNode: _f8FocusNode,
                                     onPressed: (){
                                       procesarEnvio();
@@ -1369,6 +1628,7 @@ class _VentaFormState extends State<VentaForm> {
                                 ],
                               ),
                             ),
+
                             Column(
                               mainAxisAlignment: MainAxisAlignment.end,
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1558,6 +1818,109 @@ class FilaDetalles extends StatelessWidget {
             Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class CreandoPedido extends StatefulWidget {
+  const CreandoPedido({
+    super.key,
+    required this.pedido, required this.files,
+  });
+
+  final Pedidos pedido;
+  final List<File> files;
+
+  @override
+  State<CreandoPedido> createState() => _CreandoPedidoState();
+}
+
+class _CreandoPedidoState extends State<CreandoPedido> {
+  int pedidosListos = 1;
+  List<String> pedidosIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+      subirPedido();
+    });
+  }
+
+  void subirPedido() async {
+    final pedidosService = Provider.of<PedidosService>(context, listen: false);
+    String pedidoId = await pedidosService.createPedido(
+      pedido: widget.pedido,
+      archivos: widget.files,
+    );
+    pedidosIds.add(pedidoId);
+
+    if (!mounted) return;
+    Navigator.pop(context, pedidosIds);
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final pedidosService = Provider.of<PedidosService>(context);
+    return AlertDialog(
+      backgroundColor: AppTheme.containerColor2,
+      content: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: LinearProgressIndicator(
+                  value: pedidosService.uploadProgress,
+                  minHeight: 6,
+                  color: AppTheme.isDarkTheme ? AppTheme.secundario1 : AppTheme.primario1,
+                ),
+              ),
+              Text(
+                '${(pedidosService.uploadProgress * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+      
+          // 📤 SUBIR ARCHIVOS
+          /*if (!pedidosService.isLoading)
+            Column(
+              children: [
+                ElevatedButton(
+                  onPressed: ()=> Navigator.pop(context, pedidosIds), 
+                  child: const Text('Cerrar')
+                )
+              ],
+            )
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Subiendo archivo...'),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LinearProgressIndicator(
+                    value: pedidosService.uploadProgress,
+                    minHeight: 6,
+                    color: AppTheme.isDarkTheme ? AppTheme.secundario1 : AppTheme.primario1,
+                  ),
+                ),
+                Text(
+                  '${(pedidosService.uploadProgress * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),*/
+          
+        ],
       ),
     );
   }

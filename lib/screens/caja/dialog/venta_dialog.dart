@@ -407,9 +407,9 @@ class _VentaDialogState extends State<VentaDialog> {
                           children: [
                             ProcesarPago(
                               venta: widget.venta,
-                              rebuild: (){},
                               isDeuda: true,
-                              deudaMonto: monto?.toDouble() ?? 0,
+                              deudaMonto: monto?.toDouble() ?? 0, 
+                              afterProcesar: (value){},
                             ),
                             const WindowBar(overlay: true),
                           ],

@@ -314,22 +314,26 @@ class FilaCliente extends StatelessWidget {
       }
     }
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        mostrarMenu(context, details.globalPosition);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: Row(
-          children: [
-            Expanded(child: Text(mostrarCampo(cliente.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.rfc), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.direccion), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(mostrarCampo(cliente.razonSocial), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          ],
+    return FeedBackButton(
+      onlyVertical: true,
+      onPressed: (){},
+      child: GestureDetector(
+        onSecondaryTapDown: (details) {
+          mostrarMenu(context, details.globalPosition);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8.0),
+          color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+          child: Row(
+            children: [
+              Expanded(child: Text(mostrarCampo(cliente.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(mostrarCampo(cliente.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(mostrarCampo(cliente.rfc), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(mostrarCampo(cliente.direccion), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(mostrarCampo(cliente.razonSocial), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            ],
+          ),
         ),
       ),
     );

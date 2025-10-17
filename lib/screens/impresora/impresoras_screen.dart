@@ -28,11 +28,17 @@ class ImpresorasScreen extends StatelessWidget {
                 child: GridView.count(
                   crossAxisCount: screenSize < 1300 ? 3 : 4,
                   childAspectRatio: 3,
-                  children: List.generate(value.impresoras.length+1, (index) {
-                    if (index==0 && Login.isAdmin) return const AgregarImpresora();
-                    final contador = value.ultimosContadores[value.impresoras[index-1].id];
-                    return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
-                  })
+                  children: List.generate(
+                    value.impresoras.length + (Login.isAdmin ? 1 : 0), (index) {
+                      if (index==0 && Login.isAdmin){
+                        return const AgregarImpresora();
+                      } else {
+                        print(index);
+                        final contador = value.ultimosContadores[value.impresoras[index-1].id];
+                        return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
+                      }
+                    }
+                  )
                 ),
               );
             },
