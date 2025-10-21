@@ -145,7 +145,7 @@ class _VentaDialogState extends State<VentaDialog> {
               color: AppTheme.tablaColorHeader,
               child: const Row(
                 children: [
-                  Expanded(flex: 1, child: Center(child: Text('Cant.'))),
+                  Expanded(child: Center(child: Text('Cant.'))),
                   Expanded(flex: 3, child: Center(child: Text('Articulo'))),
                   Expanded(flex: 3, child: Center(child: Text('Comentarios'))),
                   Expanded(flex: 2, child: Center(child: Text('Descuento'))),

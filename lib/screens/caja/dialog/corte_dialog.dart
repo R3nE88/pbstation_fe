@@ -503,7 +503,7 @@ class _CorteDialogState extends State<CorteDialog> {
                 ],
               ),
             ),
-            if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150)),
+            if (performingRetiro) LinearProgressIndicator(color: AppTheme.containerColor1.withAlpha(150), minHeight: 10,),
             const SizedBox(height: 12),
       
             Row( 

@@ -51,7 +51,7 @@ class Configuracion extends ChangeNotifier{
           esCaja = archivo['es_caja'];
           nombrePC = archivo['nombre_pc'];
           final prefs = await SharedPreferences.getInstance();
-          impresora = prefs.getString('selectedUsbDevice') ?? null;
+          impresora = prefs.getString('selectedUsbDevice');
           size = prefs.getString('selectedSize') ?? '58mm';
           //impresora = archivo['impresora'];
         } catch (e) {

@@ -113,9 +113,11 @@ class _VentaFormState extends State<VentaForm> {
     _keyHandler = (KeyEvent event) {
       if (event is KeyDownEvent) {
         if (event.logicalKey == LogicalKeyboardKey.f8) {
-          if (mounted && _canFocus) {
-            _f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
-            procesarPago();
+          if (mounted) {
+            if (_canFocus || (!_canFocus&&_fromVentaEnviada)){
+              _f8FocusNode.requestFocus(); // Usar el FocusNode proporcionado
+              procesarPago();
+            }
           }
         }
       }
@@ -277,10 +279,111 @@ class _VentaFormState extends State<VentaForm> {
     }
   }
 
+  void agregarProducto(){
+    if (_productoSelected == null) {
+      advertir('Seleccione un producto antes de agregarlo.');
+      return;
+    }
+    
+    if (_productoSelected!.requiereMedida == true){
+      bool isValid = true;
+      if (_anchoController.text.isEmpty || _anchoController.text == '0') {
+        isValid = false;
+        setState(() {
+          _anchoError = true;
+        });                            
+      }
+      if (_altoController.text.isEmpty || _altoController.text == '0') {
+        isValid = false;
+        setState(() {
+          _altoError = true;
+        });
+      }
+      if (!isValid) {
+        return;
+      }
+    }
+    
+    List<File> archivos = [];
+    archivos.addAll(_fileSeleccionado);
+        
+    DetallesVenta detalle = DetallesVenta(
+      productoId: _productoSelected!.id!,
+      cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
+      ancho: double.parse(_anchoController.text), 
+      alto: double.parse(_altoController.text), 
+      comentarios: _comentarioController.text.isNotEmpty ? _comentarioController.text : null,
+      descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
+      descuentoAplicado: _descuentoAplicado,
+      iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+      subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+      archivos: archivos
+    );
+          
+    _productos.add(_productoSelected!);
+    VentasStates.tabs[widget.index].modificando = false;
+    
+    setState(() {
+      _detallesError = false;
+      _detallesVenta.add(detalle);
+      calcularTotal();
+      limpiarCamposProducto();
+    });
+        
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }); 
+  }
+
+  void modificate(ProductosServices productosServices, int index) {
+    VentasStates.tabs[widget.index].modificando = true;
+    try {
+      _productoSelected = productosServices.productos.firstWhere((p) => p.id == _detallesVenta[index].productoId);
+    } catch (e) {
+      return;
+    }
+    
+    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
+    _precioController.text = _productoSelected!.precio.toString();
+    _cantidadController.text = _detallesVenta[index].cantidad.toString();
+    _anchoController.text = _detallesVenta[index].ancho.toString();
+    _altoController.text = _detallesVenta[index].alto.toString();
+    _comentarioController.text = _detallesVenta[index].comentarios!=null ? _detallesVenta[index].comentarios.toString() : '';
+    _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
+    _ivaController.text = _detallesVenta[index].iva.toString();
+    _productoTotalController.text = _detallesVenta[index].subtotal.toString();
+    _fileSeleccionado = _detallesVenta[index].archivos??[];
+    VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
+    calcularSubtotal();
+          
+    _detallesVenta.removeAt(index);
+    _productos.removeAt(index);
+    calcularTotal();
+    setState(() {});
+  }
+
+  void advertir(String texto){
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Center(child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          child: Text(texto),
+        )),
+        backgroundColor: Colors.red.withAlpha(100),
+      )
+    );
+  }
+
   void procesarPago() async{
     if(!Configuracion.esCaja) return;
-
-    print(_fromVentaEnviada);
+    if (_productoSelected!=null) {
+      advertir('Tienes un producto pendiente. Agrégalo o elimínalo antes de continuar.');
+      return;
+    }
     
     if (_detallesVenta.isEmpty || _clienteSelected==null){
       if (_clienteSelected==null){setState((){_clienteError = true;});}
@@ -305,6 +408,17 @@ class _VentaFormState extends State<VentaForm> {
               }
             }
 
+            List<File> archivos = [];
+            for (var detalle in _detallesVenta) {
+              if(detalle.archivos!=null){
+                if (detalle.archivos!.isNotEmpty){
+                  for (var archivo in detalle.archivos!) {
+                    archivos.add(archivo);
+                  }
+                }
+              }
+            } 
+
             Pedidos pedido = Pedidos(
               clienteId: _clienteSelected!.id!, 
               usuarioId: Login.usuarioLogeado.id!, 
@@ -314,7 +428,7 @@ class _VentaFormState extends State<VentaForm> {
               fechaEntrega: _fechaEntrega!.toIso8601String(),
               archivos: [],
               descripcion: detallesComentarios,
-              estado: 'en espera'
+              estado: archivos.isEmpty ? 'en espera' : 'pendiente'
             );
 
             widget.rebuild(widget.index);
@@ -324,7 +438,7 @@ class _VentaFormState extends State<VentaForm> {
               barrierDismissible: false, // Evita que se cierre al hacer clic fuera
               context: context, 
               builder: (context) {
-                return CreandoPedido(pedido: pedido, files: const []);
+                return CreandoPedido(pedido: pedido, files: archivos);
               },
             );
             
@@ -381,7 +495,11 @@ class _VentaFormState extends State<VentaForm> {
   }
 
   void procesarEnvio()async{
-    if(Configuracion.esCaja) return;
+    if (Configuracion.esCaja) return;
+    if (_productoSelected!=null) {
+      advertir('Tienes un producto pendiente. Agrégalo o elimínalo antes de continuar.');
+      return;
+    }
 
     if (_detallesVenta.isEmpty || _clienteSelected==null){
       if (_clienteSelected==null){setState((){_clienteError = true;});}
@@ -501,44 +619,6 @@ class _VentaFormState extends State<VentaForm> {
     } else { // si no es un pedido, simplemente enviar
       await enviarHelper(null);
     }
-    
-    
-    
-    //TODO: subir pedidos, sin archivo
-      /*for (var i = 0; i < _detallesVenta.length; i++) {
-        if (_detallesVenta[i].archivos!=null){
-          if (_detallesVenta[i].archivos!.isNotEmpty){
-            Pedidos pedido = Pedidos(
-              clienteId: _clienteSelected!.id!, 
-              usuarioId: Login.usuarioLogeado.id!, 
-              sucursalId: SucursalesServices.sucursalActualID!, 
-              ventaId: 'esperando', 
-              fecha: DateTime.now().toIso8601String(),
-              fechaEntrega: _fechaEntrega!.toIso8601String(),
-              archivos: [],
-              descripcion: _detallesVenta[i].comentarios,
-            );
-            pedidos.add(pedido);
-          }
-        }
-      }*/
-
-      /*if (pedidos.isNotEmpty){
-        //TODO: es la continuacion de lo de arriba
-        /*if (!mounted) return;
-        await showDialog(
-          barrierDismissible: false,
-          context: context, 
-          builder: (context) {
-            return CreandoPedidos(pedidos: pedidos, files:const []);
-          },
-        ).then((value) async { 
-          await enviarHelper(value);
-        });*/
-      } else {
-        await enviarHelper(null);
-      }*/
-      
   }
 
   void procesarCotizacion() async{
@@ -728,6 +808,12 @@ class _VentaFormState extends State<VentaForm> {
   Widget build(BuildContext context) {    
     final productosServices = Provider.of<ProductosServices>(context);
     final clientesServices = Provider.of<ClientesServices>(context);
+
+    if (_fromVentaEnviada){
+      _canFocus = false;
+    } else {
+      _canFocus = true;
+    }
     
     InputDecoration totalDecoration = AppTheme.inputDecorationCustom.copyWith(
       enabledBorder: OutlineInputBorder(
@@ -744,973 +830,932 @@ class _VentaFormState extends State<VentaForm> {
         ),
         child: Padding(
           padding: const EdgeInsets.all(15),
-          child: FocusScope(
-            canRequestFocus: _canFocus,
-            child: Form(
-              key: _formKey,
-
-              child: Column(
-                children: [
-                  
-                  //primera fila
-                  Row( 
-                    children: [
-
-                      Expanded(
-                        child: Column( //Formulario de clientes
+          child: Form(
+            key: _formKey,
+          
+            child: Column(
+              children: [
+                
+                //primera fila
+                FocusScope(
+                  canRequestFocus: _canFocus,
+                  child: AbsorbPointer(
+                    absorbing: _fromVentaEnviada,
+                    child: Row( 
+                      children: [
+                    
+                        Expanded(
+                          child: Column( //Formulario de clientes
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('   Cliente *', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: BusquedaField<Clientes>(
+                                      items: clientesServices.clientes,
+                                      selectedItem: _clienteSelected,
+                                      onItemSelected: (Clientes? selected) {
+                                        setState(() {
+                                          _clienteSelected = selected;
+                                          VentasStates.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
+                                          if (_clienteSelected!=null){ _clienteError = false; }
+                                        });
+                                      },
+                                      onItemUnselected: (){
+                                        debugPrint('No se selecciono nada!');
+                                      },
+                                      displayStringForOption: (cliente) => cliente.nombre, 
+                                      secondaryDisplayStringForOption: (cliente) => cliente.telefono.toString(), 
+                                      showSecondaryFirst: false,
+                                      normalBorder: false, 
+                                      icono: Icons.perm_contact_cal_sharp, 
+                                      defaultFirst: true, 
+                                      hintText: 'Buscar Cliente', 
+                                      error: _clienteError, 
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 40,
+                                    width: 42,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.letraClara,
+                                      borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
+                                    ),
+                                    child: Center(
+                                      child: FeedBackButton(
+                                        onPressed: () async{
+                                          Clientes? clienteCreated = await showDialog(
+                                            context: context,
+                                            builder: (_) => const Stack(
+                                              alignment: Alignment.topRight,
+                                              children: [
+                                                ClientesFormDialog(),
+                                                WindowBar(overlay: true),
+                                              ],
+                                            ),
+                                          );
+                                          if (clienteCreated!=null){
+                                            setState(() {
+                                              _clienteSelected = clienteCreated;
+                                            });
+                                          }                                        
+                                        },
+                                        child: Icon(Icons.add, color: AppTheme.containerColor1, size: 28)
+                                      )
+                                    ),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                        ), const SizedBox(width: 15),
+                        
+                        Column( //Fecha de Entrega
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('   Cliente *', style: AppTheme.subtituloPrimario),
+                            const Text('  Fecha de Entrega:', style: AppTheme.subtituloPrimario),
                             const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: BusquedaField<Clientes>(
-                                    items: clientesServices.clientes,
-                                    selectedItem: _clienteSelected,
-                                    onItemSelected: (Clientes? selected) {
-                                      setState(() {
-                                        _clienteSelected = selected;
-                                        VentasStates.tabs[widget.index].clienteSelected = selected; // Actualizar el estado global
-                                        if (_clienteSelected!=null){ _clienteError = false; }
-                                      });
-                                    },
-                                    onItemUnselected: (){
-                                      debugPrint('No se selecciono nada!');
-                                    },
-                                    displayStringForOption: (cliente) => cliente.nombre, 
-                                    secondaryDisplayStringForOption: (cliente) => cliente.telefono.toString(), 
-                                    showSecondaryFirst: false,
-                                    normalBorder: false, 
-                                    icono: Icons.perm_contact_cal_sharp, 
-                                    defaultFirst: true, 
-                                    hintText: 'Buscar Cliente', 
-                                    error: _clienteError, 
-                                  ),
+                            Container(
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(43, 255, 255, 255),
+                                border: Border.all(color: AppTheme.letraClara),
+                                borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(3),
+                                child: Row(
+                                  children: [
+                                    Checkbox(
+                                      focusNode: _checkboxFocus1,
+                                      value: _entregaInmediata, 
+                                      focusColor: AppTheme.focusColor,
+                                      onChanged: (value){
+                                        if (_entregaInmediata==true){
+                                          return;
+                                        }
+                                        setState(() {
+                                          _fechaEntrega = null;
+                                          VentasStates.tabs[widget.index].fechaEntrega = null;
+                                          _checkboxFocus1.requestFocus();
+                                          _entregaInmediata = value!;
+                                          VentasStates.tabs[widget.index].entregaInmediata = value;
+                                        });
+                                      } 
+                                    ),
+                                    const Text('Entrega inmediata   ')
+                                  ],
                                 ),
-                                Container(
-                                  height: 40,
-                                  width: 42,
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.letraClara,
-                                    borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
-                                  ),
-                                  child: Center(
-                                    child: FeedBackButton(
-                                      onPressed: () async{
-                                        Clientes? clienteCreated = await showDialog(
-                                          context: context,
-                                          builder: (_) => const Stack(
-                                            alignment: Alignment.topRight,
-                                            children: [
-                                              ClientesFormDialog(),
-                                              WindowBar(overlay: true),
-                                            ],
-                                          ),
-                                        );
-                                        if (clienteCreated!=null){
-                                          setState(() {
-                                            _clienteSelected = clienteCreated;
-                                          });
-                                        }                                        
-                                      },
-                                      child: Icon(Icons.add, color: AppTheme.containerColor1, size: 28)
-                                    )
-                                  ),
-                                ),
-                              ],
+                              ),
                             )
                           ],
                         ),
-                      ), const SizedBox(width: 15),
-                      
-                      Column( //Fecha de Entrega
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('  Fecha de Entrega:', style: AppTheme.subtituloPrimario),
-                          const SizedBox(height: 2),
-                          Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(43, 255, 255, 255),
-                              border: Border.all(color: AppTheme.letraClara),
-                              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
+                        
+                        Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            _fromVentaEnviada ? Transform.translate(
+                              offset: const Offset(7, -8),
+                              child: const Icon(Icons.lock, color: AppTheme.letraClara,)
+                            ) : const SizedBox(),
+
+                            Column(  //Fecha de Entrega otro dia
+                              crossAxisAlignment: CrossAxisAlignment.start, 
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(''),
+                                    _entregaInmediata ? 
+                                      const Text('  ¿Es un pedido?', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                                    : const Text('  Esta venta sera un pedido', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(43, 255, 255, 255),
+                                        border: Border.all(color: AppTheme.letraClara),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(3),
+                                        child: Row(
+                                          children: [
+                                            Checkbox(
+                                              focusNode: _checkboxFocus2,
+                                              focusColor: AppTheme.focusColor,
+                                              value: !_entregaInmediata, 
+                                              onChanged: (value)async {
+                                                await elegirFecha();
+                                              } 
+                                            ),
+                                            SizedBox(
+                                              width: 140,
+                                              child: _fechaEntrega==null ? const Text(
+                                                'Crear pedido  '
+                                              ) :
+                                              Center(
+                                                child: Text(
+                                                //'${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
+                                                DateFormat('dd / MMM / yyyy', 'es_MX').format(_fechaEntrega!).toUpperCase(),
+                                                style: AppTheme.tituloClaro,
+                                                )
+                                              )
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      height: 40,
+                                      width: 120,
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.letraClara,
+                                        borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(right: 8),
+                                            child: Text(
+                                              _fechaEntrega == null ? '--:--:--   ' : DateFormat('hh:mm a', 'en_US').format(_fechaEntrega!), 
+                                              style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)
+                                            ),
+                                          ),
+                                          Center(
+                                            child: FeedBackButton(
+                                              onPressed: () async {
+                                                await elegirFecha();
+                                              },
+                                              child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
+                                            )
+                                          ),
+                                          const SizedBox(width: 10)
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(3),
-                              child: Row(
-                                children: [
-                                  Checkbox(
-                                    focusNode: _checkboxFocus1,
-                                    value: _entregaInmediata, 
-                                    focusColor: AppTheme.focusColor,
-                                    onChanged: (value){
-                                      if (_entregaInmediata==true){
-                                        return;
-                                      }
-                                      setState(() {
-                                        _fechaEntrega = null;
-                                        VentasStates.tabs[widget.index].fechaEntrega = null;
-                                        _checkboxFocus1.requestFocus();
-                                        _entregaInmediata = value!;
-                                        VentasStates.tabs[widget.index].entregaInmediata = value;
-                                      });
-                                    } 
-                                  ),
-                                  const Text('Entrega inmediata   ')
-                                ],
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                      
-                      Column(  //Fecha de Entrega otro dia
-                        crossAxisAlignment: CrossAxisAlignment.start, 
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // ignore: prefer_const_constructors
-                          Row(
-                            children: [
-                              const Text(''),
-                              _entregaInmediata ? 
-                                const Text('  ¿Es un pedido?', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
-                              : const Text('  Esta venta sera un pedido', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85))
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ), const SizedBox(height: 10),
+                    
+                //segunda fila
+                FocusScope(
+                  canRequestFocus: _canFocus,
+                  child: AbsorbPointer(
+                    absorbing: _fromVentaEnviada,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        
+                        Expanded(
+                          child: Column( //Formulario de Producto
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                height: 40,
+                              const Text('   Producto *', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              BusquedaField<Productos>(
+                                items: productosServices.productos,
+                                selectedItem:   _productoSelected,
+                                onItemSelected: (Productos? selected) {
+                                  setState(() {
+                                    _productoSelected = selected;
+                                    VentasStates.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
+                                    calcularSubtotal();
+                                  });
+                                },
+                                onItemUnselected: (){
+                                  limpiarCamposProducto();
+                                },
+                                displayStringForOption: (producto) => producto.descripcion, 
+                                normalBorder: true, 
+                                icono: Icons.copy, 
+                                defaultFirst: false, 
+                                secondaryDisplayStringForOption: (producto) => producto.codigo.toString(), 
+                                hintText: 'F2', 
+                                teclaFocus: LogicalKeyboardKey.f2, 
+                                error: false,
+                              )
+                            ],
+                          ),
+                        ), const SizedBox(width: 15),
+                        
+                        Column( //Precio por unidad
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Tooltip(
+                              message: '¡Precio sin IVA!',
+                              child: Text(' Precio/Unidad', style: AppTheme.subtituloPrimario)
+                            ),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 40,
+                              width: 110,
+                              child: TextFormField(
+                                controller: _precioController,
+                                canRequestFocus: false,
+                                readOnly: true,
+                              ),
+                            )
+                          ],
+                        ), const SizedBox(width: 15),
+                        
+                        Column( //Precio por unidad
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('   Cantidad', style: AppTheme.subtituloPrimario),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 40,
+                              width: 100,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onFocusChange: (value) {
+                                  if (value==false && _cantidadController.text == ''){
+                                    _cantidadController.text = '1';
+                                    setState(() {
+                                      calcularSubtotal();
+                                    });
+                                  }
+                                },
+                                child: TextFormField(
+                                  controller: _cantidadController,
+                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                  maxLength: 6,
+                                  inputFormatters: [ NumericFormatter() ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      calcularSubtotal();
+                                    });
+                                  },
+                                ),
+                              ),
+                            )
+                          ],
+                        ), //const SizedBox(width: 15),
+                        
+                        _productoSelected?.requiereMedida==true ? Padding(
+                          padding: const EdgeInsets.only(left: 15),
+                          child: Row(
+                            children: [
+                              Column( //Precio por unidad
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('   Ancho', style: AppTheme.subtituloPrimario),
+                                  const SizedBox(height: 2),
+                                  SizedBox(
+                                    height: 40,
+                                    width: 100,
+                                    child: TextFormField(
+                                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                      maxLength: 4,
+                                      controller: _anchoController,
+                                      inputFormatters: [ DecimalInputFormatter() ],
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                      onChanged: (value) {
+                                        if (value.isNotEmpty && value != '0') {
+                                          setState(() {
+                                            _anchoError = false;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            _anchoError = true;
+                                          });
+                                        }
+                                        
+                                        //No exeder el limite de anchura
+                                        if (value.isNotEmpty){
+                                          if (value=='.'){
+                                            value='';
+                                            return;
+                                          }
+                                          if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
+                                            _anchoController.text = Constantes.anchoMaximo.toString();
+                                          }
+                                        }
+                          
+                                        if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                          if (_anchoController.text != '0' && _altoController.text != '0') {
+                                            setState(() {
+                                              calcularSubtotal();
+                                            });
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  )
+                                ],
+                              ), const SizedBox(width: 15),
+                                          
+                              Column( //Precio por unidad
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('   Alto', style: AppTheme.subtituloPrimario),
+                                  const SizedBox(height: 2),
+                                  SizedBox(
+                                    height: 40,
+                                    width: 100,
+                                    child: TextFormField(
+                                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                      maxLength: 4,
+                                      controller: _altoController,
+                                      inputFormatters: [ DecimalInputFormatter() ],
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
+                                      onChanged: (value) {
+                                        if (value.isNotEmpty && value != '0') {
+                                          setState(() {
+                                            _altoError = false;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            _altoError = true;
+                                          });
+                                        }
+                          
+                                        //No exeder el limite de altura
+                                        if (value.isNotEmpty){
+                                          if (value=='.'){
+                                            value='';
+                                            return;
+                                          }
+                                          if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
+                                            _altoController.text = Constantes.altoMaximo.toString();
+                                          }
+                                        }
+                                        
+                                        if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
+                                          if (_anchoController.text != '0' && _altoController.text != '0') {
+                                            setState(() {
+                                              calcularSubtotal();
+                                            });
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ],
+                          ),
+                        ) : const SizedBox(),
+                       
+                    
+                        !_entregaInmediata ? 
+                          _fileSeleccionado.isEmpty ?
+                            Padding(
+                              padding: const EdgeInsets.only(left: 15),
+                              child: ElevatedButtonIcon(
+                                text: 'Subir archivo', 
+                                icon: Icons.upload, 
+                                onPressed: () => seleccionarArchivos()
+                              ),
+                            )
+                          : Tooltip(
+                           message: _fileSeleccionado
+                            .map((f) => f.path.split('\\').last)
+                            .join('\n'),
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 15),
+                              child: Container(
+                                width: _fileSeleccionado.length > 1 ? 176 :156,
                                 decoration: BoxDecoration(
-                                  color: const Color.fromARGB(43, 255, 255, 255),
-                                  border: Border.all(color: AppTheme.letraClara),
+                                  color: AppTheme.letra70,
+                                  borderRadius: BorderRadius.circular(22)
                                 ),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(3),
+                                  padding: const EdgeInsets.all(10),
                                   child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Checkbox(
-                                        focusNode: _checkboxFocus2,
-                                        focusColor: AppTheme.focusColor,
-                                        value: !_entregaInmediata, 
-                                        onChanged: (value)async {
-                                          await elegirFecha();
-                                        } 
+                                      Text(
+                                        _fileSeleccionado.length > 1 ?
+                                          '${_fileSeleccionado.length} Archivos subidos'
+                                          : 
+                                          'Archivo subido',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: AppTheme.containerColor1,
+                                          fontWeight: FontWeight.w700,
+                                          //fontSize: 12
+                                        ),
                                       ),
-                                      SizedBox(
-                                        width: 140,
-                                        child: _fechaEntrega==null ? const Text(
-                                          'Crear pedido  '
-                                        ) :
-                                        Center(
-                                          child: Text(
-                                          //'${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}',
-                                          DateFormat('dd / MMM / yyyy', 'es_MX').format(_fechaEntrega!).toUpperCase(),
-                                          style: AppTheme.tituloClaro,
-                                          )
-                                        )
-                                      ),
+                                      Transform.translate(
+                                        offset: const Offset(10, 0),
+                                        child: Icon(
+                                          Icons.filter_rounded, 
+                                          color: AppTheme.primario1, 
+                                          size: 20
+                                        ),
+                                      )
                                     ],
                                   ),
                                 ),
                               ),
-                              Container(
-                                height: 40,
-                                width: 120,
-                                decoration: const BoxDecoration(
-                                  color: AppTheme.letraClara,
-                                  borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: Text(
-                                        _fechaEntrega == null ? '--:--:--   ' : DateFormat('hh:mm a', 'en_US').format(_fechaEntrega!), 
-                                        style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)
-                                      ),
-                                    ),
-                                    Center(
-                                      child: FeedBackButton(
-                                        onPressed: () async {
-                                          await elegirFecha();
-                                        },
-                                        child: Icon(Icons.calendar_month, color: AppTheme.containerColor1, size: 28)
-                                      )
-                                    ),
-                                    const SizedBox(width: 10)
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      )
-                    ],
-                  ), const SizedBox(height: 10),
-                      
-                  //segunda fila
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      
-                      Expanded(
-                        child: Column( //Formulario de Producto
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('   Producto *', style: AppTheme.subtituloPrimario),
-                            const SizedBox(height: 2),
-                            BusquedaField<Productos>(
-                              items: productosServices.productos,
-                              selectedItem:   _productoSelected,
-                              onItemSelected: (Productos? selected) {
-                                setState(() {
-                                  _productoSelected = selected;
-                                  VentasStates.tabs[widget.index].productoSelected = selected; // Actualizar el estado global
-                                  calcularSubtotal();
-                                });
-                              },
-                              onItemUnselected: (){
-                                limpiarCamposProducto();
-                              },
-                              displayStringForOption: (producto) => producto.descripcion, 
-                              normalBorder: true, 
-                              icono: Icons.copy, 
-                              defaultFirst: false, 
-                              secondaryDisplayStringForOption: (producto) => producto.codigo.toString(), 
-                              hintText: 'F2', 
-                              teclaFocus: LogicalKeyboardKey.f2, 
-                              error: false,
-                            )
-                          ],
-                        ),
-                      ), const SizedBox(width: 15),
-                      
-                      Column( //Precio por unidad
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Tooltip(
-                            message: '¡Precio sin IVA!',
-                            child: Text(' Precio/Unidad', style: AppTheme.subtituloPrimario)
-                          ),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: 40,
-                            width: 110,
-                            child: TextFormField(
-                              controller: _precioController,
-                              canRequestFocus: false,
-                              readOnly: true,
                             ),
                           )
-                        ],
-                      ), const SizedBox(width: 15),
+                        : const SizedBox()
                       
-                      Column( //Precio por unidad
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('   Cantidad', style: AppTheme.subtituloPrimario),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: 40,
-                            width: 100,
-                            child: Focus(
-                              canRequestFocus: false,
-                              onFocusChange: (value) {
-                                if (value==false && _cantidadController.text == ''){
-                                  _cantidadController.text = '1';
-                                  setState(() {
-                                    calcularSubtotal();
-                                  });
-                                }
-                              },
-                              child: TextFormField(
-                                controller: _cantidadController,
+                      ],
+                    ),
+                  ),
+                ), const SizedBox(height: 10),
+          
+                //tercer fila 
+                FocusScope(
+                  canRequestFocus: _canFocus,
+                  child: AbsorbPointer(
+                    absorbing: _fromVentaEnviada,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        
+                        Expanded(
+                          flex: 2,
+                          child: Column( //Formulario de Producto
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('   Comentario', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              TextFormField(
                                 buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                maxLength: 6,
-                                inputFormatters: [ NumericFormatter() ],
-                                onChanged: (value) {
-                                  setState(() {
-                                    calcularSubtotal();
-                                  });
-                                },
-                              ),
-                            ),
-                          )
-                        ],
-                      ), //const SizedBox(width: 15),
-                      
-                      _productoSelected?.requiereMedida==true ? Padding(
-                        padding: const EdgeInsets.only(left: 15),
-                        child: Row(
-                          children: [
-                            Column( //Precio por unidad
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text('   Ancho', style: AppTheme.subtituloPrimario),
-                                const SizedBox(height: 2),
-                                SizedBox(
-                                  height: 40,
-                                  width: 100,
-                                  child: TextFormField(
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                    maxLength: 4,
-                                    controller: _anchoController,
-                                    inputFormatters: [ DecimalInputFormatter() ],
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    decoration: _anchoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                    onChanged: (value) {
-                                      if (value.isNotEmpty && value != '0') {
-                                        setState(() {
-                                          _anchoError = false;
-                                        });
-                                      } else {
-                                        setState(() {
-                                          _anchoError = true;
-                                        });
-                                      }
-                                      
-                                      //No exeder el limite de anchura
-                                      if (value.isNotEmpty){
-                                        if (value=='.'){
-                                          value='';
-                                          return;
-                                        }
-                                        if (double.parse(value.replaceAll(',', '')) > Constantes.anchoMaximo ){
-                                          _anchoController.text = Constantes.anchoMaximo.toString();
-                                        }
-                                      }
-                        
-                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
-                                        if (_anchoController.text != '0' && _altoController.text != '0') {
-                                          setState(() {
-                                            calcularSubtotal();
-                                          });
-                                        }
-                                      }
-                                    },
-                                  ),
-                                )
-                              ],
-                            ), const SizedBox(width: 15),
-                                        
-                            Column( //Precio por unidad
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text('   Alto', style: AppTheme.subtituloPrimario),
-                                const SizedBox(height: 2),
-                                SizedBox(
-                                  height: 40,
-                                  width: 100,
-                                  child: TextFormField(
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                    maxLength: 4,
-                                    controller: _altoController,
-                                    inputFormatters: [ DecimalInputFormatter() ],
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    decoration: _altoError ? AppTheme.inputError : AppTheme.inputNormal,
-                                    onChanged: (value) {
-                                      if (value.isNotEmpty && value != '0') {
-                                        setState(() {
-                                          _altoError = false;
-                                        });
-                                      } else {
-                                        setState(() {
-                                          _altoError = true;
-                                        });
-                                      }
-                        
-                                      //No exeder el limite de altura
-                                      if (value.isNotEmpty){
-                                        if (value=='.'){
-                                          value='';
-                                          return;
-                                        }
-                                        if (double.parse(value.replaceAll(',', '')) > Constantes.altoMaximo ){
-                                          _altoController.text = Constantes.altoMaximo.toString();
-                                        }
-                                      }
-                                      
-                                      if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
-                                        if (_anchoController.text != '0' && _altoController.text != '0') {
-                                          setState(() {
-                                            calcularSubtotal();
-                                          });
-                                        }
-                                      }
-                                    },
-                                  ),
-                                )
-                              ],
-                            ),
-                          ],
-                        ),
-                      ) : const SizedBox(),
-                     
-
-                      !_entregaInmediata ? 
-                        _fileSeleccionado.isEmpty ?
-                          Padding(
-                            padding: const EdgeInsets.only(left: 15),
-                            child: ElevatedButtonIcon(
-                              text: 'Subir archivo', 
-                              icon: Icons.upload, 
-                              onPressed: () => seleccionarArchivos()
-                            ),
-                          )
-                        : Tooltip(
-                         message: _fileSeleccionado
-                          .map((f) => f.path.split('\\').last)
-                          .join('\n'),
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 15),
-                            child: Container(
-                              width: 156,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 134, 188, 255),
-                                borderRadius: BorderRadius.circular(22)
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Center(
-                                  child: Text(
-                                    _fileSeleccionado.length > 1 ?
-                                      '${_fileSeleccionado.length} Archivos subidos'
-                                      : 
-                                      ' Archivo subido ',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: AppTheme.containerColor1,
-                                      fontWeight: FontWeight.w700,
-                                      //fontSize: 12
-                                    )
-                                  ),
+                                maxLength: 100,
+                                controller: _comentarioController,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
                                 ),
-                              ),
-                            ),
+                              )
+                            ],
                           ),
-                        )
-                      : const SizedBox()
-                    
-                    ],
-                  ), const SizedBox(height: 10),
-
-                  //tercer fila 
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column( //Formulario de Producto
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('   Comentario', style: AppTheme.subtituloPrimario),
-                            const SizedBox(height: 2),
-                            TextFormField(
-                              buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                              maxLength: 100,
-                              controller: _comentarioController,
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                prefixIcon: Icon(Icons.comment, size: 25, color: AppTheme.letra70),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),  const SizedBox(width: 15),
-                      
-                      Expanded(
-                        child: Column( //Formulario de Producto
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('   % Descuento', style: AppTheme.subtituloPrimario),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    onFocusChange: (hasFocus) {
-                                      if (!hasFocus) {
-                                        if (_descuentoController.text.isEmpty) {
-                                          _descuentoController.text = '0';
+                        ),  const SizedBox(width: 15),
+                        
+                        Expanded(
+                          child: Column( //Formulario de Producto
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('   % Descuento', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Focus(
+                                      canRequestFocus: false,
+                                      onFocusChange: (hasFocus) {
+                                        if (!hasFocus) {
+                                          if (_descuentoController.text.isEmpty) {
+                                            _descuentoController.text = '0';
+                                            calcularSubtotal();
+                                          }
+                                          _descuentoController.text = '${_descuentoController.text.replaceAll('%', '')}%';
+                                        } else {
+                                          _descuentoController.text = '';
                                           calcularSubtotal();
                                         }
-                                        _descuentoController.text = '${_descuentoController.text.replaceAll('%', '')}%';
-                                      } else {
-                                        _descuentoController.text = '';
-                                        calcularSubtotal();
-                                      }
-                                    },
-                                    child: TextFormField(
-                                      buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                      canRequestFocus: _permisoDeAdmin,
-                                      readOnly: !_permisoDeAdmin,
-                                      maxLength: 4,
-                                      controller: _descuentoController,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                      ],
-                                      decoration: _permisoDeAdmin 
-                                      ? const InputDecoration(
-                                        isDense: true,
-                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
-                                      )
-                                      : const InputDecoration(
-                                        isDense: true,
-                                        prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                            color: AppTheme.letraClara
+                                      },
+                                      child: TextFormField(
+                                        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                        canRequestFocus: _permisoDeAdmin,
+                                        readOnly: !_permisoDeAdmin,
+                                        maxLength: 4,
+                                        controller: _descuentoController,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                        ],
+                                        decoration: _permisoDeAdmin 
+                                        ? const InputDecoration(
+                                          isDense: true,
+                                          prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                        )
+                                        : const InputDecoration(
+                                          isDense: true,
+                                          prefixIcon: Icon(Icons.discount_outlined, size: 25, color: AppTheme.letra70),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: AppTheme.letraClara
+                                            ),
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: Radius.circular(30),
+                                              bottomLeft: Radius.circular(30),
+                                            )
                                           ),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(30),
-                                            bottomLeft: Radius.circular(30),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: AppTheme.letraClara,
+                                              width: 2
+                                            ),
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: Radius.circular(30),
+                                              bottomLeft: Radius.circular(30),
+                                            )
                                           )
                                         ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                            color: AppTheme.letraClara,
-                                            width: 2
+                                        onChanged: (value) {
+                                          if (_descuentoController.text.isEmpty) {
+                                            _descuentoController.text = '0';
+                                          }
+                                          if (int.parse(_descuentoController.text) > 100) {
+                                            _descuentoController.text = '100';
+                                          } 
+                                          calcularSubtotal();
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  _permisoDeAdmin
+                                  ? const SizedBox()
+                                  : Container(
+                                    height: 40,
+                                    width: 42,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                        topRight: Radius.circular(30),
+                                        bottomRight: Radius.circular(30),
+                                      )
+                                    ),
+                                    child: FocusScope(
+                                      canRequestFocus: false,
+                                      child: IconButton(
+                                        onPressed: () async{
+                                          bool? permiso = await mostrarDialogoPermiso(context);
+                                          if (permiso!=null){
+                                            if (permiso == true) {
+                                              setState(() {
+                                                _permisoDeAdmin=true;
+                                                VentasStates.tabs[widget.index].permisoDeAdmin=true;
+                                              });
+                                            }
+                                          }
+                                        }, 
+                                        icon: Transform.translate(
+                                          offset: const Offset(-2.5, 0),
+                                          child: Icon(
+                                            Icons.lock, 
+                                            color: AppTheme.containerColor2, 
+                                            size: 24
                                           ),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(30),
-                                            bottomLeft: Radius.circular(30),
-                                          )
                                         )
                                       ),
-                                      onChanged: (value) {
-                                        if (_descuentoController.text.isEmpty) {
-                                          _descuentoController.text = '0';
-                                        }
-                                        if (int.parse(_descuentoController.text) > 100) {
-                                          _descuentoController.text = '100';
-                                        } 
-                                        calcularSubtotal();
-                                      },
                                     ),
                                   ),
-                                ),
-                                _permisoDeAdmin
-                                ? const SizedBox()
-                                : Container(
-                                  height: 40,
-                                  width: 42,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topRight: Radius.circular(30),
-                                      bottomRight: Radius.circular(30),
-                                    )
-                                  ),
-                                  child: FocusScope(
-                                    canRequestFocus: false,
-                                    child: IconButton(
-                                      onPressed: () async{
-                                        bool? permiso = await mostrarDialogoPermiso(context);
-                                        if (permiso!=null){
-                                          if (permiso == true) {
-                                            setState(() {
-                                              _permisoDeAdmin=true;
-                                              VentasStates.tabs[widget.index].permisoDeAdmin=true;
-                                            });
-                                          }
-                                        }
-                                      }, 
-                                      icon: Transform.translate(
-                                        offset: const Offset(-2.5, 0),
-                                        child: Icon(
-                                          Icons.lock, 
-                                          color: AppTheme.containerColor2, 
-                                          size: 24
-                                        ),
-                                      )
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ), const SizedBox(width: 15),
-                      
-                      Expanded(
-                        child: Column( //Formulario de Producto
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('   IVA (${Configuracion.iva}%)', style: AppTheme.subtituloPrimario),
-                            const SizedBox(height: 2),
-                            SizedBox(
-                              height: 40,
-                              child: TextFormField(
-                                buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                                maxLength: 3,
-                                controller: _ivaController,
-                                canRequestFocus: false,
-                                readOnly: true,
-                              ),
-                            )
-                          ],
-                        ),
-                      ), const SizedBox(width: 15),
-                      
-                      Expanded(
-                        child: Column( //Formulario de Producto
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('   Total', style: AppTheme.subtituloPrimario),
-                            const SizedBox(height: 2),
-                            SizedBox(
-                              height: 40,
-                              child: TextFormField(
-                                controller: _productoTotalController,
-                                canRequestFocus: false,
-                                readOnly: true,
-                              ),
-                            )
-                          ],
-                        ),
-                      ), const SizedBox(width: 15),
-                      
-                      ElevatedButtonIcon(
-                        onPressed: (){
-                          if (_productoSelected == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Center(child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 15),
-                                  child: Text('Seleccione un producto antes de agregarlo.'),
-                                )),
-                                backgroundColor: Colors.red.withAlpha(100),
-                              )
-                            );
-                            return;
-                          }
-                          
-                          if (_productoSelected!.requiereMedida == true){
-                            bool isValid = true;
-                            if (_anchoController.text.isEmpty || _anchoController.text == '0') {
-                              isValid = false;
-                              setState(() {
-                                _anchoError = true;
-                              });                            
-                            }
-                            if (_altoController.text.isEmpty || _altoController.text == '0') {
-                              isValid = false;
-                              setState(() {
-                                _altoError = true;
-                              });
-                            }
-                            if (!isValid) {
-                              return;
-                            }
-                          }
-
-                          List<File> archivos = [];
-                          archivos.addAll(_fileSeleccionado);
-            
-                          DetallesVenta detalle = DetallesVenta(
-                            productoId: _productoSelected!.id!,
-                            cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
-                            ancho: double.parse(_anchoController.text), 
-                            alto: double.parse(_altoController.text), 
-                            comentarios: _comentarioController.text.isNotEmpty ? _comentarioController.text : null,
-                            descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
-                            descuentoAplicado: _descuentoAplicado,
-                            iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
-                            subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')),
-                            archivos: archivos
-                          );
-              
-                          _productos.add(_productoSelected!);
-                        
-                          setState(() {
-                            _detallesError = false;
-                            _detallesVenta.add(detalle);
-                            calcularTotal();
-                            limpiarCamposProducto();
-                          });
-            
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _scrollController.animateTo(
-                              _scrollController.position.maxScrollExtent,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                            );
-                          });             
-                        }, 
-                        text: 'Agregar Producto',
-                        icon: Icons.add,
-                      )
-                      
-                    ],
-                  ),
-                      
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 2, right: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        CajasServices.cajaActual!=null ? 
-                        Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}')
-                        : const SizedBox(),
-                      ],
-                    ),
-                  ),
-                      
-                  Expanded(
-                    child: Column(
-                      children: [
-                        // Cabecera
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
-                            ),
-                            color: AppTheme.tablaColorHeader,
-                          ),
-                          child: const Row(
-                            children: [
-                              Expanded(child: Text('Cantidad', textAlign: TextAlign.center)),
-                              Expanded(flex: 4, child: Text('Producto', textAlign: TextAlign.center)),
-                              Expanded(flex: 2, child: Text('Precio/Unidad', textAlign: TextAlign.center)),
-                              Expanded(flex: 2, child: Text('Subtotal', textAlign: TextAlign.center)),
-                              Expanded(flex: 2, child: Text('Descuento', textAlign: TextAlign.center)),
-                              Expanded(child: Text('IVA', textAlign: TextAlign.center)),
-                              Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.center)),
-                            ],
-                          ),
-                        ),
-                        // Lista de datos
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
-                            ),
-                            child: _detallesVenta.isNotEmpty ? ListView.builder(
-                              controller: _scrollController,
-                              itemCount: _detallesVenta.length,
-                              itemBuilder: (context, index) {
-                                return FilaDetalles(
-                                  index: index, 
-                                  detalle: _detallesVenta[index], 
-                                  producto: _productos[index],
-                                  onDelete: () {
-                                    _detallesVenta.removeAt(index);
-                                    _productos.removeAt(index);
-                                    calcularTotal();
-                                    setState(() {});
-                                  },
-                                  onModificate: () {
-                                    try {
-                                      _productoSelected = productosServices.productos.firstWhere((p) => p.id == _detallesVenta[index].productoId);
-                                    } catch (e) {
-                                      return;
-                                    }
-
-                                    VentasStates.tabs[widget.index].productoSelected = _productoSelected;
-                                    _precioController.text = _productoSelected!.precio.toString();
-                                    _cantidadController.text = _detallesVenta[index].cantidad.toString();
-                                    _anchoController.text = _detallesVenta[index].ancho.toString();
-                                    _altoController.text = _detallesVenta[index].alto.toString();
-                                    _comentarioController.text = _detallesVenta[index].comentarios!=null ? _detallesVenta[index].comentarios.toString() : '';
-                                    _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
-                                    _ivaController.text = _detallesVenta[index].iva.toString();
-                                    _productoTotalController.text = _detallesVenta[index].subtotal.toString();
-                                    _fileSeleccionado = _detallesVenta[index].archivos??[];
-                                    VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
-                                    calcularSubtotal();
-            
-                                    _detallesVenta.removeAt(index);
-                                    _productos.removeAt(index);
-                                    calcularTotal();
-                                    setState(() {});
-                                  },
-                                );
-                              },
-                            ) : const FilaDetalles(index: -1),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                      
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      
-                      Expanded(
-                        flex: 5,
-                        child: TextFormField(
-                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
-                          maxLength: 250,
-                          controller: _comentariosController,
-                          maxLines: 5,
-                          decoration: const InputDecoration(
-                            hintText: 'Comentarios de la venta',
-                            hintStyle: TextStyle(color: AppTheme.letra70),
-                            isDense: true,
-                            contentPadding: EdgeInsets.only(left: 10, top: 20),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.all(Radius.circular(12))
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
-                              borderRadius: BorderRadius.all(Radius.circular(12))
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      Expanded(
-                        flex: 8,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Configuracion.esCaja ? 
-                                    ElevatedButton(
-                                      focusNode: _f8FocusNode,
-                                      onPressed: (){
-                                        procesarPago();
-                                      },
-                                      style: AppTheme.botonPrincipalStyle,
-                                      child: const Text('      Procesar Pago  (F8)     ', 
-                                        style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
-                                      ),
-                                    ) 
-                                  : ElevatedButton(
-                                    focusNode: _f8FocusNode,
-                                    onPressed: (){
-                                      procesarEnvio();
-                                    },
-                                    style: AppTheme.botonPrincipalStyle,
-                                    child: const Text('      Enviar a Caja  (F8)     ', 
-                                      style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  /*Tooltip(  //TODO: en desarrollo
-                                    message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
-                                    child: ElevatedButton(
-                                      onPressed: (){
-                                        //procesarCotizacion(); TODO: deshabilitado
-                                      },
-                                      child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
-                                    ),
-                                  ),*/
                                 ],
                               ),
-                            ),
-
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    const Text('Subtotal:  ', style: AppTheme.subtituloPrimario),
-                                    SizedBox(
-                                      height: 32,
-                                      width: 150,
-                                      child: TextFormField(
-                                        controller: _subtotalController,
-                                        canRequestFocus: false,
-                                        readOnly: true,
-                                        decoration: totalDecoration,
-                                      )
-                                    )
-                                  ],
-                                ), 
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    const Text('- Descuento:  ', style: AppTheme.subtituloPrimario),
-                                    SizedBox(
-                                      height: 32,
-                                      width: 150,
-                                      child: TextFormField(
-                                        controller: _totalDescuentoController,
-                                        canRequestFocus: false,
-                                        readOnly: true,
-                                        decoration: totalDecoration,
-                                      )
-                                    )
-                                  ],
-                                ), 
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    const Text('+ IVA:  ', style: AppTheme.subtituloPrimario),
-                                    SizedBox(
-                                      height: 32,
-                                      width: 150,
-                                      child: TextFormField(
-                                        controller: _totalIvaController,
-                                        canRequestFocus: false,
-                                        readOnly: true,
-                                        decoration: totalDecoration,
-                                      )
-                                    )
-                                  ],
-                                ), 
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    const Text('Total:  ', style: AppTheme.tituloPrimario),
-                                    SizedBox(
-                                      height: 36,
-                                      width: 150,
-                                      child: TextFormField(
-                                        controller: _totalController,
-                                        canRequestFocus: false,
-                                        readOnly: true,
-                                        decoration: totalDecoration,
-                                        style: const TextStyle(fontSize: 22),
-                                      )
-                                    )
-                                  ],
-                                ), 
-                                const SizedBox(height: 8),
-                              ],
-                            ),
+                            ],
+                          ),
+                        ), const SizedBox(width: 15),
+                        
+                        Expanded(
+                          child: Column( //Formulario de Producto
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('   IVA (${Configuracion.iva}%)', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                height: 40,
+                                child: TextFormField(
+                                  buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                  maxLength: 3,
+                                  controller: _ivaController,
+                                  canRequestFocus: false,
+                                  readOnly: true,
+                                ),
+                              )
+                            ],
+                          ),
+                        ), const SizedBox(width: 15),
+                        
+                        Expanded(
+                          child: Column( //Formulario de Producto
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('   Total', style: AppTheme.subtituloPrimario),
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                height: 40,
+                                child: TextFormField(
+                                  controller: _productoTotalController,
+                                  canRequestFocus: false,
+                                  readOnly: true,
+                                ),
+                              )
+                            ],
+                          ),
+                        ), const SizedBox(width: 15),
+                        
+                        ElevatedButtonIcon(
+                          onPressed: () => agregarProducto(), 
+                          text: 'Agregar Producto',
+                          icon: Icons.add,
+                        )
+                        
+                      ],
+                    ),
+                  ),
+                ),
+                    
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 2, right: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      CajasServices.cajaActual!=null ? 
+                      Text('Precio del dolar: ${Formatos.pesos.format(CajasServices.cajaActual!.tipoCambio.toDouble())}')
+                      : const Text('')
+                    ],
+                  ),
+                ),
+                    
+                //Tabla de detalles
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Cabecera
+                      Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(10),
+                            topRight: Radius.circular(10),
+                          ),
+                          color: AppTheme.tablaColorHeader,
+                        ),
+                        child: const Row(
+                          children: [
+                            Expanded(child: Text('Cant.', textAlign: TextAlign.center)),
+                            Expanded(flex: 8, child: Text('Producto', textAlign: TextAlign.center)),
+                            Expanded(flex: 4, child: Text('Precio/Unidad', textAlign: TextAlign.center)),
+                            Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+                            Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
+                            Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
+                            Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
                           ],
                         ),
                       ),
+                      // Lista de datos
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(10),
+                            bottomRight: Radius.circular(10),
+                          ),
+                          child: _detallesVenta.isNotEmpty ? 
+                            FocusScope(
+                              canRequestFocus: _canFocus,
+                              child: AbsorbPointer(
+                                absorbing: _fromVentaEnviada,
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  itemCount: _detallesVenta.length,
+                                  itemBuilder: (context, index) {
+                                    return FilaDetalles(
+                                      index: index, 
+                                      detalle: _detallesVenta[index], 
+                                      producto: _productos[index],
+                                      onDelete: () {
+                                        _detallesVenta.removeAt(index);
+                                        _productos.removeAt(index);
+                                        calcularTotal();
+                                        setState(() {});
+                                      },
+                                      onModificate: () {
+                                        if (VentasStates.tabs[widget.index].modificando) return;
+                                        modificate(productosServices, index);
+                                      }, 
+                                      isLast: _detallesVenta.length == index+1,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ) 
+                          : const FilaDetalles(index: -1, isLast: true),
+                        ),
+                      ),
                     ],
-                  )
-                ],
-              ),
+                  ),
+                ), const SizedBox(height: 20),
+          
+                //Inferior, cometarios, procesar, total. 
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    
+                    Expanded(
+                      flex: 5,
+                      child: TextFormField(
+                        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                        maxLength: 250,
+                        controller: _comentariosController,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          hintText: 'Comentarios de la venta',
+                          hintStyle: TextStyle(color: AppTheme.letra70),
+                          isDense: true,
+                          contentPadding: EdgeInsets.only(left: 10, top: 20),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                            borderRadius: BorderRadius.all(Radius.circular(12))
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: AppTheme.letraClara, width: 3),
+                            borderRadius: BorderRadius.all(Radius.circular(12))
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    Expanded(
+                      flex: 8,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Configuracion.esCaja ? 
+                                  ElevatedButton(
+                                    focusNode: _f8FocusNode,
+                                    onPressed: (){
+                                      procesarPago();
+                                    },
+                                    style: AppTheme.botonPrincipalStyle,
+                                    child: const Text('      Procesar Pago  (F8)     ', 
+                                      style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                    ),
+                                  ) 
+                                : ElevatedButton(
+                                  focusNode: _f8FocusNode,
+                                  onPressed: (){
+                                    procesarEnvio();
+                                  },
+                                  style: AppTheme.botonPrincipalStyle,
+                                  child: const Text('      Enviar a Caja  (F8)     ', 
+                                    style: TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w700)
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                /*Tooltip(  //TODO: en desarrollo
+                                  message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
+                                  child: ElevatedButton(
+                                    onPressed: (){
+                                      //procesarCotizacion(); TODO: deshabilitado
+                                    },
+                                    child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
+                                  ),
+                                ),*/
+                              ],
+                            ),
+                          ),
+          
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Text('Subtotal:  ', style: AppTheme.subtituloPrimario),
+                                  SizedBox(
+                                    height: 32,
+                                    width: 150,
+                                    child: TextFormField(
+                                      controller: _subtotalController,
+                                      canRequestFocus: false,
+                                      readOnly: true,
+                                      decoration: totalDecoration,
+                                    )
+                                  )
+                                ],
+                              ), 
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Text('- Descuento:  ', style: AppTheme.subtituloPrimario),
+                                  SizedBox(
+                                    height: 32,
+                                    width: 150,
+                                    child: TextFormField(
+                                      controller: _totalDescuentoController,
+                                      canRequestFocus: false,
+                                      readOnly: true,
+                                      decoration: totalDecoration,
+                                    )
+                                  )
+                                ],
+                              ), 
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Text('+ IVA:  ', style: AppTheme.subtituloPrimario),
+                                  SizedBox(
+                                    height: 32,
+                                    width: 150,
+                                    child: TextFormField(
+                                      controller: _totalIvaController,
+                                      canRequestFocus: false,
+                                      readOnly: true,
+                                      decoration: totalDecoration,
+                                    )
+                                  )
+                                ],
+                              ), 
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Text('Total:  ', style: AppTheme.tituloPrimario),
+                                  SizedBox(
+                                    height: 36,
+                                    width: 150,
+                                    child: TextFormField(
+                                      controller: _totalController,
+                                      canRequestFocus: false,
+                                      readOnly: true,
+                                      decoration: totalDecoration,
+                                      style: const TextStyle(fontSize: 22),
+                                    )
+                                  )
+                                ],
+                              ), 
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              ],
             ),
           ),
         ),
@@ -1721,7 +1766,7 @@ class _VentaFormState extends State<VentaForm> {
 
 class FilaDetalles extends StatelessWidget {
   const FilaDetalles({
-    super.key, required this.index, this.detalle, this.producto, this.onDelete, this.onModificate
+    super.key, required this.index, this.detalle, this.producto, this.onDelete, this.onModificate, required this.isLast
   });
 
   final int index;
@@ -1729,6 +1774,7 @@ class FilaDetalles extends StatelessWidget {
   final Productos? producto;
   final VoidCallback? onDelete;
   final VoidCallback? onModificate;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
@@ -1736,13 +1782,19 @@ class FilaDetalles extends StatelessWidget {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: AppTheme.tablaColor1
+          ClipRRect(
+            borderRadius: const BorderRadiusGeometry.only(
+              bottomLeft: Radius.circular(10),
+              bottomRight: Radius.circular(10),
             ),
-            child: const Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: AppTheme.tablaColor1
+              ),
+              child: const Center(child: Text('No hay productos agregados', style: TextStyle(color: Colors.transparent)))
+            ),
           ),
         ],
       );
@@ -1798,31 +1850,46 @@ class FilaDetalles extends StatelessWidget {
     }
     
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        mostrarMenu(context, details.globalPosition);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        color: index % 2 == 0
-            ? AppTheme.tablaColor1
-            : AppTheme.tablaColor2,
-        child: Row(
-          children: [
-            Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(descripcionProducto, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-          ],
+    return FeedBackButton(
+      onPressed: (){},
+      onlyVertical: true,
+      child: GestureDetector(
+        onSecondaryTapDown: (details) {
+          mostrarMenu(context, details.globalPosition);
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadiusGeometry.only(
+            bottomLeft: Radius.circular(isLast ? 10 : 0),
+            bottomRight: Radius.circular(isLast ? 10 : 0),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(8.0),
+            color: index % 2 == 0
+                ? AppTheme.tablaColor1
+                : AppTheme.tablaColor2,
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 8, child: Text(descripcionProducto, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 3, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                  ],
+                ),
+                detalle!.archivos?.isNotEmpty??false ? Icon(Icons.filter_rounded, color: AppTheme.isDarkTheme ? AppTheme.letraClara : AppTheme.primario1, size: 20) : const SizedBox()
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
 
 class CreandoPedido extends StatefulWidget {
   const CreandoPedido({
@@ -1866,6 +1933,7 @@ class _CreandoPedidoState extends State<CreandoPedido> {
   Widget build(BuildContext context) {
     final pedidosService = Provider.of<PedidosService>(context);
     return AlertDialog(
+      title: const Center(child:Text('Subiendo archivo...')),
       backgroundColor: AppTheme.containerColor2,
       content: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1879,9 +1947,8 @@ class _CreandoPedidoState extends State<CreandoPedido> {
                 padding: const EdgeInsets.all(16),
                 child: LinearProgressIndicator(
                   value: pedidosService.uploadProgress,
-                  minHeight: 6,
-                  color: AppTheme.isDarkTheme ? AppTheme.secundario1 : AppTheme.primario1,
-                ),
+                  minHeight: 10,
+                  color: AppTheme.containerColor1.withAlpha(150)),
               ),
               Text(
                 '${(pedidosService.uploadProgress * 100).toStringAsFixed(0)}%',

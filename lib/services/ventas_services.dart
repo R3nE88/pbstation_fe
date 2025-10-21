@@ -22,6 +22,49 @@ class VentasServices extends ChangeNotifier{
   bool isLoadingHistorial = false;
   List<Ventas> ventasDeCajaHistorial = [];
 
+  Future<Ventas?> searchVenta(String ventaId) async {
+    isLoading = true;
+    notifyListeners();
+    
+    try {
+      final url = Uri.parse('$_baseUrl$ventaId');
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final venta = Ventas.fromMap(data);
+        venta.id = data['id']?.toString();
+        
+        isLoading = false;
+        notifyListeners();
+        return venta;
+      } else if (resp.statusCode == 404) {
+        debugPrint('Venta no encontrada: $ventaId');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else if (resp.statusCode == 400) {
+        debugPrint('Formato de ID inválido: $ventaId');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else {
+        debugPrint('Error al buscar venta: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en searchVenta: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> loadVentasDeCaja() async {
     if (CajasServices.cajaActualId==null) return;
     

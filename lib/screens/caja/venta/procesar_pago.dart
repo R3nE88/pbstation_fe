@@ -1063,7 +1063,9 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator()     
+            CircularProgressIndicator(
+              color: Colors.white,
+            )     
           ],
         ),
       );

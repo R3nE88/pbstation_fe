@@ -54,6 +54,7 @@ class VentaTab {
   List<File> fileSeleccionado;
   bool fromVentaEnviada;
   List<String> pedidosIds;
+  bool modificando;
 
   VentaTab()
       : clienteSelected = null,
@@ -80,7 +81,8 @@ class VentaTab {
         permisoDeAdmin = Login.isAdmin,
         fileSeleccionado = [],
         fromVentaEnviada = false,
-        pedidosIds = [];
+        pedidosIds = [],
+        modificando = false;
   
 
   void dispose() {
@@ -126,5 +128,6 @@ class VentaTab {
     fileSeleccionado = [];
     fromVentaEnviada = false;
     pedidosIds = [];
+    modificando = false;
   }
 }

@@ -49,6 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja();
       if (!context.mounted) return;
       await Provider.of<VentasServices>(context, listen: false).loadVentasDeCorteActual();
+      if (!context.mounted) return;
+      await Provider.of<PedidosService>(context, listen: false).loadPedidos();
       _servicesLoaded = true;      
     }
 
@@ -222,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Padding(
                               padding: EdgeInsets.all(8.0),
                               child: LinearProgressIndicator(
-                                color: Color.fromARGB(255, 255, 191, 42)
+                                color: Color.fromARGB(255, 255, 191, 42),
                               ),
                             ),
                             SizedBox(height: 70)

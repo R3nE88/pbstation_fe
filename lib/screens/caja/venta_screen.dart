@@ -260,9 +260,15 @@ class _VentaScreenState extends State<VentaScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'Si continúa, la venta se aplicará a la pestaña de venta actual.\nSi no desea sobrescribir la pestaña actual, seleccione otra.',
+                          'Si continúa, la venta se aplicará a la pestaña de venta actual. Si no desea sobrescribir la pestaña actual, seleccione otra pestaña.',
                           textScaler: TextScaler.linear(1.1),
-                          style: TextStyle(color: Colors.white), 
+                          style: AppTheme.subtituloPrimario,
+                          textAlign: TextAlign.center
+                        ),
+                        const Text(
+                          '\nNo puedes modificar una venta recibida desde otra PC',
+                          textScaler: TextScaler.linear(1.1),
+                          style: AppTheme.labelStyle,
                           textAlign: TextAlign.center
                         ),
                         Padding(

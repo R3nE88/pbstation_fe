@@ -21,6 +21,11 @@ class Modulos{
         return true;
       }
     }
+    if (!Login.isMaquila){
+      if (value == 'produccion' || value == 'historial'){
+        return true;
+      }
+    }
 
     return false;
   }
@@ -29,12 +34,12 @@ class Modulos{
     'venta': [
       'venta',
       'caja', 
-      'historial\nde cajas', //Solo administrador
+      'historial\nde cajas', //Solo administrador y super
       'adeudos'
     ],
     'catalogo': [
       'productos y\nservicios',
-      'equipo', //Solo administrador
+      'equipo', //Solo administrador y super
       'clientes',
       'sucursales'
     ],
@@ -48,9 +53,9 @@ class Modulos{
       'impresoras',
     ],
     'pedidos': [
-      'produccion',
-      'historial',
-      'cuentas por\ncobrar'
+      'pedidos',
+      'produccion', //Solo maquila y super
+      'historial' //Solo maquila y super
     ],
     'reportes':[
       'reportes'
@@ -79,16 +84,16 @@ class Modulos{
       Icons.request_quote,
     ],
     'inventario' : [
-      Icons.inventory
+      Icons.inventory_2_outlined
     ],
     'impresoras': [
       Icons.print
     ],
     'pedidos' : [
-      Icons.check_box_outlined,
+      Icons.receipt_long_outlined,
+      Icons.receipt_long_outlined,
       Icons.production_quantity_limits,
-      Icons.history,
-      Icons.monetization_on_outlined
+      Icons.history
     ],
     'reportes' : [
       Icons.list_alt
@@ -122,8 +127,8 @@ class Modulos{
       ImpresorasScreen()
     ],
     'pedidos' : [
+      PedidosScreen(), //Falta
       PruebasScreen(),
-      PantallaEnDesarrollo(), //Falta
       PantallaEnDesarrollo(), //Falta
     ],
     'reportes' : [

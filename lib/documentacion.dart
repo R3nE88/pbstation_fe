@@ -40,6 +40,16 @@ class _Documentacion {
   ], 
   //AHORA SIMPLEMENTE USAMOS: 
   inputFormatters: [ NumericFormatter() ],
+  
+
+WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cajasService = Provider.of<CajasServices>(context, listen: false);
+      cajasService.cargarHistorialCajas();
+    });
+
+
+
+
   */
 
   

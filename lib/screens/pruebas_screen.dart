@@ -96,7 +96,7 @@ class _PruebasScreenState extends State<PruebasScreen> {
                     padding: const EdgeInsets.all(16),
                     child: LinearProgressIndicator(
                       value: pedidosService.uploadProgress,
-                      minHeight: 6,
+                      minHeight: 10,
                     ),
                   ),
                   Text(
@@ -113,8 +113,9 @@ class _PruebasScreenState extends State<PruebasScreen> {
             // 📥 DESCARGAR ARCHIVOS (ZIP)
             ElevatedButton.icon(
               onPressed: pedidosService.isDownloading ? null : () async {
-                final archivo = await pedidosService.descargarArchivos(
+                final archivo = await pedidosService.descargarArchivosZIP(
                   pedidoId: '68f01e9566e0b63a11ad53c9',
+                  context: context,
                 );
 
                 if (!mounted) return;
@@ -154,7 +155,7 @@ class _PruebasScreenState extends State<PruebasScreen> {
                     padding: const EdgeInsets.all(16),
                     child: LinearProgressIndicator(
                       value: pedidosService.downloadProgress,
-                      minHeight: 6,
+                      minHeight: 10,
                     ),
                   ),
                   Text(
