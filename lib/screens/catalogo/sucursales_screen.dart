@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/sucursales.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/sucursales_form.dart';
@@ -207,7 +208,7 @@ class FilaSucursales extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
-      if (Login.isAdmin) {
+      if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)) {
         seleccion = await showMenu(
           context: context,
           position: RelativeRect.fromLTRB(

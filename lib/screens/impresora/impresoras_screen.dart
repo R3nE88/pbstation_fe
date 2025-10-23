@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/impresora/impresora_form.dart';
@@ -29,8 +30,8 @@ class ImpresorasScreen extends StatelessWidget {
                   crossAxisCount: screenSize < 1300 ? 3 : 4,
                   childAspectRatio: 3,
                   children: List.generate(
-                    value.impresoras.length + (Login.isAdmin ? 1 : 0), (index) {
-                      if (index==0 && Login.isAdmin){
+                    value.impresoras.length + (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? 1 : 0), (index) {
+                      if (index==0 && Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)){
                         return const AgregarImpresora();
                       } else {
                         print(index);
@@ -262,7 +263,7 @@ class ImpresorasCards extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('#${impresora.numero}', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.15)),
-                Login.isAdmin ? MouseRegion(
+                Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     onTapDown: (details) {

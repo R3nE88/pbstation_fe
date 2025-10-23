@@ -1933,7 +1933,7 @@ class _CreandoPedidoState extends State<CreandoPedido> {
   Widget build(BuildContext context) {
     final pedidosService = Provider.of<PedidosService>(context);
     return AlertDialog(
-      title: const Center(child:Text('Subiendo archivo...')),
+      title: Center(child:Text(widget.files.isNotEmpty ? 'Subiendo archivo...' : '')),
       backgroundColor: AppTheme.containerColor2,
       content: Column(
         mainAxisAlignment: MainAxisAlignment.center,

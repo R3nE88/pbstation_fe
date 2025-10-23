@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -203,11 +204,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           :
                           Text('Dolar: ${Formatos.moneda.format(Configuracion.dolar)}', style: AppTheme.subtituloPrimario),
                           Tooltip(
-                            message: Login.isSuper ? '' : 'No tienes permisos para cambiar el precio del dolar',
+                            message: Login.usuarioLogeado.permisos == Permiso.admin ? '' : 'No tienes permisos para cambiar el precio del dolar',
                             child: Transform.scale(
                               scale: 0.8,
                               child: ElevatedButton(
-                                onPressed: Login.isSuper ? 
+                                onPressed: Login.usuarioLogeado.permisos == Permiso.admin ? 
                                 () => showDialog(
                                   context: context,
                                   builder: (_) => Stack(
@@ -232,11 +233,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text('IVA: ${Formatos.numero.format(Configuracion.iva)}%', style: AppTheme.subtituloPrimario,),
                           Tooltip(
-                            message: Login.isSuper ? '' : 'No tienes permisos para cambiar el porcentaje del iva',
+                            message: Login.usuarioLogeado.permisos == Permiso.admin ? '' : 'No tienes permisos para cambiar el porcentaje del iva',
                             child: Transform.scale(
                               scale: 0.8,
                               child: ElevatedButton(
-                                onPressed: Login.isSuper ? 
+                                onPressed: Login.usuarioLogeado.permisos == Permiso.admin ? 
                                 () => showDialog(
                                   context: context,
                                   builder: (_) => Stack(

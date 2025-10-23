@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/screens/pedidos/pedidos_subir_archivo_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/feedback_button.dart';
@@ -116,14 +117,14 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Folio de venta: ', style: AppTheme.labelStyle),
-                    SelectableText(widget.venta.folio??'', textScaler: const TextScaler.linear(1.3)),
+                    SelectableText(widget.venta.folio??'', style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.3)),
                   ],
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Fecha: ', style: AppTheme.labelStyle),
-                    Text(fecha, textScaler: const TextScaler.linear(1.1)),
+                    Text(fecha, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.1)),
                   ],
                 ),
               ],
@@ -138,14 +139,20 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Vendedor: ', style: AppTheme.labelStyle),
-                    Text(usuario, textScaler: const TextScaler.linear(1.15)),
+                    Text(usuario, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
                   ],
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Pagado: ', style: AppTheme.labelStyle),
-                    Text(Formatos.pesos.format(widget.venta.abonadoTotal.toDouble()), textScaler: const TextScaler.linear(1.15)),
+                    Text(
+                      widget.venta.liquidado ?
+                      Formatos.pesos.format(widget.venta.total.toDouble())
+                      :
+                      Formatos.pesos.format(widget.venta.abonadoTotal.toDouble()), 
+                      style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)
+                    ),
                   ],
                 ),
               ],
@@ -159,7 +166,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Cliente: ', style: AppTheme.labelStyle),
-                    Text(cliente, textScaler: const TextScaler.linear(1.15)),
+                    Text(cliente, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
                   ],
                 ),
                 
@@ -167,7 +174,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Total Venta: ', style: AppTheme.labelStyle),
-                    Text(Formatos.pesos.format(widget.venta.total.toDouble()), textScaler: const TextScaler.linear(1.15)),
+                    Text(Formatos.pesos.format(widget.venta.total.toDouble()), style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
                   ],
                 ),
               ],
@@ -201,14 +208,14 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Folio de pedido: ', style: AppTheme.labelStyle),
-                    SelectableText(widget.pedido.folio??'', textScaler: const TextScaler.linear(1.3)),
+                    SelectableText(widget.pedido.folio??'', style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.3)),
                   ],
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('   Entrega: ', style: AppTheme.labelStyle),
-                    Text(entrega, textScaler: const TextScaler.linear(1.1)),
+                    Text(entrega, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.1)),
                   ],
                 )
               ],
@@ -221,7 +228,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Estado: ', style: AppTheme.labelStyle),
-                    Text('${widget.pedido.estado} ', textScaler: const TextScaler.linear(1.3)),
+                    Text('${widget.pedido.estado} ', style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.3)),
                     Container(
                       width: 20,
                       height: 20,
@@ -237,6 +244,26 @@ class _PedidosDialogState extends State<PedidosDialog> {
 
             _buildTabla(),
 
+            /*(widget.pedido.descripcion ?? '').isNotEmpty
+            ? Wrap (
+              children: [
+                const Text('Comentarios: ', style: AppTheme.labelStyle),
+                for (var i = 0; i < widget.venta.detalles.length; i++)
+                  if (widget.venta.detalles[i].comentarios!=null)
+                    i == widget.venta.detalles.length - 1
+                      ? Text(widget.venta.detalles[i].comentarios!, style: AppTheme.tituloPrimario)
+                      : Wrap(
+                        children: [
+                          Text(widget.venta.detalles[i].comentarios!, style: AppTheme.tituloPrimario),
+                          const Text(',  '),
+                        ],
+                      )
+              ],
+            )
+            : const Text('Sin comentarios', style: AppTheme.labelStyle),*/
+
+            const SizedBox(height: 10),
+
             widget.pedido.archivos.isNotEmpty
             ? Wrap(
               alignment: WrapAlignment.center,
@@ -250,7 +277,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                       child: FeedBackButton(
                         onlyVertical: true,
                         onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
-                        child: Text(widget.pedido.archivos[i].nombre)
+                        child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
                       ),
                     )
                     : Wrap(
@@ -261,7 +288,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                           child: FeedBackButton(
                             onlyVertical: true,
                             onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
-                            child: Text(widget.pedido.archivos[i].nombre)
+                            child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
                           ),
                         ),
                         const Text(',  '),
@@ -269,7 +296,23 @@ class _PedidosDialogState extends State<PedidosDialog> {
                     )
               ],
             )
-            : const Text('Aun no se han subido archivos...')
+            : ElevatedButtonIcon(
+              onPressed: (){
+                if(!context.mounted){ return; }
+                showDialog(
+                  context: context,
+                  builder: (_) => Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      PedidosSubirArchivoForm(pedidoId: widget.pedido.id!),
+                      const WindowBar(overlay: true),
+                    ],
+                  ),
+                );
+              }, 
+              icon: Icons.upload,
+              text: 'Subir archivos y mandar a produccion',
+            )
 
           ],
         ),
@@ -297,7 +340,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
               children: [
                 Flexible(flex: 2, child: Center(child: Text('Cant.'))),
                 Flexible(flex: 5, child: Center(child: Text('Articulo'))),
-                Flexible(flex: 2, child: Center(child: Text('Medida'))),
+                Flexible(flex: 5, child: Center(child: Text('Comentario'))),
               ],
             ),
           ),
@@ -335,9 +378,13 @@ class FilaDetalles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final producto = Provider.of<ProductosServices>(context, listen: false).obtenerProductoPorId(detalle.productoId);
-    String medida = '-';
+    String? medida;
     if (detalle.alto!=null && detalle.ancho!=null){
       medida = '${detalle.ancho.toString()}m x ${detalle.alto.toString()}m';
+    }
+    String productoDescripcion = producto?.descripcion??'problema al obtener producto...';
+    if (medida!=null){
+      productoDescripcion += ' ($medida)';
     }
 
 
@@ -353,8 +400,8 @@ class FilaDetalles extends StatelessWidget {
       child: Row(
         children: [
           Flexible(flex: 2, child: Center(child: Text(detalle.cantidad.toString(), style: AppTheme.subtituloConstraste))),
-          Flexible(flex: 5, child: Center(child: Text(producto?.descripcion??'problema al obtener producto...', style: AppTheme.subtituloConstraste))),
-          Flexible(flex: 2, child: Center(child: Text(medida, style: AppTheme.subtituloConstraste))),
+          Flexible(flex: 5, child: Center(child: Text(productoDescripcion, style: AppTheme.subtituloConstraste))),
+          Flexible(flex: 5, child: Center(child: Text(detalle.comentarios??'-', style: AppTheme.subtituloConstraste))),
         ],
       ),
     );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 
@@ -12,7 +11,7 @@ class SideMenuLeft extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modProv = context.watch<ModulosProvider>();
-    final modulos = modProv.listaModulos;
+    final modulos = modProv.todosLosModulos;  // ← CAMBIAR de gestor.modulos a todosLosModulos
 
     const double height = 130;
 
@@ -23,22 +22,26 @@ class SideMenuLeft extends StatelessWidget {
       menuContent: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          //const SizedBox(height: 20),
           _buildLogo(height),
           Expanded(
             child: ListView.builder(
               itemCount: modulos.length,
               itemBuilder: (context, i) {
                 final modulo = modulos[i];
-                final selected = modProv.moduloSeleccionado == modulo;
+                final bloqueado = modProv.moduloBloqueado(modulo);  // ← NUEVO
+                final selected = modProv.moduloSeleccionado == modulo.nombre;
+                
                 return _navItem(
-                  icon: Modulos.modulosIconos[modulo]![0],
-                  label: modulo,
+                  icon: bloqueado ? Icons.lock : modulo.iconoPrincipal,  // ← CAMBIAR
+                  label: modulo.nombre,
                   selected: selected,
-                  onTap: () => modProv.seleccionarModulo(modulo), 
+                  onTap: bloqueado 
+                      ? () {} 
+                      : () => modProv.seleccionarModulo(modulo.nombre),  // ← CAMBIAR
                   index: i,
+                  inhabilitado: bloqueado,  // ← NUEVO
                 );
-              },
+              }
             ),
           ),
           Padding(
@@ -49,28 +52,36 @@ class SideMenuLeft extends StatelessWidget {
       ),
       menuContentColapsed: Column(
         children: [
-          const SizedBox(height: height+9, width: 20),
+          const SizedBox(height: height + 9, width: 20),
           Row(
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,
-                children: modulos.map((modulo) {
-                  final selected = modProv.moduloSeleccionado == modulo;
+                children: modulos.map((modulo) {  // ← Ya usa modulos de arriba
+                  final bloqueado = modProv.moduloBloqueado(modulo);  // ← NUEVO
+                  final selected = modProv.moduloSeleccionado == modulo.nombre;
+                  
                   return Padding(
                     padding: const EdgeInsets.only(top: 15, left: 13),
                     child: GestureDetector(
-                      onTap: () => modProv.seleccionarModulo(modulo),
+                      onTap: bloqueado 
+                          ? null 
+                          : () => modProv.seleccionarModulo(modulo.nombre),  // ← CAMBIAR
                       child: Container(
                         decoration: BoxDecoration(
                           color: selected ? AppTheme.letraClara : Colors.transparent,
-                          border: Border.all(color: AppTheme.letra70),
+                          border: Border.all(
+                            color: bloqueado ? Colors.white24 : AppTheme.letra70  // ← CAMBIAR
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         padding: const EdgeInsets.all(6),
                         child: Icon(
-                          Modulos.modulosIconos[modulo]![0],
+                          bloqueado ? Icons.lock : modulo.iconoPrincipal,  // ← CAMBIAR
                           size: 23,
-                          color: selected ? AppTheme.primario1 : AppTheme.letra70,
+                          color: bloqueado 
+                              ? Colors.white24 
+                              : (selected ? AppTheme.primario1 : AppTheme.letra70),  // ← CAMBIAR
                         ),
                       ),
                     ),
@@ -90,17 +101,18 @@ class SideMenuLeft extends StatelessWidget {
     required bool selected,
     required VoidCallback onTap,
     required int index,
+    bool inhabilitado = false,  // ← NUEVO parámetro
   }) {
     return MouseRegion(
-      cursor: SystemMouseCursors.click,
+      cursor: inhabilitado ? SystemMouseCursors.basic : SystemMouseCursors.click,  // ← CAMBIAR
       child: GestureDetector(
-        onTap: onTap,
+        onTap: inhabilitado ? null : onTap,  // ← CAMBIAR
         child: CustomNavigationButton(
           icon: icon,
           label: label[0].toUpperCase() + label.substring(1),
           selected: selected, 
-          first: index==0, 
-          inhabilitado: false,
+          first: index == 0, 
+          inhabilitado: inhabilitado,  // ← CAMBIAR
         ),
       ),
     );

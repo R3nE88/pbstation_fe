@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -78,7 +79,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       correo: _controllers['correo']!.text.toLowerCase(),
       telefono: _controllers['telefono']!.text.isEmpty ? null : int.tryParse(_controllers['telefono']!.text),
       psw: widget.usuEdit==null ? _controllers['psw']!.text : null,
-      rol: _administrator==true ? 'admin' : 'empleado',
+      rol: TipoUsuario.vendedor,//_administrator==true ? 'admin' : 'vendedor', //TODO arreglar esto, ya no sera asi
+      permisos: Permiso.normal,//'normal',
       activo: true
     );
 

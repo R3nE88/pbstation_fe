@@ -3,7 +3,6 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/home_state.dart';
-import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -24,9 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late PageController _pageController;
   bool _showScreenInit = false;
 
-  Future<void> esperarParaMostrar() async{
+  Future<void> esperarParaMostrar() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    setState(() => _showScreenInit = true );
+    setState(() => _showScreenInit = true);
   }
 
   @override
@@ -79,12 +78,15 @@ class _HomeScreenState extends State<HomeScreen> {
         appWindow.maximize();
       });
     }
-    
+
     final modProv = context.watch<ModulosProvider>();
     final height = MediaQuery.of(context).size.height - barraHeight;
-    final screens = Modulos.modulosScreens[modProv.moduloSeleccionado] ?? <Widget>[];
+    
+    // Obtener las pantallas de los submódulos actuales
+    final subModulos = modProv.subModulosActuales;
+    final screens = subModulos.map((sub) => sub.pantalla).toList();
 
-    if (!_showScreenInit){
+    if (!_showScreenInit) {
       return Scaffold(backgroundColor: AppTheme.backgroundColor);
     }
 
@@ -93,56 +95,57 @@ class _HomeScreenState extends State<HomeScreen> {
         return Stack(
           alignment: Alignment.topCenter,
           children: [
-            
             Scaffold(
               backgroundColor: AppTheme.backgroundColor,
               body: Column(
                 children: [
                   // Custom Window Bar
                   WindowBar(overlay: false),
-                  
+
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 30),
                       child: screens.isNotEmpty
-                      ? PageView.builder(
-                          controller: _pageController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          onPageChanged: (index) {
-                            modProv.seleccionarSubModulo(index); // Actualiza el índice seleccionado
-                          },
-                          itemCount: screens.length,
-                          itemBuilder: (context, index) {
-                            return screens[index];
-                          },
-                        )
-                      : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
-                              textScaler:  TextScaler.linear(1.5),
-                              style: TextStyle(
-                                color: AppTheme.colorContraste.withAlpha(150),
+                          ? PageView.builder(
+                              controller: _pageController,
+                              physics: const NeverScrollableScrollPhysics(),
+                              onPageChanged: (index) {
+                                modProv.seleccionarSubModulo(index);
+                              },
+                              itemCount: screens.length,
+                              itemBuilder: (context, index) {
+                                return screens[index];
+                              },
+                            )
+                          : Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
+                                    textScaler: TextScaler.linear(1.5),
+                                    style: TextStyle(
+                                      color: AppTheme.colorContraste
+                                          .withAlpha(150),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
                 ],
               ),
             ),
-        
+
             // Left and Right Menus
             SideMenuLeft(),
             SideMenuRight(height: height + 1),
-        
+
             UsuarioOverlay(),
-        
+
             // Connection Overlay
             ConnectionOverlay()
           ],
@@ -165,9 +168,7 @@ class UsuarioOverlay extends StatelessWidget {
         color: Colors.transparent,
         child: IntrinsicWidth(
           child: Container(
-            constraints: const BoxConstraints(
-              minWidth: 200
-            ),
+            constraints: const BoxConstraints(minWidth: 200),
             height: 30,
             decoration: BoxDecoration(
               color: AppTheme.secundario1,
@@ -175,13 +176,13 @@ class UsuarioOverlay extends StatelessWidget {
                 top: BorderSide(
                   color: AppTheme.secundario1,
                   width: 5,
-                  strokeAlign: BorderSide.strokeAlignOutside
-                )
+                  strokeAlign: BorderSide.strokeAlignOutside,
+                ),
               ),
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(15)
-              )
+                bottomRight: Radius.circular(15),
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -189,18 +190,18 @@ class UsuarioOverlay extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Sesión de ', 
-                    textScaler: TextScaler.linear(0.8), 
+                    'Sesión de ',
+                    textScaler: TextScaler.linear(0.8),
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: Colors.white70
-                    )
+                      color: Colors.white70,
+                    ),
                   ),
                   Text(
                     Login.usuarioLogeado.nombre,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                    )
+                    ),
                   ),
                 ],
               ),
@@ -211,4 +212,3 @@ class UsuarioOverlay extends StatelessWidget {
     );
   }
 }
-

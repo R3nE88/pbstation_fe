@@ -37,6 +37,7 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
       return;
     }
     Navigator.pop(context);
+    _submit();
   }
 
   void _submit() async{
@@ -44,6 +45,14 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
     await pedidosService.addArchivosToPedido(pedidoId: widget.pedidoId, archivos: _fileSeleccionado);
     if (!mounted) return;
     Navigator.pop(context);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      seleccionarArchivos();
+    });
   }
 
   @override

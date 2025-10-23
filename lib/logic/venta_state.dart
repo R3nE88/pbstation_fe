@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -78,7 +79,7 @@ class VentaTab {
         totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
         totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
         totalController = TextEditingController(text: Formatos.pesos.format(0)),
-        permisoDeAdmin = Login.isAdmin,
+        permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado),
         fileSeleccionado = [],
         fromVentaEnviada = false,
         pedidosIds = [],
@@ -124,7 +125,7 @@ class VentaTab {
     totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0));
     totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
     totalController = TextEditingController(text: Formatos.pesos.format(0));
-    permisoDeAdmin = Login.isAdmin;
+    permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado);
     fileSeleccionado = [];
     fromVentaEnviada = false;
     pedidosIds = [];

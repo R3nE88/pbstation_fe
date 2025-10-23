@@ -382,15 +382,15 @@ class _CorteDialogState extends State<CorteDialog> {
   }
 
   double calculateTotalDolares(){
-    double total = 0.0;
+    double t = 0.0;
     for (var i = 0; i < denomControllersDlls.length; i++) {
       final text = denomControllersDlls[i].text.trim();
       if (text.isEmpty) continue;
       final intCount = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       final value = denominacionesDlls[i]['value'] as double;
-      total += intCount * value;
+      t += intCount * value;
     }
-    return total;
+    return t;
   }
 
   void _nextStage() async {
@@ -1372,7 +1372,7 @@ class ReporteFinalMovimientos extends StatelessWidget {
       contadoUsCnv = Decimal.parse(CalculosDinero().dolarAPesos(contadoDolares.toDouble(), tc).toString());
       totalContado = contadoPesos + contadoUsCnv + contadoDebito + contadoCredito + contadoTransf;
     } else {
-      contadoUsCnv =  Decimal.parse(CalculosDinero().pesosADolar(corte.conteoDolares?.toDouble()??0, tc).toString());
+      contadoUsCnv =  Decimal.parse(CalculosDinero().dolarAPesos(corte.conteoDolares?.toDouble()??0, tc).toString());
       totalContado = corte.conteoTotal??Decimal.zero;
     }
 
@@ -1397,7 +1397,7 @@ class ReporteFinalMovimientos extends StatelessWidget {
           const SizedBox(height: 15),
           const Separador(texto: 'Dinero Entregado'),
           Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
-          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.pesos.format(contadoDolares.toDouble()), color: 2),
+          Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.dolares.format(contadoDolares.toDouble()), color: 2),
           Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
           Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
           Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),

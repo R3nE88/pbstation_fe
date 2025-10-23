@@ -394,6 +394,7 @@ class _VentaDialogState extends State<VentaDialog> {
               children: [
                 //TODO: boton para cancelar venta tambien cuando es deuda? simplificaria algo la clase por la parte esta de aqui arriba xd
 
+                Configuracion.esCaja ?
                 Padding(
                   padding: const EdgeInsets.only(right: 25),
                   child: ElevatedButton(
@@ -420,7 +421,7 @@ class _VentaDialogState extends State<VentaDialog> {
                       });
                     }, child: const Text('Pagar')
                   ),
-                ),
+                ) : const SizedBox(),
 
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context), 

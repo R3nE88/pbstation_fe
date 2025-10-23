@@ -1,5 +1,25 @@
 import 'package:pbstation_frontend/env.dart';
 
+// Enum para tipos de usuario
+enum TipoUsuario {
+  vendedor,
+  maquilador,
+  administrativo,
+  bodega,
+}
+
+// Enum para permisos específicos
+enum Permiso {
+  normal(1),
+  elevado(2),
+  admin(3);
+
+  final int nivel;
+  const Permiso(this.nivel);
+
+  bool tieneAlMenos(Permiso requerido) => nivel >= requerido.nivel;
+}
+
 class Constantes{
   static final String baseUrl = Env.debug ? '//127.0.0.1:8000/' : '//api.theprinterboy.com/';
   static const double anchoMaximo = 25; //TODO: Agregar esto a ajustes y mover a configuracion

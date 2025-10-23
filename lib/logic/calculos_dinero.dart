@@ -73,7 +73,7 @@ class CalculosDinero {
   double pesosADolar(double importe, double tc){
     Decimal imp = Decimal.parse(importe.toString());
     Decimal precioDolar = Decimal.parse(tc.toString());
-    Decimal total = (imp / precioDolar).toDecimal();
+    Decimal total = (imp / precioDolar).toDecimal(scaleOnInfinitePrecision: 2); //TODO: AssertionError (Assertion failed: "scaleOnInfinitePrecision is required for rationale without finite precision")
     return total.toDouble();
   }
 

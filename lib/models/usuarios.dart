@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:pbstation_frontend/constantes.dart';
+
 class Usuarios {
   Usuarios({
     this.id,
@@ -8,6 +10,7 @@ class Usuarios {
     this.telefono,
     this.psw,
     required this.rol,
+    required this.permisos,
     required this.activo,
   });
 
@@ -16,7 +19,8 @@ class Usuarios {
   String correo;
   int? telefono;
   String? psw;
-  String rol;
+  TipoUsuario rol;
+  Permiso permisos;
   bool activo;
 
   factory Usuarios.fromJson(String str) => Usuarios.fromMap(json.decode(str));
@@ -27,7 +31,10 @@ class Usuarios {
     nombre: json['nombre'],
     correo: json['correo'],
     telefono: json['telefono'],
-    rol: json['rol'],
+    rol: TipoUsuario.values.firstWhere(
+    (e) => e.name == json['rol']),
+    permisos: Permiso.values.firstWhere(
+    (e) => e.name == json['permisos']),
     activo: json['activo'],
   );
 
@@ -38,6 +45,7 @@ class Usuarios {
     'telefono': telefono,
     'psw': psw,
     'rol': rol,
+    'permisos': permisos,
     'activo': activo
   };
 }

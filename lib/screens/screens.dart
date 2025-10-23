@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/screens/pedidos/produccion_screen.dart';
 export 'package:pbstation_frontend/screens/pedidos/pedidos_screen.dart';
 export 'package:pbstation_frontend/screens/pruebas_screen.dart';
 export 'package:pbstation_frontend/screens/caja/historial_cajas_screen.dart';

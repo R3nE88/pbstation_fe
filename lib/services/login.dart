@@ -8,10 +8,6 @@ import 'package:pbstation_frontend/models/usuarios.dart';
 class Login {
   final String _baseUrl = 'http:${Constantes.baseUrl}login';
   static late Usuarios usuarioLogeado;
-  static late final bool isVendedor;
-  static late final bool isAdmin;
-  static late final bool isMaquila;
-  static late final bool isSuper;
   bool isLoading = false;
     
   Future<bool> login(String correo, String psw) async {
@@ -37,27 +33,7 @@ class Login {
           usuarioLogeado = Usuarios.fromJson(resp.body);
           usuarioLogeado.id = json.decode(resp.body)['id'];
 
-          if (usuarioLogeado.rol == 'admin'){
-            isVendedor = true;
-            isMaquila = false;
-            isAdmin = true;
-            isSuper = false;
-          } else if (usuarioLogeado.rol == 'maquila') {
-            isVendedor = false;
-            isMaquila = true;
-            isAdmin = false;
-            isSuper = false;
-          } else if (usuarioLogeado.rol == 'super'){
-            isVendedor = true;
-            isMaquila = true;
-            isAdmin = true;
-            isSuper = true;
-          } else {
-            isVendedor = true;
-            isMaquila = false;
-            isAdmin = false;
-            isSuper = false;
-          }
+          //aqui estaba antes la logica de los permisos y eso
 
           success = true;
         } catch (e) {

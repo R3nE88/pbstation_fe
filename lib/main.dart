@@ -4,9 +4,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -64,7 +66,15 @@ void main() async {
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
-        ChangeNotifierProvider(create: (_) => ModulosProvider()),
+        ChangeNotifierProvider(create: (_) => ModulosProvider(
+          contextoUsuario: ContextoUsuario.desdeLogin(
+            permiso: Login.usuarioLogeado.permisos,
+            tipoUsuario: Login.usuarioLogeado.rol,
+            esCaja: Configuracion.esCaja,
+          ),
+          moduloInicial: Login.usuarioLogeado.rol == TipoUsuario.maquilador ? 'pedidos' : ''
+          //moduloInicial: Login.isMaquila ? 'pedidos' : ''
+        )),
       ],
       child: const MyApp()
     )
