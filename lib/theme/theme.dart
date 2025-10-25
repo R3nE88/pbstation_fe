@@ -141,8 +141,14 @@ class AppTheme{
     fontSize: 13,
   );
 
-  static const TextStyle warningStyle = TextStyle(
-    color: Color.fromARGB(255, 255, 163, 4), 
+  static final TextStyle warningStyle = TextStyle( //Color.fromARGB(255, 228, 138, 3), 
+    color: changeThemeInstance?.isDarkTheme == true ? 
+    const Color.fromARGB(255, 255, 155, 4) : const Color.fromARGB(255, 228, 138, 3), 
+    fontWeight: FontWeight.bold
+  );
+
+  static const TextStyle warningStyle2 = TextStyle(
+    color: Color.fromARGB(255, 255, 180, 4), 
     fontWeight: FontWeight.bold
   );
 

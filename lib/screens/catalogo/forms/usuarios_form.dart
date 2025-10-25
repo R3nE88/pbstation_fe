@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -22,6 +24,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
   bool _onlyRead = false;
   final _formKey = GlobalKey<FormState>();
   String _titulo = 'Agregar nuevo Usuario';
+  late final List<DropdownMenuItem<String>> _dropdownItemsPermisos;
+  late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
   final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
@@ -29,7 +33,11 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
     'psw': TextEditingController(),
     'psw2': TextEditingController(),
   };
-  bool _administrator = false;
+  String? _permisoSeleccionado;
+  bool _permisoEmpty = false;
+  String? _tipoSeleccionado;
+  bool _tipoEmpty = false;
+
   bool _pswIncorrecto = false;
 
   @override
@@ -44,8 +52,25 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       _controllers['nombre']!.text = usuario.nombre;
       _controllers['correo']!.text = usuario.correo;
       _controllers['telefono']!.text = '${usuario.telefono ?? ''}';
-      _administrator = usuario.rol=='admin';
     }
+
+    _dropdownItemsPermisos = Permiso.values.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.name,
+        child: Text('Nivel ${capitalizarPrimeraLetra(entry.nivel.toString())} - ${capitalizarPrimeraLetra(entry.name)}'),
+      );
+    }).toList();
+    if (Login.usuarioLogeado.permisos.nivel==2){ //Si no es usuario admin, no puede crear admins
+      _dropdownItemsPermisos.removeWhere((element) => element.value == Permiso.admin.name);
+    }
+
+    _dropdownItemsTipo = TipoUsuario.values.map((entry) {
+      return DropdownMenuItem<String>(
+        value: entry.name,
+        child: Text(capitalizarPrimeraLetra(entry.name)),
+      );
+    }).toList();
+
   }
 
   @override
@@ -60,7 +85,11 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
 
   //METODOS
   Future<void> guardarUsuario() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _permisoSeleccionado==null || _tipoSeleccionado==null){
+      if (_permisoSeleccionado==null){setState(() {_permisoEmpty = true;});}
+      if (_tipoSeleccionado==null){setState(() {_tipoEmpty = true;});}
+      return;
+    } 
 
     if (widget.usuEdit==null){
       if(_controllers['psw']!.text !=_controllers['psw2']!.text){
@@ -79,8 +108,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       correo: _controllers['correo']!.text.toLowerCase(),
       telefono: _controllers['telefono']!.text.isEmpty ? null : int.tryParse(_controllers['telefono']!.text),
       psw: widget.usuEdit==null ? _controllers['psw']!.text : null,
-      rol: TipoUsuario.vendedor,//_administrator==true ? 'admin' : 'vendedor', //TODO arreglar esto, ya no sera asi
-      permisos: Permiso.normal,//'normal',
+      rol: TipoUsuario.values.firstWhere((element) => element.name == _tipoSeleccionado),
+      permisos: Permiso.values.firstWhere((element) => element.name == _permisoSeleccionado),
       activo: true
     );
 
@@ -195,26 +224,31 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
                         maxLength: 40,
                         validator: (value) => validateRequiredField(value, 'el correo electronico'),
                       ),
-                    ), 
-                    IgnorePointer(
-                      ignoring: _onlyRead,
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            focusColor: AppTheme.focusColor,
-                            value: _administrator,
-                            onChanged: (value) {
-                              if (_onlyRead==false){
-                                setState(() {
-                                  _administrator = value ?? false;
-                                });
-                              }
-                            }
-                          ),
-                          const Text('Permisos de administrador'),
-                        ],
-                      ),
-                    ), 
+                    ), const SizedBox(width: 15),
+
+                    CustomDropDown<String>(
+                      isReadOnly: _onlyRead,
+                      value: _tipoSeleccionado,
+                      hintText: 'Tipo de usuario ',
+                      empty: _tipoEmpty,
+                      items: _dropdownItemsTipo,
+                      onChanged: (val) => setState(() {
+                        _tipoEmpty = false;
+                        _tipoSeleccionado = val!;
+                      }),
+                    ), const SizedBox(width: 15),
+
+                    CustomDropDown<String>(
+                      isReadOnly: _onlyRead,
+                      value: _permisoSeleccionado,
+                      hintText: 'Permisos  ',
+                      empty: _permisoEmpty,
+                      items: _dropdownItemsPermisos,
+                      onChanged: (val) => setState(() {
+                        _permisoEmpty = false;
+                        _permisoSeleccionado = val!;
+                      }),
+                    ),
                   ],
                 ), const SizedBox(height: 15),
                 

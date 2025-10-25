@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
@@ -174,8 +175,33 @@ class _VentaScreenState extends State<VentaScreen> {
         int? seleccion;
         bool continuar = true;
 
+        if (VentasStates.tabs[VentasStates.indexSelected].fromVentaEnviada){
+          await showDialog(
+            context: context, 
+            builder: (context) {
+              return Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  AlertDialog(
+                    backgroundColor: AppTheme.containerColor1,
+                    title: const Center(child: Text('No se puede sobreescribir esta pestaña de venta')),
+                    content: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Seleccione otra pestaña o complete la venta')
+                      ],
+                    )
+                  )
+                ]
+              );
+            }
+          );
+          return;
+        }
+
         //Elegir venta
         if (ventasRecibida.ventas.length > 1){
+          if (!context.mounted) return;
           seleccion = await showDialog(
             context: context, 
             builder: (context) {
@@ -187,7 +213,7 @@ class _VentaScreenState extends State<VentaScreen> {
                     title: const Center(child: Text('Seleccione una venta'),),
                     content: SizedBox(
                       height: 250, 
-                      width: 550,
+                      width: 600,
                       child: ListView.builder(
                         itemCount: ventasRecibida.ventas.length,
                         itemBuilder: (context, index) {
@@ -196,6 +222,9 @@ class _VentaScreenState extends State<VentaScreen> {
                           DateTime dt = DateTime.parse(ventasRecibida.ventas[index].fechaEnvio);
                           final DateFormat formatter = DateFormat('hh:mm:ss a');
                           final String formatted = formatter.format(dt);
+
+                          String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(ventasRecibida.ventas[index].clienteId);
+                          String usuario = ventasRecibida.ventas[index].usuarioNombre;
                   
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -214,9 +243,19 @@ class _VentaScreenState extends State<VentaScreen> {
                                     children: [
                                       const Text('Vendedor:', textScaler: TextScaler.linear(0.8)),
                                       Text(
-                                        ventasRecibida.ventas[index].usuarioNombre.length > 30 
-                                            ? '${ventasRecibida.ventas[index].usuarioNombre.substring(0, 30)}...' 
-                                            : ventasRecibida.ventas[index].usuarioNombre,
+                                        usuario.length > 21 
+                                            ? '${usuario.substring(0, 21)}...' 
+                                            : usuario,
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      const Text('Cliente:', textScaler: TextScaler.linear(0.8)),
+                                      Text(
+                                        cliente.length > 22
+                                            ? '${cliente.substring(0, 22)}...' 
+                                            : cliente,
                                       ),
                                     ],
                                   ),
@@ -266,8 +305,8 @@ class _VentaScreenState extends State<VentaScreen> {
                           textAlign: TextAlign.center
                         ),
                         const Text(
-                          '\nNo puedes modificar una venta recibida desde otra PC',
-                          textScaler: TextScaler.linear(1.1),
+                          '\nNo podras modificar una venta recibida desde otra PC',
+                          textScaler: TextScaler.linear(0.9),
                           style: AppTheme.labelStyle,
                           textAlign: TextAlign.center
                         ),
@@ -319,8 +358,9 @@ class _VentaScreenState extends State<VentaScreen> {
             VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
           }
           VentasStates.tabs[index].detallesVenta = venta.detalles;
-          VentasStates.tabs[index].fromVentaEnviada = true;
           VentasStates.tabs[index].pedidosIds = venta.pedidosIds ?? [];
+          VentasStates.tabs[index].fromVentaEnviada = true;
+          VentasStates.tabs[index].fromVentaEnviadaData = {'id': venta.id!, 'sucursal':venta.sucursalId};
           VentasStates.tabs[index].comentariosController.text = venta.comentariosVenta??'';
           VentasStates.tabs[index].subtotalController.text = Formatos.pesos.format(venta.subTotal.toDouble());
           VentasStates.tabs[index].totalDescuentoController.text = Formatos.pesos.format(venta.descuento.toDouble());
@@ -328,7 +368,7 @@ class _VentaScreenState extends State<VentaScreen> {
           VentasStates.tabs[index].totalController.text = Formatos.pesos.format(venta.total.toDouble());
 
           //Eliminar VentaRecibida
-          ventasRecibida.eliminarRecibida(venta.id!, venta.sucursalId);
+          ventasRecibida.ventas.removeWhere((element) => element.id == venta.id);
 
           //Volver a Renderizar para mostrar Cambios
           rebuild();    
@@ -365,7 +405,7 @@ class AdvertenciaSucursal extends StatelessWidget {
             Transform.translate(
               offset: const Offset(0, -5),
               child: const Text(
-                'Asigne una para poder continuar.',
+                'Asigne una para realizar ventas.',
                 style: AppTheme.tituloClaro,
                 textScaler: TextScaler.linear(1.5),
                 textAlign: TextAlign.center,
@@ -404,6 +444,7 @@ class Pestania extends StatelessWidget {
   final int index;
 
   void _mostrarMenu(BuildContext context, Offset offset) async {
+    
     final seleccion = await showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -430,7 +471,21 @@ class Pestania extends StatelessWidget {
 
     if (seleccion != null) {
       if (seleccion == 'limpiar') {
-        rebuild!(index);
+        bool? success = false;
+        if (VentasStates.tabs[index].fromVentaEnviada){
+          if (!context.mounted) return;
+          success = await mostrarDialogoPermiso(context);
+          if (success==true){
+            if (!context.mounted) return;
+            Provider.of<VentasEnviadasServices>(context, listen: false).eliminarRecibida(VentasStates.tabs[index].fromVentaEnviadaData['id']!, VentasStates.tabs[index].fromVentaEnviadaData['sucursal']!);
+          }
+        } else {
+          success = true;
+        }
+        if (success??false){
+          rebuild!(index);
+          
+        }
       }
     }
   }

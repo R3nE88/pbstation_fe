@@ -111,6 +111,9 @@ class _CorteDialogState extends State<CorteDialog> {
 
   int reporteFinalPage = 1;
 
+  final TextEditingController ctrl = TextEditingController();
+
+
 
   @override
   void initState() {
@@ -199,6 +202,10 @@ class _CorteDialogState extends State<CorteDialog> {
       _ensureImpresoraControllers(impresoraSvc);
       setState(() => loadingImpresoras = false);
     });
+
+    if (widget.readMode==true){
+      ctrl.text = widget.corte.comentarios??'';
+    }
   }
 
   void _ensureImpresoraControllers(ImpresorasServices svc) {
@@ -687,11 +694,8 @@ class _CorteDialogState extends State<CorteDialog> {
     Decimal abonadoTarjC,
     Decimal abonadoTrans
     ){
+
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
-    final TextEditingController ctrl = TextEditingController();
-    if (widget.readMode==true){
-      ctrl.text = widget.corte.comentarios??'';
-    }
     if (widget.corte.id==null) return const SizedBox();
 
     return SizedBox(
@@ -711,7 +715,7 @@ class _CorteDialogState extends State<CorteDialog> {
                 Row(
                   children: [
                     const Text('#Corte: '),
-                    Text(widget.corte.folio ?? 'error', style: AppTheme.tituloClaro),
+                    SelectableText(widget.corte.folio ?? 'error', style: AppTheme.tituloClaro),
                   ],
                 ),
                 Row(

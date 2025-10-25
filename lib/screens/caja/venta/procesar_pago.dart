@@ -1041,11 +1041,15 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   void initState() {
     super.initState();
     
-    //imprimir ticket, abrir caja
-    !widget.isDeuda ?
-    Ticket.imprimirTicketVenta(context, widget.venta, widget.folio)
-    : 
-    Ticket.imprimirTicketDeudaPagada(context, widget.venta, widget.folio, widget.datosDeuda);
+    // Iniciar impresión de manera asíncrona
+    Future.microtask(() async {
+      if (!mounted) return;
+      if (!widget.isDeuda) {
+        Ticket.imprimirTicketVenta(context, widget.venta, widget.folio);
+      } else {
+        Ticket.imprimirTicketDeudaPagada(context, widget.venta, widget.folio, widget.datosDeuda);
+      }
+    });
   }
 
   @override
@@ -1057,18 +1061,7 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   @override
   Widget build(BuildContext context) { 
     if (finish){
-      return AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
-        content: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              color: Colors.white,
-            )     
-          ],
-        ),
-      );
+      return const CircularProgressIndicator();
     }
 
     //si no es deuda

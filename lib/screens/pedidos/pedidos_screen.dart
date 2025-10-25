@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/pedidos/pedidos_dialog.dart';
-import 'package:pbstation_frontend/screens/pedidos/pedidos_subir_archivo_form.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -204,51 +203,6 @@ class _FilaNotReadyState extends State<FilaNotReady> {
     setState(() { detalleLoaded = true; });
   }
 
-  void mostrarMenu(BuildContext context, Offset offset) async {
-      final String? seleccion;
-      
-      seleccion = await showMenu(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx,
-          offset.dy,
-          offset.dx,
-          offset.dy,
-        ),
-        color: AppTheme.dropDownColor,
-        elevation: 2,
-        items: [
-          const PopupMenuItem(
-            value: 'subir',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.upload, color: AppTheme.letraClara, size: 17),
-                Text('  Subir Archivos', style: AppTheme.subtituloPrimario),
-              ],
-            ),
-          ),
-        ],
-      );
-      
-
-      if (seleccion == 'subir') {
-          // Lógica para leer
-          if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                //ProductoFormDialog(prodEdit: producto, onlyRead: true),
-                PedidosSubirArchivoForm(pedidoId: widget.pedido.id!),
-                const WindowBar(overlay: true),
-              ],
-            ),
-          );
-        } 
-    }
-
   @override
   void initState() {
     super.initState();
@@ -274,36 +228,31 @@ class _FilaNotReadyState extends State<FilaNotReady> {
           ),
         );
       },
-      child: GestureDetector(
-        onSecondaryTapDown: (details) {
-          mostrarMenu(context, details.globalPosition);
-        },
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          color: widget.index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-          child:  Row(
-            children: [
-              Expanded(child: Center(child: Text(usuario, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-              Expanded(child: Center(child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-              Expanded(child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-              Expanded(child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-              Expanded(flex:2, 
-                child: Center(
-                  child: detalleLoaded ? 
-                    Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
-                  : 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 50),
-                      child: LinearProgressIndicator(
-                        color: AppTheme.containerColor1.withAlpha(150),
-                        minHeight: 10,
-                      ),
-                    )
-                )
-              ),
-              Expanded(child: Center(child: Text(fechaEntrega, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            ],
-          ),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        color: widget.index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+        child:  Row(
+          children: [
+            Expanded(child: Center(child: Text(usuario, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(child: Center(child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex:2, 
+              child: Center(
+                child: detalleLoaded ? 
+                  Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
+                : 
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 50),
+                    child: LinearProgressIndicator(
+                      color: AppTheme.containerColor1.withAlpha(150),
+                      minHeight: 10,
+                    ),
+                  )
+              )
+            ),
+            Expanded(child: Center(child: Text(fechaEntrega, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+          ],
         ),
       ),
     );

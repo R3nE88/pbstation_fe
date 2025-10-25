@@ -27,7 +27,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
           alignment: Alignment.topRight,
           children: [
             CustomErrorDialog(
-              titulo: '',
+              titulo: 'No puedes continuar',
               respuesta: 'Correo o contraseña inválidos o\npermisos insuficientes.'
             ),
             WindowBar(overlay: true),
@@ -37,14 +37,14 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
     }
   }
 
-  return showDialog<bool>( //TODO: hacer mas bonito esta ventana
+  return showDialog<bool>(
     context: context,
     builder: (context) {
       return Stack(
         alignment: Alignment.topRight,
         children: [
           AlertDialog(
-            title: const Text('🔒 Para continuar ingrese las credenciales\nde algun Administrador',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
+            title: const Text('🔒 Para continuar ingrese las credenciales\nde algun usuario con permisos elevados.',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
             backgroundColor: AppTheme.containerColor2,
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -64,6 +64,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
                       ),
                       validator: (value) =>
                           value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
@@ -78,6 +79,7 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
                       validator: (value) =>
                           value == null || value.isEmpty ? 'Campo obligatorio' : null,
                       onFieldSubmitted: (_) => verificar(),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 15),
                     ElevatedButton(

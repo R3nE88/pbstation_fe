@@ -54,6 +54,7 @@ class VentaTab {
   bool permisoDeAdmin;
   List<File> fileSeleccionado;
   bool fromVentaEnviada;
+  Map<String, String> fromVentaEnviadaData = {};
   List<String> pedidosIds;
   bool modificando;
 
@@ -82,6 +83,7 @@ class VentaTab {
         permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado),
         fileSeleccionado = [],
         fromVentaEnviada = false,
+        fromVentaEnviadaData = {},
         pedidosIds = [],
         modificando = false;
   
@@ -128,6 +130,7 @@ class VentaTab {
     permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado);
     fileSeleccionado = [];
     fromVentaEnviada = false;
+    fromVentaEnviadaData = {};
     pedidosIds = [];
     modificando = false;
   }

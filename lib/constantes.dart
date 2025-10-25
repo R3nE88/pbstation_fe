@@ -5,7 +5,6 @@ enum TipoUsuario {
   vendedor,
   maquilador,
   administrativo,
-  bodega,
 }
 
 // Enum para permisos específicos

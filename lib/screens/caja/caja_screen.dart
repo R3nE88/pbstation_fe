@@ -1,12 +1,15 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/venta_dialog.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -40,7 +43,6 @@ class _CajaScreenState extends State<CajaScreen> {
   }
 
   void datosIniciales(){
-     print('datos iniciales');
     final ventasSvc =  Provider.of<VentasServices>(context, listen: false);
     ventasSvc.loadVentasDeCaja().whenComplete(
       () {
@@ -150,7 +152,6 @@ class _CajaScreenState extends State<CajaScreen> {
           }
         }
         
-
         return BodyPadding(
           child: Column(
             children: [
@@ -283,7 +284,7 @@ class _HeaderState extends State<_Header> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                        SelectableText(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
                       ],
                     ),
                     const SizedBox(width: 15), // Separación mínima entre grupos
@@ -398,7 +399,7 @@ class _HeaderState extends State<_Header> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                        SelectableText(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
                       ],
                     ),
                     const SizedBox(width: 15), // Separación mínima entre grupos
@@ -407,7 +408,7 @@ class _HeaderState extends State<_Header> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Text('TURNO: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.1)),
-                        Text(widget.corte.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4))
+                        SelectableText(widget.corte.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.4))
                       ],
                     ),
                   ],
@@ -499,7 +500,7 @@ class _HeaderState extends State<_Header> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Text('CAJA: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(1.3)),
-                        Text(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
+                        SelectableText(widget.caja.folio!, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.6)),
                       ],
                     ),
                     const SizedBox(width: 15), // Separación mínima entre grupos
@@ -583,13 +584,24 @@ class _HeaderState extends State<_Header> {
                     onTap: () => showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          CorteDialog(cierre: false, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
-                          const WindowBar(overlay: true),
-                        ],
-                      ),
+                      builder: (_) {
+                        final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+                        if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
+                            ventasServices.ventas.isNotEmpty) {
+                          return const CustomErrorDialog(
+                            respuesta: 'Tienes ventas sin completar', 
+                            titulo: 'No puedes continuar'
+                          );
+                        }
+
+                        return Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            CorteDialog(cierre: false, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                            const WindowBar(overlay: true),
+                          ],
+                        );
+                      } 
                     ),
                     cerrar: false,
                     disabled: !Configuracion.esCaja,
@@ -603,13 +615,24 @@ class _HeaderState extends State<_Header> {
                     onTap: () => showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (_) => Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          CorteDialog(cierre: true, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
-                          const WindowBar(overlay: true),
-                        ],
-                      ),
+                      builder: (_) {
+                        final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+                        if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
+                            ventasServices.ventas.isNotEmpty) {
+                          return const CustomErrorDialog(
+                            respuesta: 'Tienes ventas sin completar', 
+                            titulo: 'No puedes continuar'
+                          );
+                        }
+
+                        return Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            CorteDialog(cierre: true, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                            const WindowBar(overlay: true),
+                          ],
+                        );
+                      } 
                     ),
                     cerrar: true, 
                     disabled: !Configuracion.esCaja,
@@ -748,15 +771,21 @@ class _FiltroState extends State<Filtro> {
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
     final cortesLista = widget.cortesHistorial ?? cajasSvc.cortesDeCaja;
-    if (cortesLista.length==1){
-      opciones.removeAt(0);
+
+    if (Login.usuarioLogeado.permisos==Permiso.normal){
+      opciones.clear();
+      opciones.add({'users': Login.usuarioLogeado.id!});
+    } else {
+      if (cortesLista.length==1){
+        opciones.removeAt(0);
+      }
+      opciones.addAll(
+        cortesLista.map((corte) => {'corte': corte.id!})
+      );
+      opciones.addAll(
+        usuariosSvc.usuarios.map((user) => {'users': user.id!})
+      );
     }
-    opciones.addAll(
-      cortesLista.map((corte) => {'corte': corte.id!})
-    );
-    opciones.addAll(
-      usuariosSvc.usuarios.map((user) => {'users': user.id!})
-    );
     _valorSeleccionado = opciones.first;
     _focusNode.addListener(_onFocusChange);
   }
@@ -967,13 +996,20 @@ class _TablaFooter extends StatelessWidget {
           Text('  Total de ventas: $total   ', style: const TextStyle(fontWeight: FontWeight.bold)),
           const Spacer(),
 
+          
           Row(
             children: [
-              const Text('Total: ', textScaler: TextScaler.linear(1.2)),
-              Text(Formatos.pesos.format(venta),style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(1.5)),
+              const Text('Total:  ', textScaler: TextScaler.linear(1.2)),
+              Text(
+                Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ?
+                  Formatos.pesos.format(venta)
+                  : '*'*Formatos.pesos.format(venta).length,
+                style: AppTheme.tituloClaro, 
+                textScaler: const TextScaler.linear(1.5),
+              ),
               const SizedBox(width: 8)
             ],
-          ),
+          )
 
         ],
       ),

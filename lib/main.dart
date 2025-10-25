@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/provider/change_theme_provider.dart';
 import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
@@ -108,6 +109,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     Provider.of<ChangeTheme>(context, listen: false).isDarkTheme = ThemePreferences.isDarkTheme;
+    Ticket.preloadResources();
   }
 
   @override

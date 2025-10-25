@@ -5,7 +5,7 @@ import 'package:pbstation_frontend/widgets/custom_error_dialog.dart';
 import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:pbstation_frontend/widgets/windows_bar.dart';
 
-Future<dynamic> verificarAdminPsw(BuildContext context) {
+Future<bool?> verificarAdminPsw(BuildContext context) {
   final formKey = GlobalKey<FormState>();
   final controller = TextEditingController();
 
@@ -46,7 +46,7 @@ Future<dynamic> verificarAdminPsw(BuildContext context) {
         children: [
           AlertDialog(
             backgroundColor: AppTheme.containerColor2,
-            title: const Text('🔒 Para continuar ingrese su contraseña\nde Administrador',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
+            title: const Text('🔒 Para continuar ingrese su contraseña.',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
             content: SizedBox(
               width: 300,
               child: Form(

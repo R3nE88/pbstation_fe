@@ -75,7 +75,7 @@ class Login {
       if (resp.statusCode == 200) {
         try {
           Usuarios user = Usuarios.fromJson(resp.body);
-          if (user.rol=='admin' || user.rol=='super'){
+          if (user.permisos.tieneAlMenos(Permiso.elevado)){
             return true;
           }
         } catch (e) {

@@ -1,12 +1,15 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -28,7 +31,7 @@ class VentaDialog extends StatefulWidget {
 class _VentaDialogState extends State<VentaDialog> {
   late final double height;
   late final DateTime fecha = DateTime.parse(widget.venta.fechaVenta!);
-  late final String fechaFormateada = DateFormat('EEEE dd-MMM-yyyy hh:mm a', 'es_MX').format(fecha).toUpperCase();
+  late final String fechaFormateada = DateFormat('EEEE dd-MMM-yyyy hh:mm a', 'es_MX').format(fecha);
   late Decimal? monto = obtenerMontoPendiente(widget.venta.id!, context);
   double ntc = 0;
 
@@ -81,7 +84,7 @@ class _VentaDialogState extends State<VentaDialog> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           const Text('Venta: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.6)),
-          Text(widget.venta.folio??'', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.7)),
+          SelectableText(widget.venta.folio??'', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.7)),
           const Spacer(),
           Text(fechaFormateada, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.6))
         ],
@@ -127,9 +130,16 @@ class _VentaDialogState extends State<VentaDialog> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         widget.venta.liquidado ?  
-                        const Text( 'Venta pagada', style: AppTheme.labelStyle)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal:8, vertical: 2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white54,
+                          ),
+                          child: Text( 'Venta pagada', style: AppTheme.goodStyle)
+                        )
                         : 
-                        const Text( 'Venta con deuda', style: AppTheme.warningStyle),
+                        const Text( 'Venta con deuda', style: AppTheme.warningStyle2),
                       ],
                     ),
                   )
@@ -303,7 +313,7 @@ class _VentaDialogState extends State<VentaDialog> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           const Text('Por Pagar: ', style: AppTheme.labelStyle),
-                          Text(Formatos.pesos.format((widget.venta.total - widget.venta.abonadoTotal).toDouble()), style: AppTheme.warningStyle, textScaler: const TextScaler.linear(1.2)),
+                          Text(Formatos.pesos.format((widget.venta.total - widget.venta.abonadoTotal).toDouble()), style: AppTheme.warningStyle2, textScaler: const TextScaler.linear(1.2)),
                           const SizedBox(width: 15),
                         ],
                       ) : const SizedBox()
@@ -317,7 +327,7 @@ class _VentaDialogState extends State<VentaDialog> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('Venta Cancelada: ', style: TextStyle(color: Color.fromARGB(255, 225, 162, 53), fontWeight: FontWeight.bold)),
-                Text(widget.venta.motivoCancelacion??'', style: AppTheme.warningStyle, textAlign: TextAlign.justify,),
+                Text(widget.venta.motivoCancelacion??'', style: AppTheme.warningStyle2, textAlign: TextAlign.justify,),
               ],
             ), 
             const SizedBox(height: 15),
@@ -328,9 +338,11 @@ class _VentaDialogState extends State<VentaDialog> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
             
-                 widget.isActive ? !widget.venta.cancelado? Padding(
-                   padding: const EdgeInsets.only(right: 25),
-                   child: ElevatedButton(
+                
+                widget.isActive ? 
+                  !widget.venta.cancelado? Padding(
+                    padding: const EdgeInsets.only(right: 25),
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.colorError2,
                         shape: RoundedRectangleBorder(
@@ -338,8 +350,15 @@ class _VentaDialogState extends State<VentaDialog> {
                         ),
                       ),
                       onPressed: () async{
-                        final resp = await verificarAdminPsw(context);
-                        if (resp==true){
+                        bool? permiso;
+                        if (!Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)){
+                          permiso = await mostrarDialogoPermiso(context);
+                        } else {
+                          permiso = await verificarAdminPsw(context);
+                        }
+                        
+                        permiso ??= false;
+                        if (permiso==true){
                           if (!context.mounted) return;
                           showDialog(
                             context: context,
@@ -355,8 +374,10 @@ class _VentaDialogState extends State<VentaDialog> {
                       }, 
                       child: const Text('Cancelar Venta', style: AppTheme.tituloClaro)
                     ),
-                 ) : const SizedBox() : const SizedBox(), 
-                 widget.isActive ? const Spacer() : const SizedBox(),
+                 ) : const SizedBox() 
+                : const SizedBox(), 
+                
+                widget.isActive ? const Spacer() : const SizedBox(),
 
                 /*Tooltip( //TODO: en desarrollo
                   message: 'En desarrollo',
@@ -537,13 +558,13 @@ class FilaDetalles extends StatelessWidget {
       color: color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
       child: Row(
         children: [
-          Expanded(child: Center(child: Text(detalle.cantidad.toString()))),
-          Expanded(flex: 3, child: Center(child: Text(producto??'No se encontro el producto'))),
-          Expanded(flex: 3, child: Center(child: Text(detalle.comentarios??'-'))),
-          Expanded(flex: 2, child: Center(child: Text(detalle.descuento==0 ? '-' : '${detalle.descuento}%'))),
-          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(subSubTotal)))),
-          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.iva.toDouble())))),
-          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.subtotal.toDouble())))),
+          Expanded(child: Center(child: Text(detalle.cantidad.toString(), style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 3, child: Center(child: Text(producto??'No se encontro el producto', style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 3, child: Center(child: Text(detalle.comentarios??'-', style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(detalle.descuento==0 ? '-' : '${detalle.descuento}%', style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(subSubTotal), style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.iva.toDouble()), style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.subtotal.toDouble()), style: AppTheme.subtituloConstraste))),
         ],
       ),
     );

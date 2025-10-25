@@ -71,7 +71,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
               textScaler: TextScaler.linear(1.7), 
             ),
             Text(
-              '  (Gestión de todos los que usan la app)',
+              '  (Colaboradores)',
               style: AppTheme.labelStyle,
               textScaler: TextScaler.linear(1.1), 
             ),
@@ -144,10 +144,11 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
               ),
               child: const Row(
                 children: [
-                  Expanded(flex: 2, child: Text('Permisos Admin', textAlign: TextAlign.center)),
-                  Expanded(flex: 4, child: Text('Nombre', textAlign: TextAlign.center)),
-                  Expanded(flex: 4, child: Text('Correo', textAlign: TextAlign.center)),
-                  Expanded(flex: 4, child: Text('Telefono', textAlign: TextAlign.center)),
+                  Expanded(flex: 3, child: Text('Nombre', textAlign: TextAlign.center)),
+                  Expanded(flex: 2, child: Text('Permisos', textAlign: TextAlign.center)),
+                  Expanded(flex: 2, child: Text('Rol', textAlign: TextAlign.center)),
+                  Expanded(flex: 3, child: Text('Correo', textAlign: TextAlign.center)),
+                  Expanded(flex: 3, child: Text('Telefono', textAlign: TextAlign.center)),
                 ],
               ),
             ),
@@ -363,10 +364,11 @@ class FilaUsuario extends StatelessWidget {
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [
-              Expanded(flex: 2, child: usuario.rol!='empleado' ? const Icon(Icons.check) : const Icon(Icons.close)),
-              Expanded(flex: 4, child: Text(mostrarCampo(usuario.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 4, child: Text(mostrarCampo(usuario.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 4, child: Text(mostrarCampo(usuario.telefono!=null ? usuario.telefono.toString() : '-'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text(mostrarCampo(usuario.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 2, child:Text(mostrarCampo(usuario.permisos.name), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 2, child:Text(mostrarCampo(usuario.rol.name), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text(mostrarCampo(usuario.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(flex: 3, child: Text(mostrarCampo(usuario.telefono!=null ? usuario.telefono.toString() : '-'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             ],
           ),
         ),

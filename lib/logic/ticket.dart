@@ -18,7 +18,18 @@ class Ticket {
   static late final ClientesServices clienteSvc;
   static late final UsuariosServices usuarioSvc;
   static late final VentasServices ventaSvc;
-  static late final ImpresorasServices impresoraSvc;   
+  static late final ImpresorasServices impresoraSvc;
+  static CapabilityProfile? _printerProfile;
+  static imagen.Image? _cachedLogo;
+
+  static Future<void> preloadResources() async {
+    _printerProfile ??= await CapabilityProfile.load();
+    if (_cachedLogo == null) {
+      final ByteData data = await rootBundle.load('assets/images/logo_bn3.png');
+      final Uint8List imageBytes = data.buffer.asUint8List();
+      _cachedLogo = imagen.decodeImage(imageBytes);
+    }
+  }
 
   static PaperSize _obtenerSize(){
     switch (Configuracion.size) {
@@ -62,20 +73,18 @@ class Ticket {
   }*/
 
   static Future<List<int>> _generarTicketDeVenta(BuildContext context, Ventas venta, String folio) async {
-    // Load default capability profile (includes font and code page info)
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
+    // Ensure resources are preloaded
+    await preloadResources();
+    
+    final generator = Generator(_obtenerSize(), _printerProfile!);
     String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
     List<int> bytes = [];
 
     //Abrir cajon
     bytes.addAll([0x1B, 0x70, 0x00, 0x19, 0xFA]);
 
-    //imagen
-    final ByteData data = await rootBundle.load('assets/images/logo_bn3.png');
-    final Uint8List imageBytes = data.buffer.asUint8List();
-    final imagen.Image? image = imagen.decodeImage(imageBytes);
-    bytes += generator.image(image!);
+    //imagen from cache
+    bytes += generator.image(_cachedLogo!);
 
     //Header
     bytes += generator.text('Emilio Alberto Diaz Obregon',

@@ -10,14 +10,15 @@ class BusquedaField<T extends Object> extends StatefulWidget {
     required this.onItemUnselected,
     required this.onItemSelected,
     required this.displayStringForOption,
-    this.secondaryDisplayStringForOption, // Parámetro opcional
+    this.secondaryDisplayStringForOption,
     required this.normalBorder,
     required this.icono,
     required this.defaultFirst, 
     required this.hintText, 
     this.teclaFocus,
-    required this.error, 
+    required this.error,
     this.showSecondaryFirst = true,
+    this.onKeyHandler, // NUEVO: callback para manejar teclas desde afuera
   });
 
   final List<T> items;
@@ -25,7 +26,7 @@ class BusquedaField<T extends Object> extends StatefulWidget {
   final Function() onItemUnselected;
   final T? selectedItem;
   final String Function(T) displayStringForOption;
-  final String Function(T)? secondaryDisplayStringForOption; // Hacerlo opcional
+  final String Function(T)? secondaryDisplayStringForOption;
   final bool normalBorder;
   final IconData icono;
   final bool defaultFirst;
@@ -33,18 +34,19 @@ class BusquedaField<T extends Object> extends StatefulWidget {
   final LogicalKeyboardKey? teclaFocus;
   final bool error;
   final bool showSecondaryFirst;
+  final bool Function(KeyEvent)? onKeyHandler; // NUEVO
 
   @override
   State<BusquedaField<T>> createState() => _BusquedaFieldState<T>();
 }
 
 class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
-  late final bool Function(KeyEvent event) _keyHandler;
   late TextEditingController _controller;
-  FocusNode? _focusNode; // Cambiar a nullable para usar solo el proporcionado por fieldViewBuilder
+  FocusNode? _focusNode;
   List<T> _filteredOptions = [];
   int _highlightedIndex = 0;
   T? _selectedItem;
+  bool _handlerRegistered = false;
 
   BorderRadius borde = const BorderRadius.only(
     topLeft: Radius.circular(30),
@@ -69,34 +71,62 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       });
     });
     
-    if (widget.teclaFocus != null) {
-      _keyHandler = (KeyEvent event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == widget.teclaFocus) {
-            if (mounted && (_focusNode?.hasFocus ?? false) == false) {
-              _focusNode?.requestFocus(); // Usar el FocusNode proporcionado
-            }
-          }
-        }
-        return false; // false para no consumir el evento
-      };
-      HardwareKeyboard.instance.addHandler(_keyHandler);
+    _registerHandlerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(BusquedaField<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.teclaFocus != widget.teclaFocus) {
+      _unregisterHandler();
+      _registerHandlerIfNeeded();
+    }
+  }
+
+  void _registerHandlerIfNeeded() {
+    if (widget.teclaFocus != null && !_handlerRegistered) {
+      HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+      _handlerRegistered = true;
+    }
+  }
+
+  void _unregisterHandler() {
+    if (_handlerRegistered) {
+      HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+      _handlerRegistered = false;
     }
   }
 
   @override
   void dispose() {
-    if (widget.teclaFocus != null) {
-      HardwareKeyboard.instance.removeHandler(_keyHandler);
-    }
+    _unregisterHandler();    
     super.dispose();
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    // Primero, dar oportunidad al callback externo de manejar el evento
+    if (widget.onKeyHandler != null) {
+      final shouldConsume = widget.onKeyHandler!(event);
+      if (shouldConsume) {
+        return true; // El callback externo consumió el evento
+      }
+    }
+
+    // Si el callback externo no consumió el evento, manejar internamente
+    if (event is KeyDownEvent && event.logicalKey == widget.teclaFocus) {
+      if (mounted && (_focusNode?.hasFocus ?? false) == false) {
+        _focusNode?.requestFocus();
+      }
+      return true;
+    }
+    return false;
   }
 
   void _validateOrClear() {
     final match = widget.items.firstWhere(
       (item) => widget.displayStringForOption(item) == _controller.text,
-      orElse: () => widget.items.isNotEmpty ? widget.items.first :  throw Exception('No items available'));
-    //widget.onItemSelected()
+      orElse: () => widget.items.isNotEmpty ? widget.items.first : throw Exception('No items available'),
+    );
     _selectedItem = match;
     _controller.text = widget.displayStringForOption(match);
     widget.onItemSelected(match);
@@ -112,7 +142,6 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    // Eliminar cualquier llamada a setState() dentro del build
     if (widget.selectedItem == null && _selectedItem != null && !widget.defaultFirst) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -124,14 +153,12 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
       });
     }
 
-
-    if (widget.selectedItem != null && _selectedItem == null){
+    if (widget.selectedItem != null && _selectedItem == null) {
       _selectedItem = widget.selectedItem;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.text = widget.displayStringForOption(_selectedItem!);
       });
     }
-
 
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
@@ -168,7 +195,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
           },
           fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
             _controller = controller;
-            _focusNode = focusNode; // Usar el FocusNode proporcionado
+            _focusNode = focusNode;
             return Focus(
               canRequestFocus: false,
               onKeyEvent: (FocusNode node, KeyEvent event) {
@@ -291,10 +318,9 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                             : '';
                         final displayText = secondary.isEmpty
                             ? widget.displayStringForOption(option)
-                            : widget.showSecondaryFirst? 
-                            '$secondary - ${widget.displayStringForOption(option)}'
-                            :
-                            '${widget.displayStringForOption(option)} - $secondary';
+                            : widget.showSecondaryFirst
+                                ? '$secondary - ${widget.displayStringForOption(option)}'
+                                : '${widget.displayStringForOption(option)} - $secondary';
         
                         return Container(
                           color: isHighlighted ? AppTheme.secundario1 : AppTheme.primario1,

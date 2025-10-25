@@ -200,7 +200,6 @@ class ConfiguracionModulos {
       tiposPermitidos: {
         TipoUsuario.vendedor,
         TipoUsuario.administrativo,
-        TipoUsuario.bodega
       },
       subModulos: [
         SubModulo(

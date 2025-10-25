@@ -44,8 +44,8 @@ class Usuarios {
     'correo': correo,
     'telefono': telefono,
     'psw': psw,
-    'rol': rol,
-    'permisos': permisos,
+    'rol': rol.name,
+    'permisos': permisos.name,
     'activo': activo
   };
 }
