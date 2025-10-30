@@ -37,6 +37,7 @@ class Pedidos {
   String usuarioId;
   String sucursalId;
   String ventaId;
+  String ventaFolio;
   String? descripcion;
   String fecha;
   String fechaEntrega;
@@ -50,6 +51,7 @@ class Pedidos {
     required this.usuarioId,
     required this.sucursalId,
     required this.ventaId,
+    required this.ventaFolio,
     this.descripcion,
     required this.fecha,
     required this.fechaEntrega,
@@ -63,6 +65,7 @@ class Pedidos {
         usuarioId: json['usuario_id'],
         sucursalId: json['sucursal_id'],
         ventaId: json['venta_id'],
+        ventaFolio: json ['venta_folio'],
         folio: json['folio'],
         descripcion: json['descripcion'],
         fecha: json['fecha'],
@@ -80,6 +83,7 @@ class Pedidos {
         'usuario_id': usuarioId,
         'sucursal_id': sucursalId,
         'venta_id': ventaId,
+        "venta_folio": ventaFolio,
         'folio': folio,
         'descripcion': descripcion,
         'fecha': fecha,

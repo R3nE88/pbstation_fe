@@ -22,7 +22,7 @@ class ProcesarPago extends StatefulWidget {
   });
 
   final Ventas venta;
-  final Function afterProcesar;
+  final Function({String? ventaId, String? ventaFolio}) afterProcesar;
   final bool isDeuda;
   final double deudaMonto;
 
@@ -996,7 +996,7 @@ class VentaRealizadaDialog extends StatefulWidget {
   final double adeudo;
   final bool isDeuda;
   final Map<String, double>? datosDeuda;
-  final Function afterProcesar;
+  final Function({String? ventaId, String? ventaFolio}) afterProcesar;
   final String ventaId;
 
   @override
@@ -1032,7 +1032,7 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   void submited()async{
     setState(() {finish = true;});
     await Future.delayed(const Duration(milliseconds: 50));
-    await widget.afterProcesar(widget.ventaId);
+    await widget.afterProcesar(ventaId: widget.ventaId, ventaFolio: widget.folio);
     if (!mounted) return;
     Navigator.of(context).pop();
   }

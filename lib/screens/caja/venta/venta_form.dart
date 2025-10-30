@@ -403,8 +403,8 @@ class _VentaFormState extends State<VentaForm> {
       return;
     }
 
-    void afterProcesar(value) async{
-      if (value!=null){ //Esto es para verificar si no cancele el procesar pago
+    void afterProcesar({String? ventaId, String? ventaFolio}) async{
+      if (ventaId!=null){ //Esto es para verificar si no cancele el procesar pago
         if (!_entregaInmediata){ // si es pedido
           if (!_fromVentaEnviada) { //solo crear pedido desde caja si no es venta enviada
             String detallesComentarios = '';
@@ -435,7 +435,8 @@ class _VentaFormState extends State<VentaForm> {
               clienteId: _clienteSelected!.id!, 
               usuarioId: Login.usuarioLogeado.id!, 
               sucursalId: SucursalesServices.sucursalActualID!, 
-              ventaId: value, 
+              ventaId: ventaId, 
+              ventaFolio: ventaFolio??'',
               fecha: DateTime.now().toIso8601String(),
               fechaEntrega: _fechaEntrega!.toIso8601String(),
               archivos: [],
@@ -455,9 +456,10 @@ class _VentaFormState extends State<VentaForm> {
             for (var pedidoId in _pedidosIds) {
               if (!mounted) return;
               final pedidosService = Provider.of<PedidosService>(context, listen: false);
-              await pedidosService.actualizarVentaPedido(
+              await pedidosService.confirmarPedido(
                 pedidoId: pedidoId,
-                ventaId: value,
+                ventaId: ventaId,
+                ventaFolio: ventaFolio??'',
               );
             }
           }
@@ -492,7 +494,7 @@ class _VentaFormState extends State<VentaForm> {
                 recibidoTotal: Decimal.zero,
                 liquidado: false, 
               ),
-              afterProcesar: afterProcesar,
+              afterProcesar: ({String? ventaId, String? ventaFolio}) => afterProcesar(ventaId: ventaId, ventaFolio: ventaFolio)
             ),
             const WindowBar(overlay: true),
           ],
@@ -616,6 +618,7 @@ class _VentaFormState extends State<VentaForm> {
         usuarioId: Login.usuarioLogeado.id!, 
         sucursalId: SucursalesServices.sucursalActualID!, 
         ventaId: 'esperando', 
+        ventaFolio: '',
         fecha: DateTime.now().toIso8601String(),
         fechaEntrega: _fechaEntrega!.toIso8601String(),
         archivos: [],

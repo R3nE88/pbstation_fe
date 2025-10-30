@@ -62,9 +62,9 @@ class PedidosService extends ChangeNotifier {
               pedido.estado.name != 'enEspera' && 
               pedido.ventaId != 'esperando')
           .toList();
-
-      filteredPedidosReady = pedidosReady;
     }
+
+    filteredPedidosReady = pedidosReady;
   }
 
   void filtrarPedidos(String query) {
@@ -300,9 +300,10 @@ class PedidosService extends ChangeNotifier {
     }
   }
 
-  Future<bool> actualizarVentaPedido({
+  Future<bool> confirmarPedido({
     required String pedidoId,
     required String ventaId,
+    required String ventaFolio,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -320,7 +321,7 @@ class PedidosService extends ChangeNotifier {
       final response = await http.patch(
         url,
         headers: headers,
-        body: {'venta_id': ventaId},
+        body: {'venta_id': ventaId, 'venta_folio': ventaFolio},
       );
 
       if (response.statusCode == 200) {
@@ -340,7 +341,7 @@ class PedidosService extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      debugPrint('Error al actualizar venta_id: $e');
+      debugPrint('Error al actualizar venta_id: o venta_folio $e');
       return false;
     } finally {
       isLoading = false;

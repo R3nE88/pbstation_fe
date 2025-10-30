@@ -143,15 +143,14 @@ class _VentaDialogState extends State<VentaDialog> {
       selector: (context, pedidosSvc) {
         // Solo retorna el pedido específico de esta venta
         if (!widget.venta.pedidoPendiente) return null;
-        
         try {
           return pedidosSvc.pedidosReady.firstWhere(
-            (element) => element.ventaId == widget.venta.id
+            (element) => element.ventaFolio == widget.venta.folio
           );
         } catch (e) {
           try {
             return pedidosSvc.pedidosNotReady.firstWhere(
-              (element) => element.ventaId == widget.venta.id
+              (element) => element.ventaFolio == widget.venta.folio
             );
           } catch (e) {
             return null;
@@ -535,7 +534,7 @@ class _VentaDialogState extends State<VentaDialog> {
                                   venta: widget.venta,
                                   isDeuda: true,
                                   deudaMonto: monto?.toDouble() ?? 0, 
-                                  afterProcesar: (value) => entregarPedido(),
+                                  afterProcesar: ({String? ventaId, String? ventaFolio}) => entregarPedido()
                                 ),
                                 const WindowBar(overlay: true),
                               ],

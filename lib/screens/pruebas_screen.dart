@@ -42,6 +42,7 @@ class _PruebasScreenState extends State<PruebasScreen> {
       usuarioId: Login.usuarioLogeado.id!,
       sucursalId: SucursalesServices.sucursalActualID!,
       ventaId: 'ventaID_TODO: CAMBIAR ESTO XD',
+      ventaFolio: '', 
       descripcion: 'Pedido de prueba',
       archivos: [],
       fecha: DateTime.now().toIso8601String(), 
