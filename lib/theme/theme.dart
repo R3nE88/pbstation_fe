@@ -84,6 +84,10 @@ class AppTheme{
       ? const Color.fromARGB(255, 78, 78, 78)
       : const Color.fromARGB(255, 39, 141, 236);
 
+  static Color get tablaColorHeaderSelected => changeThemeInstance?.isDarkTheme == true
+      ? const Color.fromARGB(255, 61, 61, 61)
+      : const Color.fromARGB(255, 33, 125, 212);
+
   static Color get tablaColor1 => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 115, 115, 115)
       : const Color.fromARGB(255, 228, 228, 228);
@@ -130,25 +134,33 @@ class AppTheme{
     letterSpacing: 1.2
   );
 
-  static final TextStyle goodStyle = TextStyle(
-    color: changeThemeInstance?.isDarkTheme == true ? 
-    const Color.fromARGB(255, 87, 222, 91) : Colors.green, 
-    fontWeight: FontWeight.bold
-  );
+  static TextStyle get goodStyle => changeThemeInstance?.isDarkTheme == true
+    ? const TextStyle(
+      color: Color.fromARGB(255, 67, 185, 71),
+      fontWeight: FontWeight.bold
+    )
+    : const TextStyle(
+      color: Colors.green,
+      fontWeight: FontWeight.bold
+    );
 
   static final TextStyle errorStyle = TextStyle(
     color: colorError.withAlpha(180),
     fontSize: 13,
   );
 
-  static final TextStyle warningStyle = TextStyle( //Color.fromARGB(255, 228, 138, 3), 
-    color: changeThemeInstance?.isDarkTheme == true ? 
-    const Color.fromARGB(255, 255, 155, 4) : const Color.fromARGB(255, 228, 138, 3), 
-    fontWeight: FontWeight.bold
-  );
+  static TextStyle get warningStyle => changeThemeInstance?.isDarkTheme == true
+    ? const TextStyle(
+      color: Color.fromARGB(255, 255, 155, 4),
+      fontWeight: FontWeight.bold
+    )
+    : const TextStyle(
+      color: Color.fromARGB(255, 244, 157, 26),
+      fontWeight: FontWeight.bold
+    );
 
   static const TextStyle warningStyle2 = TextStyle(
-    color: Color.fromARGB(255, 255, 180, 4), 
+    color: Color.fromARGB(255, 255, 179, 0), 
     fontWeight: FontWeight.bold
   );
 

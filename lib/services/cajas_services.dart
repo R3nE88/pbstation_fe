@@ -169,7 +169,7 @@ class CajasServices extends ChangeNotifier{
         corteActual = nuevo;
         corteActualId = corteActual!.id;
         cajaActual!.cortesIds.add(corteActualId!);
-        cortesDeCaja.add(nuevo);
+        cortesDeCaja.insert(0, nuevo);
 
         if (kDebugMode) {
           print('corte creado!');

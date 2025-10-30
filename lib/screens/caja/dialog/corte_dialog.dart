@@ -6,15 +6,15 @@ import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
-import 'package:pbstation_frontend/widgets/caja/voucher_board.dart';
 import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:pbstation_frontend/widgets/separador.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-enum StepStage { contadores, esperandoRetiro, conteoPesos, conteoDolares, voucher, terminado}
+enum StepStage { contadores, esperandoRetiro, conteoPesos, conteoDolares, terminado}
 
 class CorteDialog extends StatefulWidget {
   const CorteDialog({super.key, required this.cierre, required this.caja, required this.corte, required this.ventas, this.readMode=false});
@@ -30,7 +30,7 @@ class CorteDialog extends StatefulWidget {
 }
 
 class _CorteDialogState extends State<CorteDialog> {
-  StepStage stage = StepStage.contadores;
+  StepStage stage = Configuracion.memoryCorte==null ? StepStage.contadores : StepStage.terminado;
 
   // Impresoras controllers (uno por impresora)
   final Map<String, TextEditingController> impresoraControllers = {};
@@ -43,7 +43,7 @@ class _CorteDialogState extends State<CorteDialog> {
   Decimal _iva = Decimal.zero;
   Decimal _total = Decimal.zero;
   Decimal _abonadoMxn = Decimal.zero;
-  Decimal _abonadoUs = Decimal.zero;
+  Decimal _abonadoUs = Decimal.zero;  
   Decimal _abonadoTarjD = Decimal.zero;
   Decimal _abonadoTarjC = Decimal.zero;
   Decimal _abonadoTrans = Decimal.zero;
@@ -102,8 +102,6 @@ class _CorteDialogState extends State<CorteDialog> {
   List<TextEditingController> creditoControllers = [];
   List<TextEditingController> transferenciaControllers = [];
 
-  final FocusNode _voucherButtonFocus = FocusNode();
-
   late DateTime fechaApertura;
   late String fechaAperturaFormatted;
   late DateTime fechaCorte;
@@ -113,25 +111,18 @@ class _CorteDialogState extends State<CorteDialog> {
 
   final TextEditingController ctrl = TextEditingController();
 
+  //Cortes? memoryCorte = Configuracion.memoryCorte;
+  bool contadoresFromMemory = false;
+
+  late Cortes activeCorte;
 
 
   @override
   void initState() {
     super.initState();
-    //formatear fecha
-    fechaApertura = DateTime.parse(widget.corte.fechaApertura);
-    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
-    
-    if (widget.readMode==false){ 
-      fechaCorte = DateTime.now();
-      widget.corte.usuarioIdCerro = Login.usuarioLogeado.id!;
-    } 
-    else { 
-      fechaCorte = DateTime.parse(widget.corte.fechaCorte!); 
-    }
-    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
-    widget.corte.fechaCorte = fechaCorte.toIso8601String();
-      
+    activeCorte = Configuracion.memoryCorte==null ? widget.corte : Configuracion.memoryCorte!;
+
+    //ObtenerProductos
     _ventasPorProducto.addAll(Provider.of<VentasServices>(context, listen: false).consolidarVentasPorProducto(widget.ventas));
 
     //ReporteFinalDescuentosYVendedores
@@ -194,17 +185,68 @@ class _CorteDialogState extends State<CorteDialog> {
         denominacionesDolarFocus.add(FocusNode());
       }
     }
-    
 
+    //InicializarImpresoras
     final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: false);
     setState(() => loadingImpresoras = true);
     impresoraSvc.loadImpresoras(true).whenComplete(() {
       _ensureImpresoraControllers(impresoraSvc);
       setState(() => loadingImpresoras = false);
-    });
+    });    
 
+    //Inicializar lo demas
+    if (Configuracion.memoryCorte== null){
+      initSinMemoryCorte();
+    } else {
+      initConMemoryCorte();
+    }
+  }
+
+  void initSinMemoryCorte(){
+    //fechas
+    fechaApertura = DateTime.parse(activeCorte.fechaApertura);
+    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
+    if (widget.readMode==false){ 
+      fechaCorte = DateTime.now();
+      activeCorte.usuarioIdCerro = Login.usuarioLogeado.id!;
+    } 
+    else { 
+      fechaCorte = DateTime.parse(activeCorte.fechaCorte!); 
+    }
+    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
+    activeCorte.fechaCorte = fechaCorte.toIso8601String();        
+
+    //comentarios
     if (widget.readMode==true){
-      ctrl.text = widget.corte.comentarios??'';
+      ctrl.text = activeCorte.comentarios??'';
+    }
+  }
+
+  void initConMemoryCorte(){
+    //fechas
+    fechaApertura = DateTime.parse(activeCorte.fechaApertura);
+    fechaAperturaFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaApertura);
+    fechaCorte = DateTime.parse(activeCorte.fechaCorte!); 
+    fechaCorteFormatted = DateFormat('dd-MMM-yyyy hh:mm a', 'es_MX').format(fechaCorte);
+    activeCorte.fechaCorte = fechaCorte.toIso8601String();        
+
+    //comentarios
+    ctrl.text = activeCorte.comentarios??'';
+
+    //Contadores
+    contadoresFromMemory = true;
+
+    //ConteoPesos
+    efectivoPesos = activeCorte.conteoPesos?.toDouble() ?? 0;
+    efectivoDolares = activeCorte.conteoDolares?.toDouble() ?? 0;
+    efectivoDolaresAPeso = CalculosDinero().dolarAPesos(efectivoDolares, CajasServices.cajaActual?.tipoCambio??1);
+    
+  }
+
+  void buildContadoresFromMemory(){
+    if (!contadoresFromMemory) return;
+    for (MapEntry contador in activeCorte.contadoresFinales?.entries??[]) {
+      impresoraControllers[contador.key]?.text = contador.value.toString();
     }
   }
 
@@ -216,11 +258,11 @@ class _CorteDialogState extends State<CorteDialog> {
         impresoraControllers[impresora.id!] = TextEditingController();
       }
     }
+    if (contadoresFromMemory){ buildContadoresFromMemory(); }
   }
 
   @override
   void dispose() {
-    _voucherButtonFocus.unfocus();
     
     for (var node in denominacionesDolarFocus) {
       if (node.hasFocus) {
@@ -243,10 +285,22 @@ class _CorteDialogState extends State<CorteDialog> {
       for (var i = 0; i < denominacionesDolarFocus.length; i++) {
         denominacionesDolarFocus[i].dispose();
       }
-      _voucherButtonFocus.dispose();
     });
 
     super.dispose();
+  }
+
+  void guardarMemoryCorte() async{
+    if (Configuracion.memoryCorte!=null) return;
+    final prefs = await SharedPreferences.getInstance();
+    String corteJson = _corte('').toJson();
+    prefs.setString('memory_corte', corteJson);
+  }
+
+  Future<void> deleteMemoryCorte() async{
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove('memory_corte');
+    Configuracion.memoryCorte = null;
   }
 
   Cortes _corte(String comentario){
@@ -290,15 +344,15 @@ class _CorteDialogState extends State<CorteDialog> {
     Decimal diferencia = Decimal.parse('0');
 
     Cortes corte = Cortes(
-      id: widget.corte.id,
-      folio: widget.corte.folio,
-      usuarioId: widget.corte.usuarioId, 
-      usuarioIdCerro: widget.corte.usuarioIdCerro,
-      sucursalId: widget.corte.sucursalId, 
-      fechaApertura: widget.corte.fechaApertura,
-      fechaCorte: widget.corte.fechaCorte,
+      id: activeCorte.id,
+      folio: activeCorte.folio,
+      usuarioId: activeCorte.usuarioId, 
+      usuarioIdCerro: activeCorte.usuarioIdCerro,
+      sucursalId: activeCorte.sucursalId, 
+      fechaApertura: activeCorte.fechaApertura,
+      fechaCorte: activeCorte.fechaCorte,
       contadoresFinales: convertir(impresoraControllers),
-      fondoInicial: widget.corte.fondoInicial, 
+      fondoInicial: activeCorte.fondoInicial, 
       conteoPesos: contadoPesos,
       conteoDolares: contadoDolares,
       conteoDebito: contadoDebito, 
@@ -312,10 +366,10 @@ class _CorteDialogState extends State<CorteDialog> {
       ventaTransf: abonadoTrans,
       ventaTotal: ventaTotal,
       diferencia: (diferencia + ventaTotal) - totalContado,
-      movimientosCaja: widget.corte.movimientosCaja,
+      movimientosCaja: activeCorte.movimientosCaja,
       desglosePesos: mapearDesglose(true),
       desgloseDolares: mapearDesglose(false),
-      ventasIds: widget.corte.ventasIds,
+      ventasIds: activeCorte.ventasIds,
       comentarios: comentario,
       isCierre: widget.cierre
     );
@@ -330,7 +384,7 @@ class _CorteDialogState extends State<CorteDialog> {
     //Cerrar Corte
     Cortes corte = _corte(comentario);
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
-    await cajasSvc.actualizarDatosCorte(corte, widget.corte.id!);
+    await cajasSvc.actualizarDatosCorte(corte, activeCorte.id!);
     CajasServices.corteActual=null;
     CajasServices.corteActualId=null;
     if (!mounted) return;
@@ -362,6 +416,8 @@ class _CorteDialogState extends State<CorteDialog> {
       cajasSvc.cortesDeCaja.clear();
       //cajasSvc.movimientos.clear();
     }
+
+    await deleteMemoryCorte();
   
     if (!mounted) return;
     Navigator.pop(context);
@@ -421,12 +477,8 @@ class _CorteDialogState extends State<CorteDialog> {
             node.unfocus();
           }
         }
-        setState(() => stage = StepStage.voucher);
-        break;
-
-      case StepStage.voucher:
-        _voucherButtonFocus.unfocus();
         setState(() => stage = StepStage.terminado);
+        guardarMemoryCorte();
         break;
       case StepStage.terminado:
         if(reporteFinalPage==2){
@@ -655,30 +707,6 @@ class _CorteDialogState extends State<CorteDialog> {
     );
   }
 
-  void _handleVoucherControllers(List<TextEditingController> debitoCtrl, List<TextEditingController> creditoCtrl, List<TextEditingController> transferenciaCtrl,) {
-    setState(() {
-      debitoControllers = debitoCtrl;
-      creditoControllers = creditoCtrl;
-      transferenciaControllers = transferenciaCtrl;
-    });
-  }
-
-  Widget buildVoucherStep() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 15, top: 10),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          VoucherBoard(
-            onControllersChanged: _handleVoucherControllers,
-            callback: () => _nextStage(),
-            focusButton: _voucherButtonFocus,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget buildReporteFinal(
     int page, 
     List<VentasPorProducto> ventas, 
@@ -696,7 +724,7 @@ class _CorteDialogState extends State<CorteDialog> {
     ){
 
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
-    if (widget.corte.id==null) return const SizedBox();
+    if (activeCorte.id==null) return const SizedBox();
 
     return SizedBox(
       width: 1048,
@@ -715,7 +743,7 @@ class _CorteDialogState extends State<CorteDialog> {
                 Row(
                   children: [
                     const Text('#Corte: '),
-                    SelectableText(widget.corte.folio ?? 'error', style: AppTheme.tituloClaro),
+                    SelectableText(activeCorte.folio ?? 'error', style: AppTheme.tituloClaro),
                   ],
                 ),
                 Row(
@@ -739,7 +767,7 @@ class _CorteDialogState extends State<CorteDialog> {
                     const Text('Abierta: '),
                     Text(fechaAperturaFormatted.toUpperCase(), style: AppTheme.tituloClaro),
                     const Text(' por '),
-                    Text(usuariosSvc.obtenerNombreUsuarioPorId(widget.corte.usuarioId), style: AppTheme.tituloClaro),
+                    Text(usuariosSvc.obtenerNombreUsuarioPorId(activeCorte.usuarioId), style: AppTheme.tituloClaro),
                   ],
                 ),
                 Row(
@@ -747,7 +775,7 @@ class _CorteDialogState extends State<CorteDialog> {
                     const Text('Hora del corte: '),
                     Text(fechaCorteFormatted.toUpperCase(), style: AppTheme.tituloClaro),
                     const Text(' por '),
-                    Text(usuariosSvc.obtenerNombreUsuarioPorId(widget.corte.usuarioIdCerro!), style: AppTheme.tituloClaro),
+                    Text(usuariosSvc.obtenerNombreUsuarioPorId(activeCorte.usuarioIdCerro!), style: AppTheme.tituloClaro),
                   ],
                 ),
               ],
@@ -817,27 +845,28 @@ class _CorteDialogState extends State<CorteDialog> {
                       Row(
                         children: [
                           ReporteFinalMovimientos(
-                            contadoPesos: widget.readMode ? widget.corte.conteoPesos??Decimal.zero : Decimal.parse(efectivoPesos.toString()), 
-                            contadoDolares: widget.readMode ? widget.corte.conteoDolares??Decimal.zero : Decimal.parse(efectivoDolares.toString()), 
-                            contadoDebito: widget.readMode ? widget.corte.conteoDebito??Decimal.zero : contarVouchers(debitoControllers), 
-                            contadoCredito: widget.readMode ? widget.corte.conteoCredito??Decimal.zero : contarVouchers(creditoControllers), 
-                            contadoTransf: widget.readMode ? widget.corte.conteoTransf??Decimal.zero : contarVouchers(transferenciaControllers), 
+                            contadoPesos: widget.readMode ? activeCorte.conteoPesos??Decimal.zero : Decimal.parse(efectivoPesos.toString()), 
+                            contadoDolares: widget.readMode ? activeCorte.conteoDolares??Decimal.zero : Decimal.parse(efectivoDolares.toString()), 
+                            contadoDebito: widget.readMode ? activeCorte.conteoDebito??Decimal.zero : contarVouchers(debitoControllers), 
+                            contadoCredito: widget.readMode ? activeCorte.conteoCredito??Decimal.zero : contarVouchers(creditoControllers), 
+                            contadoTransf: widget.readMode ? activeCorte.conteoTransf??Decimal.zero : contarVouchers(transferenciaControllers), 
                             abonadoMxn: abonadoMxn, 
                             abonadoUs: abonadoUs, 
                             abonadoTarjD: abonadoTarjD, 
                             abonadoTarjC: abonadoTarjC, 
                             abonadoTrans: abonadoTrans, 
-                            corte: widget.corte,
+                            corte: activeCorte,
                             readMode: widget.readMode,
                             tc: widget.readMode ? widget.caja.tipoCambio : CajasServices.cajaActual?.tipoCambio??Configuracion.dolar,
                           ),
                           const SizedBox(width: 10),
                           ReporteFinalDesgloseDinero(
-                            desglosePesos: widget.readMode==false ? mapearDesglose(true) : widget.corte.desglosePesos!,
-                            desgloseDolares: widget.readMode==false ? mapearDesglose(false) : widget.corte.desgloseDolares!,
+                            desglosePesos: widget.readMode==false ? mapearDesglose(true) : activeCorte.desglosePesos!,
+                            desgloseDolares: widget.readMode==false ? mapearDesglose(false) : activeCorte.desgloseDolares!,
                             impresoraControllers: impresoraControllers,
                             ctrl: ctrl,
                             readMode: widget.readMode,
+                            corte: activeCorte,
                           ),
                         ],
                       ),
@@ -885,7 +914,7 @@ class _CorteDialogState extends State<CorteDialog> {
                           ElevatedButton(
                             onPressed: () {
                               if (widget.readMode){
-                                Ticket.imprimirTicketCorte(context, widget.caja, widget.corte, widget.ventas, {});
+                                Ticket.imprimirTicketCorte(context, widget.caja, activeCorte, widget.ventas, {});
                               } else {
                                 Ticket.imprimirTicketCorte(context, CajasServices.cajaActual!, _corte(ctrl.text), Provider.of<VentasServices>(context, listen:false).ventasDeCorteActual, impresoraControllers);
                               }
@@ -969,6 +998,14 @@ class _CorteDialogState extends State<CorteDialog> {
   }
 
   List<Desglose> mapearDesglose(bool pesos) {
+    if(Configuracion.memoryCorte!=null){
+      if (pesos){
+        return activeCorte.desglosePesos??[];
+      } else {
+        return activeCorte.desgloseDolares??[];
+      }
+    }
+
     List<Desglose> lista = [];
     if (pesos) {
       for (var i = 0; i < denominacionesMxn.length; i++) {
@@ -1030,7 +1067,7 @@ class _CorteDialogState extends State<CorteDialog> {
         break;
       case StepStage.esperandoRetiro:
         title = '';
-        content = _buildEsperandoRetiro(widget.corte);
+        content = _buildEsperandoRetiro(activeCorte);
         break;
       case StepStage.conteoPesos:
         title = 'Conteo de Efectivo (MXN)';
@@ -1039,10 +1076,6 @@ class _CorteDialogState extends State<CorteDialog> {
       case StepStage.conteoDolares:
         title = 'Conteo de Efectivo (DLLS)';
         content = _buildConteoDolaresStep();
-        break;
-      case StepStage.voucher:
-        title = 'Conteo de Voucher';
-        content = buildVoucherStep();
         break;
       case StepStage.terminado:
         title = '';
@@ -1069,27 +1102,7 @@ class _CorteDialogState extends State<CorteDialog> {
       backgroundColor: AppTheme.containerColor2,
       contentPadding: const EdgeInsets.all(0),
       title: title.isNotEmpty ? 
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title),
-          stage == StepStage.voucher ? 
-          Transform.translate(
-            offset: const Offset(0, -10),
-            child: const Tooltip(
-              mouseCursor: SystemMouseCursors.click,
-              message: 
-'''TAB -> Siguiente
-Enter -> Descender
----------------------------
-Ademas puedes navegar
-con las flechas.''',
-              waitDuration: Durations.short1,
-              child: Icon(Icons.help_outline, color: AppTheme.letraClara,)
-            )
-          ) : const SizedBox()
-        ],
-      ) 
+      Text(title) 
       : null,
       content: content,
     );
@@ -1367,7 +1380,9 @@ class ReporteFinalMovimientos extends StatelessWidget {
     //sistema
     //Decimal abonadoUsCnv = Decimal.parse(CalculosDinero().conversionADolar(abonadoUs.toDouble()).toString());
     final double abonadoMxToUsd = CalculosDinero().pesosADolar(abonadoUs.toDouble(), tc);
-    final Decimal total = entrada - salida + abonadoMxn + abonadoUs + abonadoTarjD + abonadoTarjC + abonadoTrans;
+    final Decimal totalEfectivo = entrada - salida + abonadoMxn + abonadoUs;
+    final Decimal totalTarjetas = abonadoTarjD + abonadoTarjC + abonadoTrans;
+    final Decimal total = totalEfectivo + totalTarjetas;
 
     //Contado
     late final Decimal contadoUsCnv;
@@ -1381,7 +1396,7 @@ class ReporteFinalMovimientos extends StatelessWidget {
     }
 
     //diferencia
-    Decimal diferencia = total - totalContado;
+    Decimal diferencia = totalEfectivo - totalContado;
 
     double mx = abonadoMxn.toDouble();
 
@@ -1389,28 +1404,66 @@ class ReporteFinalMovimientos extends StatelessWidget {
       flex: 2,
       child: Column(
         children: [
-          const Separador(texto: 'Movimientos De Caja'),
-          Fila(texto: 'Entrada de dinero', precio: '+${Formatos.pesos.format(entrada.toDouble())}', color: 2),
-          Fila(texto: 'Salida de dinero', precio: '-${Formatos.pesos.format(salida.toDouble())}', color: 1),
+          const Separador(texto: 'Saldo de Caja'),
+          Fila(texto: 'Entrada de dinero (Movimientos)', precio: '+${Formatos.pesos.format(entrada.toDouble())}', color: 2),
+          Fila(texto: 'Salida de dinero (Movimientos)', precio: '-${Formatos.pesos.format(salida.toDouble())}', color: 1),
           Fila(texto: 'Efectivo (MX)', precio: mx < 0 ? Formatos.pesos.format(mx) : '+${Formatos.pesos.format(mx)}', color: 2),
           Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(abonadoUs.toDouble())}', dolar: Formatos.dolares.format(abonadoMxToUsd), color: 1),
+          //Fila(texto: 'Tarjeta de Debito', precio: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', color: 2),
+          //Fila(texto: 'Tarjeta de Credito', precio: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', color: 1),
+          //Fila(texto: 'Transferencia', precio: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', color: 2),
+          Fila(texto: 'Total', precio: Formatos.pesos.format(totalEfectivo.toDouble()), color: 0),
+          const SizedBox(height: 9),
+
+          const Separador(texto: 'Saldo de tarjetas y transferencias'),
           Fila(texto: 'Tarjeta de Debito', precio: '+${Formatos.pesos.format(abonadoTarjD.toDouble())}', color: 2),
           Fila(texto: 'Tarjeta de Credito', precio: '+${Formatos.pesos.format(abonadoTarjC.toDouble())}', color: 1),
           Fila(texto: 'Transferencia', precio: '+${Formatos.pesos.format(abonadoTrans.toDouble())}', color: 2),
+          const SizedBox(height: 9),
+
+          const Separador(texto: 'Total venta'),
+          Fila(texto: 'Saldo de Caja', precio: '+${Formatos.pesos.format(totalEfectivo.toDouble())}', color: 2),
+          Fila(texto: 'Saldo de tarjetas y transferencias', precio: '+${Formatos.pesos.format(totalTarjetas.toDouble())}', color: 1),
           Fila(texto: 'Total', precio: Formatos.pesos.format(total.toDouble()), color: 0),
-          const SizedBox(height: 15),
+          const SizedBox(height: 9),
+
           const Separador(texto: 'Dinero Entregado'),
           Fila(texto: 'Efectivo (MX)', precio: Formatos.pesos.format(contadoPesos.toDouble()), color: 1),
           Fila(texto: 'Efectivo (US)', precio: ' ${Formatos.pesos.format(contadoUsCnv.toDouble())}', dolar: Formatos.dolares.format(contadoDolares.toDouble()), color: 2),
-          Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
-          Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
-          Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
+          // Fila(texto: 'Tarjerta de Debito', precio: Formatos.pesos.format(contadoDebito.toDouble()), color: 1),
+          // Fila(texto: 'Tarjerta de Credito', precio: Formatos.pesos.format(contadoCredito.toDouble()), color: 2),
+          // Fila(texto: 'Transferencia', precio: Formatos.pesos.format(contadoTransf.toDouble()), color: 1),
           Fila(texto: 'Total', precio: Formatos.pesos.format(totalContado.toDouble()), color: 0),
-          const SizedBox(height: 15),
+          const SizedBox(height: 9),
+
           const Separador(texto: 'Diferencia'),
-          Fila(texto: 'Movimientos de Caja', precio: Formatos.pesos.format(total.toDouble()), color: 1),
-          Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
-          Fila(texto: 'Diferencia', precio: diferencia > Decimal.parse('0') ? 'Faltante: ${Formatos.pesos.format(diferencia.toDouble())}' : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 0),
+          //Fila(texto: 'Saldo de Caja Esperado', precio: Formatos.pesos.format(total.toDouble()), color: 1),
+          //Fila(texto: 'Dinero Entregado', precio: Formatos.pesos.format(totalContado.toDouble()), color: 2),
+          Container(
+            color: AppTheme.tablaColorHeader,
+            padding: const EdgeInsets.symmetric(horizontal:  4, vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('Efectivo de caja ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85)),
+                    Text(Formatos.pesos.format(totalEfectivo.toDouble()), textScaler: const TextScaler.linear(1)),
+                  ],
+                ),
+                //const Text('-'),
+                Row(
+                  children: [
+                    const Text('Dinero Entregado ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.85)),
+                    Text(Formatos.pesos.format(totalContado.toDouble()), textScaler: const TextScaler.linear(1)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Fila(texto: '', precio: diferencia > Decimal.parse('0') ? 'Faltante: ${Formatos.pesos.format(diferencia.toDouble())}' : "Sobrante: ${Formatos.pesos.format(diferencia.toDouble()).replaceAll("-", "")}", color: 2),
+
+
         ],
       )
     );
@@ -1425,6 +1478,7 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
     required this.impresoraControllers, 
     required this.ctrl,
     required this.readMode,
+    required this.corte,
   });
 
   final List<Desglose> desglosePesos;
@@ -1432,6 +1486,7 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
   final Map<String, TextEditingController> impresoraControllers;
   final TextEditingController ctrl;
   final bool readMode;
+  final Cortes corte;
 
   @override
   Widget build(BuildContext context) {
@@ -1494,7 +1549,7 @@ class ReporteFinalDesgloseDinero extends StatelessWidget {
           const Separador(texto: 'Contadores'),
           Expanded(
             flex: 6,
-            child: ReporteFinalContadores(impresoraControllers: impresoraControllers, readMode: readMode)
+            child: ReporteFinalContadores(impresoraControllers: impresoraControllers, readMode: readMode, corte: corte)
           ), const SizedBox(height: 10),
 
           const Separador(texto: 'Comentarios'),
@@ -1521,11 +1576,13 @@ class ReporteFinalContadores extends StatelessWidget {
   const ReporteFinalContadores({
     super.key, 
     required this.impresoraControllers,
-    required this.readMode,
+    required this.readMode, 
+    required this.corte,
   });
 
   final Map<String, TextEditingController> impresoraControllers;
   final bool readMode;
+  final Cortes corte;
 
   @override
   Widget build(BuildContext context) {
@@ -1554,7 +1611,13 @@ class ReporteFinalContadores extends StatelessWidget {
                 child: ListView.builder(
                   itemCount: value.impresoras.length,
                   itemBuilder: (context, index) {
-                    int cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
+                    int cantidad = 0;
+                    if (readMode){
+                      cantidad = corte.contadoresFinales?[value.impresoras[index].id] ?? 0;
+                    } else {
+                      cantidad = int.tryParse(impresoraControllers[value.impresoras[index].id]?.text.replaceAll(',','')??'hubo un problema') ?? 0;
+                    }
+                    
                     return FilaContadores(impresora: value.impresoras[index], cantidadAnotada: cantidad, color: index+1, readMode: readMode);
                   },
                 ),
@@ -1802,8 +1865,8 @@ class FilaContadores extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(flex: 8, child: Center(child: Text(impresora.modelo, style: AppTheme.subtituloConstraste))),
-            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))),
-            !readMode ? Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))) : const SizedBox(),
+            !readMode ? Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad), style: AppTheme.subtituloConstraste))) : const SizedBox(),
+            Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidadAnotada), style: AppTheme.subtituloConstraste))),
             !readMode ? Expanded(flex: 5, child: Center(child: Text(Formatos.numero.format(cantidad-cantidadAnotada).replaceAll('-', ''), style: AppTheme.subtituloConstraste))) : const SizedBox(),
           ],
         ),

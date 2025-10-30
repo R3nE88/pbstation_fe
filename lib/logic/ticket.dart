@@ -387,11 +387,14 @@ class Ticket {
       }
     } 
 
-    Decimal total = entrada - salida + (corte.ventaPesos??Decimal.zero) + (corte.ventaDolares??Decimal.zero) + (corte.ventaDebito??Decimal.zero) + (corte.ventaCredito??Decimal.zero) + (corte.ventaTransf??Decimal.zero);
+    Decimal totalEfectivo = entrada - salida + (corte.ventaPesos??Decimal.zero) + (corte.ventaDolares??Decimal.zero);
+    Decimal totalTarjetas = (corte.ventaDebito??Decimal.zero) + (corte.ventaCredito??Decimal.zero) + (corte.ventaTransf??Decimal.zero);
+    Decimal total = totalEfectivo + totalTarjetas;
+    
     bytes += generator.text('CORTE DE CAJA',
         styles: const PosStyles(align: PosAlign.center, bold: true));
     bytes += generator.row([
-      PosColumn(text: 'Movimiento', width: 7, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Saldo de caja', width: 7, styles: const PosStyles(bold: true)),
       PosColumn(width: 5, styles: const PosStyles(bold: true)),
     ]);
     bytes += generator.row([
@@ -412,6 +415,15 @@ class Ticket {
       PosColumn(text: '+${Formatos.pesos.format(corte.ventaDolares?.toDouble()??Decimal.zero.toDouble())}', width: 5),
     ]);
     bytes += generator.row([
+      PosColumn(text: 'TOTAL', width: 7, styles: const PosStyles(bold: true)),
+      PosColumn(text: Formatos.pesos.format(totalEfectivo.toDouble()), width: 5, styles: const PosStyles(bold: true)),
+    ]);
+
+    bytes += generator.row([
+      PosColumn(text: 'Saldo de tarjetas y transferencias', width: 7, styles: const PosStyles(bold: true)),
+      PosColumn(width: 5, styles: const PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
       PosColumn(text: 'Tarj Debito', width: 7),
       PosColumn(text: '+${Formatos.pesos.format(corte.ventaDebito?.toDouble()??Decimal.zero.toDouble())}', width: 5),
     ]);
@@ -423,9 +435,22 @@ class Ticket {
       PosColumn(text: 'Transferencia', width: 7),
       PosColumn(text: '+${Formatos.pesos.format(corte.ventaTransf?.toDouble()??Decimal.zero.toDouble())}', width: 5), //total
     ]);
+
     bytes += generator.row([
-      PosColumn(text: 'TOTAL', width: 7, styles: const PosStyles(bold: true)),
-      PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Total venta', width: 7, styles: const PosStyles(bold: true)),
+      PosColumn(width: 5, styles: const PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Saldo de Caja', width: 7),
+      PosColumn(text: Formatos.pesos.format(totalEfectivo.toDouble()), width: 5, styles: const PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Saldo de tarjetas y transferencias', width: 7),
+     PosColumn(text: Formatos.pesos.format(totalTarjetas.toDouble()), width: 5, styles: const PosStyles(bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Total', width: 7),
+      PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5, styles: const PosStyles(bold: true)), //total
     ]);
 
     //Dinero Entregado
@@ -444,28 +469,16 @@ class Ticket {
       PosColumn(text: '+${Formatos.dolares.format(corte.conteoDolares!.toDouble())}', width: 5),
     ]);
     bytes += generator.row([
-      PosColumn(text: 'Tarj Debito', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(corte.conteoDebito!.toDouble())}', width: 5),
-    ]);
-    bytes += generator.row([
-      PosColumn(text: 'Tarj Credito', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(corte.conteoCredito!.toDouble())}', width: 5),
-    ]);
-    bytes += generator.row([
-      PosColumn(text: 'Transferencia', width: 7),
-      PosColumn(text: '+${Formatos.pesos.format(corte.conteoTransf!.toDouble())}', width: 5),
-    ]);
-    bytes += generator.row([
       PosColumn(text: 'TOTAL', width: 7, styles: const PosStyles(bold: true)),
       PosColumn(text: Formatos.pesos.format(totalContado.toDouble()), width: 5, styles: const PosStyles(bold: true)),
     ]);
     bytes += generator.text(' ');
 
     //Diferencia
-    Decimal diferencia = total - totalContado;
+    Decimal diferencia = totalEfectivo - totalContado;
     bytes += generator.row([
-      PosColumn(text: 'Movimientos', width: 7),
-      PosColumn(text: Formatos.pesos.format(total.toDouble()), width: 5),
+      PosColumn(text: 'Efectivo de Caja', width: 7),
+      PosColumn(text: Formatos.pesos.format(totalEfectivo.toDouble()), width: 5),
     ]);
     bytes += generator.row([
       PosColumn(text: 'Dinero Entregado', width: 7),

@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/login.dart';
+import 'package:pbstation_frontend/services/sucursales_services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/widgets/loading.dart';
@@ -18,19 +20,70 @@ class PedidosService extends ChangeNotifier {
   double uploadProgress = 0.0;
   List<Pedidos> pedidosNotReady = [];
   List<Pedidos> pedidosReady = [];
+  List<Pedidos> filteredPedidosReady = [];
   bool isDownloading = false;
   double downloadProgress = 0.0;
 
   void organizar() {
-    // Filtrar pedidos "en espera" y moverlos a pedidosNotReady
-    pedidosNotReady = pedidosReady.where((pedido) => pedido.estado == 'en espera' && pedido.ventaId!='esperando').toList();
+    // Combinar ambas listas antes de reorganizar
+    final todosPedidos = [...pedidosReady, ...pedidosNotReady];
     
-    // Mantener solo los pedidos que NO están "en espera" en pedidosReady
-    pedidosReady = pedidosReady.where((pedido) => pedido.estado != 'en espera' && pedido.ventaId!='esperando').toList();
+    if (Login.usuarioLogeado.rol == TipoUsuario.vendedor && 
+        (Login.usuarioLogeado.permisos.nivel == 1 || Login.usuarioLogeado.permisos.nivel == 2)) {
+      // Filtrar pedidos por sucursal del vendedor
+      final sucursalId = SucursalesServices.sucursalActualID;
+      
+      // Filtrar pedidos "en espera" que pertenecen a la sucursal del vendedor
+      pedidosNotReady = todosPedidos
+          .where((pedido) => 
+              pedido.estado.name == 'enEspera' && 
+              pedido.ventaId != 'esperando' &&
+              pedido.sucursalId == sucursalId)
+          .toList();
+      
+      // Mantener solo los pedidos que NO están "en espera" y pertenecen a la sucursal del vendedor
+      pedidosReady = todosPedidos
+          .where((pedido) => 
+              pedido.estado.name != 'enEspera' && 
+              pedido.ventaId != 'esperando' &&
+              pedido.sucursalId == sucursalId)
+          .toList();
+    } else {
+      // Filtrar pedidos "en espera" y moverlos a pedidosNotReady
+      pedidosNotReady = todosPedidos
+          .where((pedido) => 
+              pedido.estado.name == 'enEspera' && 
+              pedido.ventaId != 'esperando')
+          .toList();
+      
+      // Mantener solo los pedidos que NO están "en espera" en pedidosReady
+      pedidosReady = todosPedidos
+          .where((pedido) => 
+              pedido.estado.name != 'enEspera' && 
+              pedido.ventaId != 'esperando')
+          .toList();
+
+      filteredPedidosReady = pedidosReady;
+    }
   }
 
-  Future<List<Pedidos>> loadPedidos() async { 
-    if (loaded) return pedidosReady;
+  void filtrarPedidos(String query) {
+    query = query.toLowerCase().trim();
+    if (query.isEmpty) {
+      filteredPedidosReady = pedidosReady;
+    } else {
+      filteredPedidosReady = pedidosReady.where((pedido) {
+        return pedido.folio?.toLowerCase().contains(query)??false;
+      }).toList();
+    }
+    notifyListeners();
+  }
+
+  Future<List<Pedidos>> loadPedidos({bool force = false}) async { 
+    if (loaded && !force) return pedidosReady;
+
+    pedidosNotReady.clear();
+    pedidosReady.clear();
 
     isLoading = true;
     try {
@@ -94,7 +147,7 @@ class PedidosService extends ChangeNotifier {
     uploadProgress = 0;
     notifyListeners();
 
-    if ((archivos == null || archivos.isEmpty) && pedido.estado != 'en espera') {
+    if ((archivos == null || archivos.isEmpty) && pedido.estado != Estado.enEspera) {
       isLoading = false;
       notifyListeners();
       return 'Error: Los pedidos deben tener archivos o estar en estado "en espera"';
@@ -140,7 +193,7 @@ class PedidosService extends ChangeNotifier {
         uploadProgress = 1;
         final nuevoPedido = Pedidos.fromMap(response.data as Map<String, dynamic>);
         if (nuevoPedido.ventaId!='esperando'){
-          if (nuevoPedido.estado=='en espera'){
+          if (nuevoPedido.estado==Estado.enEspera){
             pedidosNotReady.add(nuevoPedido);
           } else {
             pedidosReady.add(nuevoPedido);
@@ -385,10 +438,16 @@ class PedidosService extends ChangeNotifier {
     required BuildContext context,
     bool elegirCarpeta = true,
   }) async {
+      isDownloading = true;
+      downloadProgress = 0.0;
+      
+
     try {
       // 1️⃣ Elegir carpeta de destino
       Directory dirDestino;
-      Loading.displaySpinLoading(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Loading.displaySpinLoading(context);
+      });
       if (elegirCarpeta) {
         String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
           lockParentWindow: true,
@@ -411,8 +470,6 @@ class PedidosService extends ChangeNotifier {
       if (!context.mounted) return null;
       Navigator.pop(context);
 
-      isDownloading = true;
-      downloadProgress = 0.0;
       notifyListeners();
 
       // 2️⃣ Descargar el ZIP
@@ -472,6 +529,69 @@ class PedidosService extends ChangeNotifier {
       downloadProgress = 0.0;
       notifyListeners();
       return null;
+    }
+  }
+
+  Future<bool> actualizarEstadoPedido({
+    required String pedidoId,
+    required String estado,
+  }) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final connectionId = WebSocketService.connectionId;
+
+      final headers = {
+        'tkn': Env.tkn,
+        if (connectionId != null) 'X-Connection-Id': connectionId,
+      };
+
+      final url = Uri.parse('$_baseUrl$pedidoId/estado');
+
+      final response = await http.patch(
+        url,
+        headers: headers,
+        body: {'estado': estado},
+      );
+
+      if (response.statusCode == 200) {
+        if (estado == 'entregado'){
+          pedidosNotReady.removeWhere((element) => element.id == pedidoId);
+          pedidosReady.removeWhere((element) => element.id == pedidoId);
+          notifyListeners();
+          return true;
+        }
+
+        // Actualizar el pedido en la lista local
+        final pedidoActualizado = Pedidos.fromJson(response.body);
+        
+        // Buscar en pedidosReady
+        int index = pedidosReady.indexWhere((p) => p.id == pedidoId);
+        if (index != -1) {
+          pedidosReady[index] = pedidoActualizado;
+        }
+        
+        // Buscar en pedidosNotReady
+        index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
+        if (index != -1) {
+          pedidosNotReady[index] = pedidoActualizado;
+        }
+        
+        // Reorganizar las listas según el nuevo estado
+        organizar();
+        notifyListeners();
+        return true;
+      } else {
+        debugPrint('Error: ${response.statusCode} ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error al actualizar estado: $e');
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
   }
 }

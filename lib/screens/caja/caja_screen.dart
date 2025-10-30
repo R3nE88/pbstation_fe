@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/mensaje_flotante.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
@@ -581,28 +582,36 @@ class _HeaderState extends State<_Header> {
                   _CajaBoton(
                     label: 'Realizar Corte',
                     icon: Icons.price_check,
-                    onTap: () => showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) {
-                        final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
-                        if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
-                            ventasServices.ventas.isNotEmpty) {
-                          return const CustomErrorDialog(
-                            respuesta: 'Tienes ventas sin completar', 
-                            titulo: 'No puedes continuar'
-                          );
+                    onTap: () {
+                      if (Configuracion.memoryCorte!=null){
+                        if (Configuracion.memoryCorte!.isCierre){
+                          mostrarMensajeFlotante(context, 'Tienes un cierre de caja pendiente');
+                          return;
                         }
+                      }
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) {
+                          final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+                          if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
+                              ventasServices.ventas.isNotEmpty) {
+                            return const CustomErrorDialog(
+                              respuesta: 'Tienes ventas sin completar', 
+                              titulo: 'No puedes continuar'
+                            );
+                          }
 
-                        return Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            CorteDialog(cierre: false, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
-                            const WindowBar(overlay: true),
-                          ],
-                        );
-                      } 
-                    ),
+                          return Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              CorteDialog(cierre: false, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                              const WindowBar(overlay: true),
+                            ],
+                          );
+                        } 
+                      );
+                    },
                     cerrar: false,
                     disabled: !Configuracion.esCaja,
                   ): const SizedBox(),
@@ -612,28 +621,37 @@ class _HeaderState extends State<_Header> {
                   _CajaBoton(
                     label: 'Cerrar Caja',
                     icon: Icons.point_of_sale,
-                    onTap: () => showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) {
-                        final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
-                        if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
-                            ventasServices.ventas.isNotEmpty) {
-                          return const CustomErrorDialog(
-                            respuesta: 'Tienes ventas sin completar', 
-                            titulo: 'No puedes continuar'
-                          );
+                    onTap: () {
+                      if (Configuracion.memoryCorte!=null){
+                        if (!Configuracion.memoryCorte!.isCierre){
+                          mostrarMensajeFlotante(context, 'Tienes un cierre de corte pendiente');
+                          return;
                         }
+                      }
 
-                        return Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            CorteDialog(cierre: true, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
-                            const WindowBar(overlay: true),
-                          ],
-                        );
-                      } 
-                    ),
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) {
+                          final ventasServices = Provider.of<VentasEnviadasServices>(context, listen: false);
+                          if (VentasStates.tabs.any((element) => element.fromVentaEnviada) || 
+                              ventasServices.ventas.isNotEmpty) {
+                            return const CustomErrorDialog(
+                              respuesta: 'Tienes ventas sin completar', 
+                              titulo: 'No puedes continuar'
+                            );
+                          }
+
+                          return Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              CorteDialog(cierre: true, caja: CajasServices.cajaActual!, corte: CajasServices.corteActual!, ventas: Provider.of<VentasServices>(context, listen: false).ventasDeCorteActual),
+                              const WindowBar(overlay: true),
+                            ],
+                          );
+                        } 
+                      );
+                    }, 
                     cerrar: true, 
                     disabled: !Configuracion.esCaja,
                   ): const SizedBox(),

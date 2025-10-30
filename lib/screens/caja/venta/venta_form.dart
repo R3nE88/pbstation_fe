@@ -440,10 +440,9 @@ class _VentaFormState extends State<VentaForm> {
               fechaEntrega: _fechaEntrega!.toIso8601String(),
               archivos: [],
               descripcion: detallesComentarios,
-              estado: archivos.isEmpty ? 'en espera' : 'pendiente'
+              estado: archivos.isEmpty ? Estado.enEspera : Estado.pendiente
             );
 
-            if (!mounted) return;
             await showDialog(
               barrierDismissible: false, // Evita que se cierre al hacer clic fuera
               context: context, 
@@ -621,7 +620,7 @@ class _VentaFormState extends State<VentaForm> {
         fechaEntrega: _fechaEntrega!.toIso8601String(),
         archivos: [],
         descripcion: detallesComentarios,
-        estado: archivos.isEmpty ? 'en espera' : 'pendiente'
+        estado: archivos.isEmpty ? Estado.enEspera : Estado.pendiente
       );
 
       await showDialog(
@@ -835,6 +834,39 @@ class _VentaFormState extends State<VentaForm> {
         borderSide: BorderSide(color: _detallesError ? Colors.red : AppTheme.letraClara)
       )
     );
+
+    if (Configuracion.memoryCorte!=null){
+      return Expanded(
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.containerColor1,
+            borderRadius: const BorderRadius.only(topRight: Radius.circular(15), bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning, color: AppTheme.warningStyle.color),
+                  Text(
+                    ' Acceso temporalmente restringido. Se ha detectado un proceso de cierre de ${Configuracion.memoryCorte!.isCierre ? 'caja' : 'turno'} incompleto. ', 
+                    textAlign: TextAlign.center, 
+                    textScaler: const TextScaler.linear(1.15)
+                  ),
+                  Icon(Icons.warning, color: AppTheme.warningStyle.color),
+                ],
+              ),
+              const Text(
+                'Para mantener la consistencia contable y continuar operando, es necesario completar el corte pendiente antes de procesar nuevas ventas.', 
+                textAlign: TextAlign.center, 
+                style: AppTheme.labelStyle,
+              )
+            ],
+          ),
+        )
+      );
+    }
 
     return Flexible( //Contenido (Body)
       child: Container(

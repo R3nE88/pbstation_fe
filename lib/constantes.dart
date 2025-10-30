@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/env.dart';
 
 // Enum para tipos de usuario
@@ -17,6 +18,18 @@ enum Permiso {
   const Permiso(this.nivel);
 
   bool tieneAlMenos(Permiso requerido) => nivel >= requerido.nivel;
+}
+
+enum Estado {
+  enEspera(Colors.blueGrey),
+  pendiente(Colors.red),
+  produccion(Colors.amber),
+  terminado(Colors.lightBlueAccent),
+  enSucursal(Color.fromARGB(255, 76, 170, 175)),
+  entregado(Colors.green);
+
+  final Color color;
+  const Estado(this.color);
 }
 
 class Constantes{

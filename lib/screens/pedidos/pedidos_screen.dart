@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/pedidos/pedidos_dialog.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -16,12 +20,29 @@ class PedidosScreen extends StatefulWidget {
 }
 
 class _PedidosScreenState extends State<PedidosScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    Provider.of<PedidosService>(context, listen: false).loadPedidos();
+    final pedidosSvc = Provider.of<PedidosService>(context, listen: false);
+    pedidosSvc.loadPedidos();
 
+    _searchController.addListener(() {
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 600), () {
+        final query = _searchController.text.toLowerCase();
+        pedidosSvc.filtrarPedidos(query);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Widget _buildHeader({String title = '', bool helpIcon = false}) {
@@ -30,17 +51,43 @@ class _PedidosScreenState extends State<PedidosScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: AppTheme.tituloClaro,
-            textScaler: const TextScaler.linear(1.3), 
+          Row(
+            children: [
+              Text(
+                title,
+                style: AppTheme.tituloClaro,
+                textScaler: const TextScaler.linear(1.3), 
+              ),
+              helpIcon ? IconButton(
+                onPressed: (){
+                  //TODO Dialog
+                }, 
+                icon: const Icon(Icons.help, color: AppTheme.letraClara,)
+              ) : const SizedBox()
+            ],
           ),
-          helpIcon ? IconButton(
-            onPressed: (){
-              //TODO Dialog
-            }, 
-            icon: const Icon(Icons.help, color: AppTheme.letraClara,)
-          ) : const SizedBox()
+          
+          helpIcon ?
+            Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
+             Text(
+              Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(SucursalesServices.sucursalActualID!),
+              style: AppTheme.tituloClaro,
+              textScaler: const  TextScaler.linear(1.3),
+            ) : const SizedBox()
+          : Transform.scale(
+            scale: 0.95,
+            child: SizedBox(
+                height: 34,
+                width: 300,
+                child: TextFormField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
+                    hintText: 'Buscar por Folio',
+                  ),
+                ),
+              ),
+          ),
         ],
       ),
     );
@@ -56,7 +103,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
           //Header
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
@@ -64,14 +111,17 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 topRight: Radius.circular(10)
               )
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Expanded(child: Center(child: Text('Vendedor'))),
-                Expanded(child: Center(child: Text('Fecha'))),
-                Expanded(child: Center(child: Text('Folio'))),
-                Expanded(child: Center(child: Text('Cliente'))),
-                Expanded(flex:2, child: Center(child: Text('Detalles'))),
-                Expanded(child: Center(child: Text('Fecha Entrega'))),
+                const Expanded(flex: 2, child: Center(child: Text('Fecha'))),
+                const Expanded(flex: 2, child: Center(child: Text('Folio'))),
+                Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
+                const SizedBox():
+                const Expanded(flex: 2, child: Center(child: Text('Sucursal'))),
+                const Expanded(flex: 2, child: Center(child: Text('Vendedor'))),
+                const Expanded(flex: 3, child: Center(child: Text('Cliente'))),
+                const Expanded(flex: 3, child: Center(child: Text('Detalles'))),
+                const Expanded(flex: 2, child: Center(child: Text('Fecha Entrega'))),
               ],
             ),
           ),
@@ -111,7 +161,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
           //Header
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
@@ -119,14 +169,17 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 topRight: Radius.circular(10)
               )
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Expanded(child: Center(child: Text('Estatus'))),
-                Expanded(child: Center(child: Text('Fecha'))),
-                Expanded(child: Center(child: Text('Folio'))),
-                Expanded(child: Center(child: Text('Cliente'))),
-                Expanded(flex:2, child: Center(child: Text('Detalles'))),
-                Expanded(child: Center(child: Text('Fecha Entrega'))),
+                const Expanded(flex: 2, child: Center(child: Text('Estatus'))),
+                const Expanded(flex: 2, child: Center(child: Text('Fecha'))),
+                const Expanded(flex: 2, child: Center(child: Text('Folio'))),
+                Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
+                const SizedBox()
+                : const Expanded(flex: 2, child: Center(child: Text('Sucursal'))),
+                const Expanded(flex: 3, child: Center(child: Text('Cliente'))),
+                const Expanded(flex: 3, child: Center(child: Text('Detalles'))),
+                const Expanded(flex: 2, child: Center(child: Text('Fecha Entrega'))),
               ],
             ),
           ),
@@ -139,11 +192,11 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 bottomRight: Radius.circular(10)
               ),
               child: Container(
-                color: pedidosSvc.pedidosReady.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                color: pedidosSvc.filteredPedidosReady.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
                 child: ListView.builder(
-                  itemCount: pedidosSvc.pedidosReady.length,
+                  itemCount: pedidosSvc.filteredPedidosReady.length,
                   itemBuilder: (context, index) {
-                    return FilaReady(pedido: pedidosSvc.pedidosReady[index], index: index);
+                    return FilaReady(pedido: pedidosSvc.filteredPedidosReady[index], index: index);
                   },
                 ),
               ),
@@ -165,9 +218,9 @@ class _PedidosScreenState extends State<PedidosScreen> {
           } else {
             return Column(
               children: [
+                _buildTablePedidos(value),
+                const SizedBox(height: 10),
                 _buildTableSinPreparar(value), 
-                const SizedBox(height: 15),
-                _buildTablePedidos(value)
               ],
             );
           }
@@ -188,10 +241,13 @@ class FilaNotReady extends StatefulWidget {
 }
 
 class _FilaNotReadyState extends State<FilaNotReady> {
-  late final fecha = DateFormat('E d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaEntrega = DateFormat('E d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
+  late final fechaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
+  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioId);
+  late final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.pedido.sucursalId);
   late final Ventas? venta;
   late final String detalles;
   bool detalleLoaded = false;
@@ -222,25 +278,28 @@ class _FilaNotReadyState extends State<FilaNotReady> {
           builder: (_) => Stack(
             alignment: Alignment.topRight,
             children: [
-              PedidosDialog(pedido: widget.pedido, venta: venta!),
+              PedidosDialog(pedido: widget.pedido, ventaId: venta!.id!),
               const WindowBar(overlay: true),
             ],
           ),
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         color: widget.index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child:  Row(
           children: [
-            Expanded(child: Center(child: Text(usuario, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(child: Center(child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex:2, 
+            Expanded(flex: 2, child: Center(child: Text('$fechaDia\n$fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),            
+            Expanded(flex: 2, child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
+            const SizedBox() 
+            : Expanded(flex: 2, child: Center(child: Text(sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 2, child: Center(child: Text(usuario, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 3, child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 3, 
               child: Center(
                 child: detalleLoaded ? 
-                  Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
+                  Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85))
                 : 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -251,7 +310,7 @@ class _FilaNotReadyState extends State<FilaNotReady> {
                   )
               )
             ),
-            Expanded(child: Center(child: Text(fechaEntrega, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 2, child: Center(child: Text('$fechaEntregaDia\n$fechaEntrega', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
           ],
         ),
       ),
@@ -270,34 +329,18 @@ class FilaReady extends StatefulWidget {
 }
 
 class _FilaReadyState extends State<FilaReady> {
-  late final fecha = DateFormat('E d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaEntrega = DateFormat('E d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
+  late final fechaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
+  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioId);
+  late final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.pedido.sucursalId);
   late final Ventas? venta;
   late final String detalles;
   bool detalleLoaded = false;
-  late final Color color;
+  late Color color = widget.pedido.estado.color;
 
-  obtenerEstadoParaColor(){
-    switch (widget.pedido.estado) {
-      case 'pendiente':
-        color = Colors.red;
-        break;
-      case 'produccion':
-        color = Colors.yellow;
-        break;
-      case 'terminado':
-        color = Colors.green;
-        break;
-      case 'entregado':
-        color = const Color.fromARGB(255, 0, 170, 255);
-        break;
-      default:
-        color = Colors.red;
-        break;
-    }
-  }
 
   void obtenerVenta() async{
     venta = await Provider.of<VentasServices>(context, listen: false).searchVenta(widget.pedido.ventaId);
@@ -309,7 +352,6 @@ class _FilaReadyState extends State<FilaReady> {
   @override
   void initState() {
     super.initState();
-    obtenerEstadoParaColor();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       obtenerVenta();
     });
@@ -317,6 +359,8 @@ class _FilaReadyState extends State<FilaReady> {
 
   @override
   Widget build(BuildContext context) {
+    color = widget.pedido.estado.color;
+
     return FeedBackButton(
       onlyVertical: true,
       onPressed: (){
@@ -326,31 +370,34 @@ class _FilaReadyState extends State<FilaReady> {
           builder: (_) => Stack(
             alignment: Alignment.topRight,
             children: [
-              PedidosDialog(pedido: widget.pedido, venta: venta!),
+              PedidosDialog(pedido: widget.pedido, ventaId: venta!.id!),
               const WindowBar(overlay: true),
             ],
           ),
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         color: widget.index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  foquito(color),
-                  Text(capitalizarPrimeraLetra(widget.pedido.estado), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center),
-                ],
+            Expanded(flex: 2, child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
+                decoration: BoxDecoration(
+                  color: AppTheme.isDarkTheme ?const Color.fromARGB(62, 0, 0, 0) : Colors.white70,
+                  borderRadius: BorderRadius.circular(8)
+                ),
+                child: Text(capitalizarPrimeraLetra(widget.pedido.estado.name), style: TextStyle(color: color, fontWeight: FontWeight.bold))
               )
-            ),
-            Expanded(child: Center(child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex:2, 
+            )),
+            Expanded(flex: 2, child: Center(child: Text('$fechaDia\n$fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 2, child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
+            const SizedBox() 
+            : Expanded(flex: 2, child: Center(child: Text(sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 3, child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 3, 
               child: Center(
                 child: detalleLoaded ? 
                   Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
@@ -364,7 +411,7 @@ class _FilaReadyState extends State<FilaReady> {
                   )
               )
             ),
-            Expanded(child: Center(child: Text(fechaEntrega, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(flex: 2, child: Center(child: Text('$fechaEntregaDia\n$fechaEntrega', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
           ],
         ),
       ),

@@ -45,6 +45,7 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
   void _submit() async{
     final pedidosService = Provider.of<PedidosService>(context, listen: false);
     await pedidosService.addArchivosToPedido(pedidoId: widget.pedidoId, archivos: _fileSeleccionado);
+    await pedidosService.actualizarEstadoPedido(pedidoId: widget.pedidoId, estado: 'pendiente');
     if (!mounted) return;
     Navigator.pop(context);
     Navigator.pop(context);

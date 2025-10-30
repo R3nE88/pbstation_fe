@@ -12,6 +12,7 @@ class VentasServices extends ChangeNotifier{
   List<Ventas> ventasDeCaja = [];
   List<Ventas> ventasDeCorteActual = [];
   List<Ventas> ventasConDeuda = [];
+  List<Ventas> ventasDePedidos = [];
   bool isLoading = false;
   bool adeudoLoading = false;
   bool loaded = false;
@@ -23,6 +24,10 @@ class VentasServices extends ChangeNotifier{
   List<Ventas> ventasDeCajaHistorial = [];
 
   Future<Ventas?> searchVenta(String ventaId) async {
+    if (ventasDePedidos.any((element) => element.id == ventaId)){
+      return ventasDePedidos.firstWhere((element) => element.id == ventaId);
+    };
+
     isLoading = true;
     notifyListeners();
     
@@ -39,6 +44,7 @@ class VentasServices extends ChangeNotifier{
         venta.id = data['id']?.toString();
         
         isLoading = false;
+        ventasDePedidos.add(venta);
         notifyListeners();
         return venta;
       } else if (resp.statusCode == 404) {
@@ -397,7 +403,97 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-  // Método helper para actualizar la venta en todas las listas locales
+  Future<List<Ventas>?> marcarVentasEntregadasPorFolio(String folio) async {
+    isLoading = true;
+    
+    final connectionId = WebSocketService.connectionId;
+    final headers = {'tkn': Env.tkn};
+    
+    // Para notificar a los demás, menos a mi mismo (websocket)
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+    
+    try {
+      final url = Uri.parse('${_baseUrl}marcar-entregada/$folio');
+      final resp = await http.patch(
+        url,
+        headers: headers,
+      );
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> listaJson = json.decode(resp.body);
+        
+        // Convertir la lista a objetos Ventas
+        final ventasActualizadas = listaJson.map<Ventas>((jsonElem) {
+          final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+          venta.id = (jsonElem as Map)['id']?.toString();
+          return venta;
+        }).toList();
+
+        // Actualizar cada venta en las listas locales
+        for (var ventaActualizada in ventasActualizadas) {
+          _actualizarVentaEnListas(ventaActualizada);
+        }
+
+        isLoading = false;
+        notifyListeners();
+        return ventasActualizadas;
+      } else if (resp.statusCode == 400) {
+        debugPrint('Ventas ya entregadas o error: ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else if (resp.statusCode == 404) {
+        debugPrint('No se encontraron ventas con el folio: $folio');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else {
+        debugPrint('Error al marcar ventas como entregadas: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en marcarVentasEntregadasPorFolio: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  void updateAVenta(String id) async {
+    if (!isLoading) {
+      isLoading = true;
+      try {
+        final url = Uri.parse('$_baseUrl$id');
+        final resp = await http.get(
+          url, headers: {'tkn': Env.tkn}
+        );
+
+        if (resp.statusCode == 200) {
+          final Map<String, dynamic> data = json.decode(resp.body);
+          final ventaActualizada = Ventas.fromMap(data);
+          ventaActualizada.id = data['id']?.toString();
+
+          // Buscar y actualizar en todas las listas
+          _actualizarVentaEnListas(ventaActualizada);
+        } else {
+          debugPrint('Error al actualizar venta: ${resp.statusCode} ${resp.body}');
+        }
+
+        isLoading = false;
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Exception en updateAVenta: $e');
+        isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  // Método helper para actualizar la venta en todas las listas
   void _actualizarVentaEnListas(Ventas ventaActualizada) {
     // Actualizar en ventasDeCaja
     final indexCaja = ventasDeCaja.indexWhere((v) => v.id == ventaActualizada.id);
@@ -411,10 +507,22 @@ class VentasServices extends ChangeNotifier{
       ventasDeCorteActual[indexCorte] = ventaActualizada;
     }
 
-    // Actualizar en ventasConDeuda si existe (no existe se elimina antes de llamar este metodo)
-    /*final indexDeuda = ventasConDeuda.indexWhere((v) => v.id == ventaActualizada.id);
+    // Actualizar en ventasConDeuda
+    final indexDeuda = ventasConDeuda.indexWhere((v) => v.id == ventaActualizada.id);
     if (indexDeuda != -1) {
       ventasConDeuda[indexDeuda] = ventaActualizada;
-    }*/
+    }
+
+    // Actualizar en ventasDeCajaHistorial
+    final indexHistorial = ventasDeCajaHistorial.indexWhere((v) => v.id == ventaActualizada.id);
+    if (indexHistorial != -1) {
+      ventasDeCajaHistorial[indexHistorial] = ventaActualizada;
+    }
+
+    // Actualizar en ventasDePedidos
+    final indexPedidos = ventasDePedidos.indexWhere((v) => v.id == ventaActualizada.id);
+    if (indexPedidos != -1) {
+      ventasDePedidos[indexPedidos] = ventaActualizada;
+    }
   }
 }

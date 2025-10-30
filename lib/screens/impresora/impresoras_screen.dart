@@ -34,9 +34,10 @@ class ImpresorasScreen extends StatelessWidget {
                       if (index==0 && Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)){
                         return const AgregarImpresora();
                       } else {
-                        print(index);
-                        final contador = value.ultimosContadores[value.impresoras[index-1].id];
-                        return ImpresorasCards(impresora: value.impresoras[index-1], contador: contador?.cantidad ?? 0,);
+                        int resta = 0;
+                        if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)){ resta = 1; }
+                        final contador = value.ultimosContadores[value.impresoras[index-resta].id];
+                        return ImpresorasCards(impresora: value.impresoras[index-resta], contador: contador?.cantidad ?? 0,);
                       }
                     }
                   )

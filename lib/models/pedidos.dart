@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:pbstation_frontend/constantes.dart';
+
 class Archivos {
   final String nombre;
   final String ruta;
@@ -39,7 +41,7 @@ class Pedidos {
   String fecha;
   String fechaEntrega;
   List<Archivos> archivos;
-  String estado;
+  Estado estado;
 
   Pedidos({
     this.id,
@@ -52,7 +54,7 @@ class Pedidos {
     required this.fecha,
     required this.fechaEntrega,
     required this.archivos,
-    this.estado = 'pendiente',
+    this.estado = Estado.pendiente,
   });
 
   factory Pedidos.fromMap(Map<String, dynamic> json) => Pedidos(
@@ -68,7 +70,8 @@ class Pedidos {
         archivos: (json['archivos'] as List)
             .map((a) => Archivos.fromMap(a))
             .toList(),
-        estado: json['estado'],
+        estado: Estado.values.firstWhere(
+        (e) => e.name == json['estado']),
       );
 
   Map<String, dynamic> toMap() => {
@@ -82,7 +85,7 @@ class Pedidos {
         'fecha': fecha,
         'fecha_entrega': fechaEntrega,
         'archivos': archivos.map((a) => a.toMap()).toList(),
-        'estado': estado,
+        'estado': estado.name,
       };
 
   factory Pedidos.fromJson(String str) => Pedidos.fromMap(json.decode(str));

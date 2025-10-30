@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Configuracion extends ChangeNotifier{
@@ -17,6 +18,7 @@ class Configuracion extends ChangeNotifier{
   static late String? impresora;
   static late String? size;
   static late String cajaActual;
+  static late Cortes? memoryCorte;
   bool init = false;
   bool loaded = false;
   bool configLoaded = false;
@@ -53,6 +55,8 @@ class Configuracion extends ChangeNotifier{
           final prefs = await SharedPreferences.getInstance();
           impresora = prefs.getString('selectedUsbDevice');
           size = prefs.getString('selectedSize') ?? '58mm';
+          final String? mc = prefs.getString('memory_corte');
+          memoryCorte = mc!=null ? Cortes.fromJson(mc) : null;
           //impresora = archivo['impresora'];
         } catch (e) {
           loaded = false;
