@@ -48,7 +48,9 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
     });
 
 
-
+    TP
+    final modProv = context.read<ModulosProvider>();
+    modProv.navegarA(modulo: 'venta', subModulo: 'adeudos');
 
   */
 

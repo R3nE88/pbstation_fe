@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
 Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
   final emailController = TextEditingController();
@@ -10,14 +12,15 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
 
   Future<void> verificar() async {
     if (!formKey.currentState!.validate()) return;
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     final login = Login();
     bool success = await login.permisoDeAdmin(emailController.text, pswController.text);
 
-    if (!context.mounted) return;
-    Navigator.pop(context); // Cierra loading
+    loadingSvc.hide();
 
+    if (!context.mounted) return;
     if (success) {
       Navigator.pop(context, true); // Cierra diálogo con éxito
     } else {

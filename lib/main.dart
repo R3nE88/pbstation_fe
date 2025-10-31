@@ -6,8 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
-import 'package:pbstation_frontend/provider/change_theme_provider.dart';
-import 'package:pbstation_frontend/provider/modulos_provider.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -67,6 +66,7 @@ void main() async {
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
+        ChangeNotifierProvider(create: (_) => LoadingProvider()),
         ChangeNotifierProvider(create: (_) => ModulosProvider(
           contextoUsuario: ContextoUsuario.desdeLogin(
             permiso: Login.usuarioLogeado.permisos,

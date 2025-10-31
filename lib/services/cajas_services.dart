@@ -201,8 +201,7 @@ class CajasServices extends ChangeNotifier{
         final nuevo = MovimientosCajas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        //movimientos.add(nuevo);
-        corteActual!.movimientosCaja.add(nuevo);
+        //corteActual!.movimientosCaja.add(nuevo);
         cortesDeCaja.firstWhere((element) => element.id == corteActualId).movimientosCaja.add(nuevo);
 
         notifyListeners();

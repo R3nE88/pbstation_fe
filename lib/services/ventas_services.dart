@@ -13,6 +13,7 @@ class VentasServices extends ChangeNotifier{
   List<Ventas> ventasDeCorteActual = [];
   List<Ventas> ventasConDeuda = [];
   List<Ventas> ventasDePedidos = [];
+  List<Ventas> ventasConDeudaFiltered = [];
   bool isLoading = false;
   bool adeudoLoading = false;
   bool loaded = false;
@@ -23,10 +24,22 @@ class VentasServices extends ChangeNotifier{
   bool isLoadingHistorial = false;
   List<Ventas> ventasDeCajaHistorial = [];
 
+  void filtrarDeudas(String query){
+    query = query.toLowerCase().trim();
+    if (query.isEmpty) {
+      ventasConDeudaFiltered = ventasConDeuda;
+    } else {
+      ventasConDeudaFiltered = ventasConDeuda.where((pedido) {
+        return pedido.folio?.toLowerCase().contains(query)??false;
+      }).toList();
+    }
+    notifyListeners();
+  }
+
   Future<Ventas?> searchVenta(String ventaId) async {
     if (ventasDePedidos.any((element) => element.id == ventaId)){
       return ventasDePedidos.firstWhere((element) => element.id == ventaId);
-    };
+    }
 
     isLoading = true;
     notifyListeners();
@@ -270,6 +283,7 @@ class VentasServices extends ChangeNotifier{
         ventasDeCorteActual.add(ventaPagada);
         CajasServices.corteActual!.ventasIds.add(ventaPagada.id!);
         ventasConDeuda.removeWhere((ventaDeuda) => ventaDeuda.id == ventaOriginalID);
+        ventasConDeudaFiltered.removeWhere((ventaDeuda) => ventaDeuda.id == ventaOriginalID);
 
         marcarDeudaComoPagada(ventaOriginalID);
         notifyListeners();
@@ -290,12 +304,14 @@ class VentasServices extends ChangeNotifier{
 
   void removeAVentaDeuda(String id)async{
     ventasConDeuda.removeWhere((venta) => venta.id==id);
+    ventasConDeudaFiltered.removeWhere((venta) => venta.id==id);
     notifyListeners();
   }
 
   Future<void> loadAdeudos(List<Clientes> adeudados, String? sucursalId) async{
     adeudoLoading = true;
     ventasConDeuda.clear();
+    ventasConDeudaFiltered.clear();
     List<String> ventasIds = [];
     for (var adeudado in adeudados) {
       for (var adeudo in adeudado.adeudos) {
@@ -324,6 +340,7 @@ class VentasServices extends ChangeNotifier{
         x.id = (jsonElem as Map)['id']?.toString();
         return x;
       }).toList();
+      ventasConDeudaFiltered = ventasConDeuda;
     } catch (e) {
       isLoading = false;
       notifyListeners();
@@ -511,6 +528,7 @@ class VentasServices extends ChangeNotifier{
     final indexDeuda = ventasConDeuda.indexWhere((v) => v.id == ventaActualizada.id);
     if (indexDeuda != -1) {
       ventasConDeuda[indexDeuda] = ventaActualizada;
+      ventasConDeudaFiltered[indexDeuda] = ventaActualizada;
     }
 
     // Actualizar en ventasDeCajaHistorial

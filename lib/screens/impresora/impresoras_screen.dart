@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/impresora/impresora_form.dart';
 import 'package:pbstation_frontend/services/impresoras_services.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -160,12 +161,11 @@ class ImpresorasCards extends StatelessWidget {
         )
       ) ?? false;
       if (result == true){ 
-        //if (!context.mounted) return;
         if (!context.mounted) return;
-        final navigator = Navigator.of(context);
-        Loading.displaySpinLoading(context);
+        final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+        loadingSvc.show();   
         await Provider.of<ImpresorasServices>(context, listen: false).deleteImpresora(impresora.id!);
-        navigator.pop();
+        loadingSvc.hide();
       }
     }
 

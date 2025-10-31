@@ -6,6 +6,7 @@ import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/mensaje_flotante.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/caja/abrir_caja.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/corte_dialog.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/movimiento_caja_dialog.dart';
@@ -86,7 +87,8 @@ class _CajaScreenState extends State<CajaScreen> {
 
     switch (opcion.keys.first) {
       case 'corte':
-        Loading.displaySpinLoading(context);
+        final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+        loadingSvc.show();
         final cajasSvc = Provider.of<CajasServices>(context, listen: false);
         final cortesLista = widget.readMode ? _cortesHistorial! : cajasSvc.cortesDeCaja;
         final ventasIds = cortesLista
@@ -101,13 +103,11 @@ class _CajaScreenState extends State<CajaScreen> {
           ventasFiltradas = await ventaSvc.loadVentasDeCortes(ventasIds);
         }
         
-        if (mounted) {
-          setState(() {
+        setState(() {
             _ventasParaMostrar = ventasFiltradas;
             _corteSelected = cortesLista.firstWhere((element) => element.id == opcion.values.first);
           });
-          Navigator.pop(context);
-        }
+          loadingSvc.hide();
         break;
 
       case 'users':

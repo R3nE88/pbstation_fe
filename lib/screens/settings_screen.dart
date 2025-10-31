@@ -99,14 +99,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                     ),
                   ],
-                ),                
+                ),
             
                 /*ElevatedButton(
-                  onPressed: (){
-                    final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-                    cajaSvc.eliminarCajaActualSoloDePrueba();
+                  onPressed: () async{
+                    Provider.of<LoadingProvider>(context, listen: false).show();
+                    await Future.delayed(const Duration(seconds: 5));
+                    Provider.of<LoadingProvider>(context, listen: false).hide();
                   }, 
-                  child: const Text('Elimitar Caja Actual')
+                  child: const Text('Probar cosas')
                 ),*/
             
                 Column(
@@ -278,6 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       double tc = double.parse(controller.text.replaceAll('MX\$', '').replaceAll(',', ''));
       bool exito = await config.actualizarPrecioDolar(tc);
       if (exito){
+        if (!context.mounted) return;
         Navigator.pop(context);
       }
     }
@@ -359,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       int iva = int.parse(controller.text.replaceAll(',', ''));
       bool exito = await config.actualizarIva(iva);
       if (exito){
+        if (!context.mounted) return;
         Navigator.pop(context);
       }
     }

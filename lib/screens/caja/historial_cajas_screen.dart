@@ -86,6 +86,7 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
 
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // ignore: avoid_redundant_argument_values
             children: [
           
               /*Tooltip( //TODO: en desarrollo

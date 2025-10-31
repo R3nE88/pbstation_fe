@@ -1,9 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/pedidos/pedidos_dialog.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -28,6 +29,9 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
 
+  // Estado para selección múltiple
+  final Set<String> _pedidosSeleccionados = {};
+
   @override
   void initState() {
     super.initState();
@@ -44,22 +48,78 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
     setState(() => _isFocused = _focusNode.hasFocus);
   }
 
+  void _toggleSeleccion(String pedidoId, bool isCtrlPressed) {
+    setState(() {
+      if (isCtrlPressed) {
+        // Multi-selección con Ctrl
+        if (_pedidosSeleccionados.contains(pedidoId)) {
+          _pedidosSeleccionados.remove(pedidoId);
+        } else {
+          _pedidosSeleccionados.add(pedidoId);
+        }
+      } else {
+        // Selección simple (limpia otras)
+        _pedidosSeleccionados.clear();
+        _pedidosSeleccionados.add(pedidoId);
+      }
+    });
+  }
+
+  void _limpiarSeleccion() {
+    setState(() => _pedidosSeleccionados.clear());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BodyPadding(
       child: Column(
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Produccion',
                 style: AppTheme.tituloClaro,
                 textScaler: TextScaler.linear(1.7),
               ),
-              Text('Pedidos por entregar [hoy|0] [semana|0] [mes|0]')
+              Row(
+                children: [
+                  // Mostrar contador de seleccionados
+                  if (_pedidosSeleccionados.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      margin: const EdgeInsets.only(right: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.green, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${_pedidosSeleccionados.length} seleccionado${_pedidosSeleccionados.length > 1 ? "s" : ""}',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _limpiarSeleccion,
+                            child: const Icon(Icons.close, color: Colors.green, size: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Text('Pedidos por entregar [hoy|0] [semana|0] [mes|0]'),
+                ],
+              ),
             ],
-          ), const SizedBox(height: 15),
+          ),
+          const SizedBox(height: 15),
 
           //Pestañas
           Row(
@@ -86,8 +146,8 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
                         focusNode: _focusNode,
                         value: _valorSeleccionado,
                         
-                        items: opciones.map((opcion) {          // OJO: usa map(), no list()
-                          return DropdownMenuItem<String>(      // AQUÍ era el error
+                        items: opciones.map((opcion) {
+                          return DropdownMenuItem<String>(
                             value: opcion,
                             child: Text(opcion),
                           );
@@ -100,6 +160,7 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
                           setState(() {
                             _valorSeleccionado = nuevo;
                             _focusNode.unfocus();
+                            _pedidosSeleccionados.clear(); // Limpiar selección al cambiar filtro
                           });
                         },
                       ),
@@ -112,14 +173,21 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   PestaniaStatus(selected: selected==Estado.pendiente, estado: Estado.pendiente, onPressed: (){
-                    setState(() {selected=Estado.pendiente;});
+                    setState(() {
+                      selected=Estado.pendiente;
+                      _pedidosSeleccionados.clear(); // Limpiar al cambiar pestaña
+                    });
                   }),
                   PestaniaStatus(selected: selected==Estado.produccion, estado: Estado.produccion, onPressed: (){
-                    setState(() {selected=Estado.produccion;});
+                    setState(() {
+                      selected=Estado.produccion;
+                      _pedidosSeleccionados.clear();
+                    });
                   }),
                   PestaniaStatus(selected: selected==Estado.terminado, estado: Estado.terminado, onPressed: (){
                     setState(() {
-                      selected=Estado.terminado; 
+                      selected=Estado.terminado;
+                      _pedidosSeleccionados.clear();
                     });
                   }),
                 ],
@@ -153,35 +221,28 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
           //body
           Consumer<PedidosService>(
             builder: (context, pedidosSvc, child) {
-              // helper local para comparar solo día/mes/año
               bool isSameDay(DateTime a, DateTime b) =>
                   a.year == b.year && a.month == b.month && a.day == b.day;
 
               final today = DateTime.now();
 
               List<Pedidos> pedidos = pedidosSvc.pedidosReady
-                // 1) primero filtro por estado
                 .where((p) => p.estado == selected)
-                // 2) luego filtro por la opción del dropdown
                 .where((p) {
                   if (_valorSeleccionado == 'Entrega para hoy') {
                     final entrega = DateTime.tryParse(p.fechaEntrega);
-                    if (entrega == null) return false; // si no tiene fecha, lo excluimos
+                    if (entrega == null) return false;
                     return isSameDay(entrega.toLocal(), today);
                   }
-                  // 'Todas las fechas' -> no filtrar por fechaEntrega
                   return true;
                 })
                 .toList();
 
-              // 3) ordenar por fechaEntrega y si empatan por fecha (creación)
               pedidos.sort((a, b) {
                 final aEntrega = DateTime.tryParse(a.fechaEntrega)?.toLocal();
                 final bEntrega = DateTime.tryParse(b.fechaEntrega)?.toLocal();
 
-                // si alguna fechaEntrega es nula la tratamos como "más al final"
                 if (aEntrega == null && bEntrega == null) {
-                  // comparar por fecha creación
                   final aFecha = DateTime.tryParse(a.fecha)?.toLocal();
                   final bFecha = DateTime.tryParse(b.fecha)?.toLocal();
                   if (aFecha == null || bFecha == null) return 0;
@@ -195,7 +256,6 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
                 final cmpEntrega = aEntrega.compareTo(bEntrega);
                 if (cmpEntrega != 0) return cmpEntrega;
 
-                // empate en fechaEntrega -> ordenar por fecha creación
                 final aFecha = DateTime.tryParse(a.fecha)?.toLocal();
                 final bFecha = DateTime.tryParse(b.fecha)?.toLocal();
                 if (aFecha == null || bFecha == null) return 0;
@@ -213,7 +273,15 @@ class _ProduccionScreenState extends State<ProduccionScreen> {
                     child: ListView.builder(
                       itemCount: pedidos.length,
                       itemBuilder: (context, index) {
-                        return FilaPedidos(index: index, pedido: pedidos[index]);
+                        return FilaPedidos(
+                          key: ValueKey(pedidos[index].id),
+                          index: index,
+                          pedido: pedidos[index],
+                          estaSeleccionado: _pedidosSeleccionados.contains(pedidos[index].id),
+                          onSeleccionCambiada: _toggleSeleccion,
+                          pedidosSeleccionados: _pedidosSeleccionados,
+                          onLimpiarSeleccion: _limpiarSeleccion,
+                        );
                       },
                     ),
                   ),
@@ -272,10 +340,22 @@ class PestaniaStatus extends StatelessWidget {
 }
 
 class FilaPedidos extends StatefulWidget {
-  const FilaPedidos({super.key, required this.index, required this.pedido});
+  const FilaPedidos({
+    super.key,
+    required this.index,
+    required this.pedido,
+    required this.estaSeleccionado,
+    required this.onSeleccionCambiada,
+    required this.pedidosSeleccionados,
+    required this.onLimpiarSeleccion,
+  });
 
   final int index;
   final Pedidos pedido;
+  final bool estaSeleccionado;
+  final Function(String, bool) onSeleccionCambiada;
+  final Set<String> pedidosSeleccionados;
+  final VoidCallback onLimpiarSeleccion;
 
   @override
   State<FilaPedidos> createState() => _FilaPedidosState();
@@ -302,16 +382,35 @@ class _FilaPedidosState extends State<FilaPedidos> {
   }
 
   void promoverPedido(BuildContext context) async {
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
     await Provider.of<PedidosService>(context, listen: false).actualizarEstadoPedido(pedidoId: widget.pedido.id!, estado: promover);
-    if (!context.mounted) return;
-    Navigator.pop(context);
+    loadingSvc.hide();
+  }
+
+  void promoverPedidosMultiples(BuildContext context) async {
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();          
+    
+    final pedidosService = Provider.of<PedidosService>(context, listen: false);
+    
+    // Promover todos los seleccionados
+    for (String pedidoId in widget.pedidosSeleccionados) {
+      await pedidosService.actualizarEstadoPedido(
+        pedidoId: pedidoId, 
+        estado: promover
+      );
+    }
+    
+    widget.onLimpiarSeleccion();
+    loadingSvc.hide();
   }
 
   void mostrarMenu(BuildContext context, Offset offset) async {
-    final String? seleccion;
-
-    seleccion = await showMenu(
+    final int cantidadSeleccionados = widget.pedidosSeleccionados.length;
+    final bool esMultiple = cantidadSeleccionados > 1;
+    
+    final String? seleccion = await showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,
@@ -328,42 +427,86 @@ class _FilaPedidosState extends State<FilaPedidos> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.send, color: AppTheme.letraClara, size: 17),
-              promover=='enSucursal' ?
-                const Text('  Enviar a sucursal', style: AppTheme.subtituloPrimario)
-              : Text('  Enviar a $promover', style: AppTheme.subtituloPrimario),
+              Text(
+                esMultiple 
+                  ? '  Enviar $cantidadSeleccionados pedido${cantidadSeleccionados > 1 ? "s" : ""} a $promover'
+                  : promover == 'enSucursal'
+                      ? '  Enviar a sucursal'
+                      : '  Enviar a $promover',
+                style: AppTheme.subtituloPrimario
+              ),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'descargar',
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.download, color: AppTheme.letraClara, size: 17),
-              Text('  Descargar Archivos', style: AppTheme.subtituloPrimario),
+              const Icon(Icons.download, color: AppTheme.letraClara, size: 17),
+              Text(
+                esMultiple
+                  ? '  Descargar archivos ($cantidadSeleccionados)'
+                  : '  Descargar Archivos',
+                style: AppTheme.subtituloPrimario
+              ),
             ],
           ),
         ),
+        if (esMultiple)
+          const PopupMenuItem(
+            value: 'limpiar',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                Text('  Limpiar selección', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
       ],
     );
     
-
     if (seleccion != null) {
       if (seleccion == 'promover') {
         if (!context.mounted) return;
-        promoverPedido(context);
+        if (widget.pedidosSeleccionados.length > 1) {
+          promoverPedidosMultiples(context);
+        } else {
+          promoverPedido(context);
+        }
       } else if (seleccion == 'descargar') {
-        if (!context.mounted)return;
-        showDialog(
-          context: context, 
-          builder: ( _ ) => Stack(
-            alignment: Alignment.topRight,
-            children: [
-              DescargaDialog(pedidoId: widget.pedido.id!),
-              const WindowBar(overlay: true),
-            ],
-          )
-        );
+        if (!context.mounted) return;
+        if (esMultiple) {
+          // Implementar descarga múltiple aquí
+          // Por ahora solo muestra el diálogo del primero
+          for (String pedidoId in widget.pedidosSeleccionados) {
+            showDialog(
+              context: context, 
+              builder: ( _ ) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  DescargaDialog(pedidoId: pedidoId),
+                  const WindowBar(overlay: true),
+                ],
+              )
+            );
+            break; // Solo el primero por ahora
+          }
+        } else {
+          showDialog(
+            context: context, 
+            builder: ( _ ) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                DescargaDialog(pedidoId: widget.pedido.id!),
+                const WindowBar(overlay: true),
+              ],
+            )
+          );
+        }
+      } else if (seleccion == 'limpiar') {
+        widget.onLimpiarSeleccion();
       }
     }
   }
@@ -391,52 +534,85 @@ class _FilaPedidosState extends State<FilaPedidos> {
       default:
     }
 
-    return FeedBackButton(
-      onlyVertical: true,
-      onPressed: (){
-        if (venta==null) return;
-        showDialog(
-          context: context,
-          builder: (_) => Stack(
-            alignment: Alignment.topRight,
-            children: [
-              PedidosDialog(pedido: widget.pedido, ventaId: venta!.id!),
-              const WindowBar(overlay: true),
-            ],
-          ),
-        );
+    return GestureDetector(
+      onTap: () {
+        // Detectar si Ctrl está presionado
+        final isCtrlPressed = HardwareKeyboard.instance.isControlPressed;
+        
+        if (isCtrlPressed) {
+          // Si Ctrl está presionado, solo seleccionar
+          widget.onSeleccionCambiada(widget.pedido.id!, true);
+        } else {
+          // Si no hay Ctrl, abrir el diálogo normal
+          if (venta == null) return;
+          showDialog(
+            context: context,
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                PedidosDialog(pedido: widget.pedido, ventaId: venta!.id!),
+                const WindowBar(overlay: true),
+              ],
+            ),
+          );
+        }
       },
-      child: GestureDetector(
-        onSecondaryTapDown: (details) {
-          mostrarMenu(context, details.globalPosition);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          color: widget.index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-          child: Row(
-            children: [
-              Expanded(flex: 2, child: Center(child: Text('$fechaDia\n$fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
-              Expanded(flex: 2, child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.95)))),
-              Expanded(flex: 3, child: Center(child: Text(sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
-              Expanded(flex: 3, child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
-              Expanded(flex: 3, 
-                child: Center(
-                  child: detalleLoaded ? 
-                    Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85))
-                  : 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 50),
-                      child: LinearProgressIndicator(
-                        color: AppTheme.containerColor1.withAlpha(150),
-                        minHeight: 10,
-                      ),
-                    )
-                )
+      onSecondaryTapDown: (details) {
+        // Si no está en la selección, agrégalo antes de mostrar el menú
+        if (!widget.pedidosSeleccionados.contains(widget.pedido.id)) {
+          widget.onSeleccionCambiada(widget.pedido.id!, false);
+        }
+        mostrarMenu(context, details.globalPosition);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        decoration: BoxDecoration(
+          color: widget.estaSeleccionado
+              ? Colors.green.withValues(alpha: 0.2)
+              : (widget.index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2),
+          border: widget.estaSeleccionado
+              ? Border.all(color: Colors.green, width: 2)
+              : null,
+        ),
+        child: Row(
+          children: [
+            // Indicador visual de selección (barra verde a la izquierda)
+            if (widget.estaSeleccionado)
+              Container(
+                width: 5,
+                height: 50,
+                color: Colors.green,
+                margin: const EdgeInsets.only(right: 5),
               ),
-              Expanded(flex: 3, child: Center(child: Text(widget.pedido.descripcion?.replaceAll('&&', ' - ') ?? '', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
-              Expanded(flex: 2, child: Center(child: Text('$fechaEntregaDia\n$fechaEntrega', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
-            ],
-          ),
+            
+            // Icono de check cuando está seleccionado
+            if (widget.estaSeleccionado)
+              const Padding(
+                padding: EdgeInsets.only(left: 5, right: 5),
+                child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+              ),
+              
+            Expanded(flex: 2, child: Center(child: Text('$fechaDia\n$fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 2, child: Center(child: Text(widget.pedido.folio??'no pude obtener folio', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.95)))),
+            Expanded(flex: 3, child: Center(child: Text(sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 3, child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 3, 
+              child: Center(
+                child: detalleLoaded ? 
+                  Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85))
+                : 
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 50),
+                    child: LinearProgressIndicator(
+                      color: AppTheme.containerColor1.withAlpha(150),
+                      minHeight: 10,
+                    ),
+                  )
+              )
+            ),
+            Expanded(flex: 3, child: Center(child: Text(widget.pedido.descripcion?.replaceAll('&&', ' - ') ?? '', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+            Expanded(flex: 2, child: Center(child: Text('$fechaEntregaDia\n$fechaEntrega', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
+          ],
         ),
       ),
     );

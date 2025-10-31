@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -66,7 +67,8 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();   
 
     String localidad = "${_controllers['ciudad']!.text}, ${_controllers['estado']!.text}, ${_controllers['pais']!.text}";
     
@@ -85,9 +87,9 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
       ? await sucursalesServices.createSucursal(sucursal)
       : await sucursalesServices.updateSucursal(sucursal, widget.sucEdit!.id!);
 
-    if (!mounted) return;
-    Navigator.pop(context);
+    loadingSvc.hide();
 
+    if (!mounted) return;
     if (respuesta == 'exito') {
       Navigator.pop(context);
     } else {

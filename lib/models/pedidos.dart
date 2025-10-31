@@ -83,7 +83,7 @@ class Pedidos {
         'usuario_id': usuarioId,
         'sucursal_id': sucursalId,
         'venta_id': ventaId,
-        "venta_folio": ventaFolio,
+        'venta_folio': ventaFolio,
         'folio': folio,
         'descripcion': descripcion,
         'fecha': fecha,

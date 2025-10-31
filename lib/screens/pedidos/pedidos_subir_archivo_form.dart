@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class PedidosSubirArchivoForm extends StatefulWidget {
@@ -20,7 +20,9 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
   bool uploading = false;
 
   Future<void> seleccionarArchivos() async {
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show(); 
+
     final result = await FilePicker.platform.pickFiles(
       lockParentWindow: true,
       allowMultiple: true,
@@ -31,14 +33,13 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
         _fileSeleccionado = result.paths.map((p) => File(p!)).toList();
       });
     }
+    loadingSvc.hide();
     if (_fileSeleccionado.isEmpty) {
       if (!mounted) return;
       Navigator.pop(context);
-      Navigator.pop(context);
       return;
     }
-    if (!mounted) return;
-    Navigator.pop(context);
+    
     _submit();
   }
 

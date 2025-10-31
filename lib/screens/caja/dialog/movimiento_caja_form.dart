@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:provider/provider.dart';
 
 class MovimientoCajaForm extends StatefulWidget {
@@ -30,7 +30,9 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
 
   void submit() async{
     if (formKey.currentState!.validate()){
-      Loading.displaySpinLoading(context);  
+      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+      loadingSvc.show();
+
       MovimientosCajas movimiento = MovimientosCajas(
         usuarioId: Login.usuarioLogeado.id!, 
         monto:  double.parse(_montoCtrl.text.replaceAll('MX\$', '').replaceAll(',', '')),
@@ -38,10 +40,12 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
         fecha: DateTime.now().toIso8601String(), 
         tipo: widget.isRetiro ? 'retiro' : 'entrada', 
       );
-      final cajaSvc = Provider.of<CajasServices>(context, listen: false);
-      await cajaSvc.agregarMovimiento(movimiento);
+
+      await Provider.of<CajasServices>(context, listen: false).agregarMovimiento(movimiento);
+
+      loadingSvc.hide();
+
       if(!mounted) return;
-      Navigator.pop(context);
       Navigator.pop(context);
     }
   }

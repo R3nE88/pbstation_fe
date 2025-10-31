@@ -4,6 +4,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/usuarios_form.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/usuarios_psw.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -161,10 +162,10 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                     usuario: servicios.filteredUsuarios[index],
                     index: index,
                     onDelete: () async {
-                      Loading.displaySpinLoading(context);
+                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+                      loadingSvc.show();
                       await servicios.deleteUsuario(servicios.filteredUsuarios[index].id!);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      loadingSvc.hide();
                     },
                   ),
                 ),

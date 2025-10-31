@@ -8,6 +8,7 @@ import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/loading_state.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -67,53 +68,66 @@ class _VentaDialogState extends State<VentaDialog> {
             .pedidosReady
             .firstWhere((element) => element.ventaId == widget.venta.id);
       } catch (e) {
-        pedido = null;
+        try {
+          pedido = pedidosSvc
+              .pedidosNotReady
+              .firstWhere((element) => element.ventaId == widget.venta.id);
+        } catch (e) {
+          pedido = null;
+        }
       }
       if (pedido==null) return;
 
       //Solo con pedidos ya en sucursal
-      if (pedido.estado!=Estado.enSucursal) return;
+      //if (pedido.estado!=Estado.enSucursal) return;
 
       //Abrir dialogo y preguntar si entregar
       final bool? continuar = await showDialog(
         context: context, 
         builder: (context) {
-          return AlertDialog(
-            backgroundColor: AppTheme.containerColor2,
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('¿Le entregaste el pedido al cliente?\n', style: AppTheme.subtituloPrimario, textScaler: TextScaler.linear(1.15), textAlign: TextAlign.center),
-                Row(
-                  //mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              AlertDialog(
+                backgroundColor: AppTheme.containerColor2,
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton(
-                      onPressed: ()=>Navigator.pop(context, false), 
-                      child: const Text('No')
-                    ),
-                    ElevatedButton(
-                      onPressed: ()=>Navigator.pop(context, true), 
-                      child: const Text('Si')
+                    const Text('¿Le entregaste el pedido al cliente?\n', style: AppTheme.subtituloPrimario, textScaler: TextScaler.linear(1.15), textAlign: TextAlign.center),
+                    Row(
+                      //mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: ()=>Navigator.pop(context, false), 
+                          child: const Text('No')
+                        ),
+                        ElevatedButton(
+                          onPressed: ()=>Navigator.pop(context, true), 
+                          child: const Text('Si')
+                        )
+                      ],
                     )
                   ],
-                )
-              ],
-            ),
+                ),
+              ),
+              const WindowBar(overlay: true),
+            ],
           );
         },
       ).then((value)=>value==null?value=false:value=value);
 
-      if (continuar==true){
-        //Cambiar estado de pedido a entregado y actualizar venta con pedidoPendiente = false;
+      //Cambiar estado de pedido a entregado y actualizar venta con pedidoPendiente = false;
+      if (continuar==true){ 
+        
         if (!mounted) return;
-        Loading.displaySpinLoading(context);
+        final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+        loadingSvc.show();
+
         await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(widget.venta.folio!);
-        widget.venta.pedidoPendiente = false;
-        if (!mounted) return;
         await pedidosSvc.actualizarEstadoPedido(pedidoId: pedido.id!, estado: 'entregado');
-        if (!mounted) return;
-        Navigator.pop(context);
+
+        loadingSvc.hide();
       }
     }
   }
@@ -578,7 +592,8 @@ class MotivoCancelacion extends StatelessWidget {
 
     void submited() async{ 
       if (!formKey.currentState!.validate()) return;
-      Loading.displaySpinLoading(context);
+      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+      loadingSvc.show();
 
       final ventaSvc = Provider.of<VentasServices>(context, listen: false);
       try {
@@ -586,12 +601,11 @@ class MotivoCancelacion extends StatelessWidget {
         if (!context.mounted) return;
         Navigator.pop(context, true);
         Navigator.pop(context, true);
-        Navigator.pop(context, true);
         callback();
-      } catch (e) {
-        if (!context.mounted) return;
-        Navigator.pop(context, true);
-      }
+      } catch (e) { 
+        debugPrint('$e');
+     }
+      loadingSvc.hide();
     }
 
     return AlertDialog(

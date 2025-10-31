@@ -11,6 +11,7 @@ import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/loading_state.dart';
 import 'package:pbstation_frontend/screens/caja/venta/procesar_pago.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -525,7 +526,8 @@ class _VentaFormState extends State<VentaForm> {
       return;
     }
 
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     Future<void> enviarHelper(List<String>? value) async{
       //Y luego enviar venta!
@@ -550,11 +552,10 @@ class _VentaFormState extends State<VentaForm> {
       final ventaEnviada = Provider.of<VentasEnviadasServices>(context, listen: false);
       await ventaEnviada.enviarVenta(venta);
 
-      if(!mounted) return;
-      Navigator.pop(context);
-
+      loadingSvc.hide();
       widget.rebuild(widget.index);
 
+      if (!mounted) return;
       await showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -685,7 +686,8 @@ class _VentaFormState extends State<VentaForm> {
 
     //Realizar cotizacion///////////////////
     if(!mounted) return;
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     final cotizacionSvc = Provider.of<CotizacionesServices>(context, listen: false);
     final productoSvc = Provider.of<ProductosServices>(context, listen: false);
@@ -713,10 +715,11 @@ class _VentaFormState extends State<VentaForm> {
     
     DateTime lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
     String vigencia = '${lastDayOfMonth.day}/${lastDayOfMonth.month}/${lastDayOfMonth.year}';
+
+    loadingSvc.hide();
     //Realizar cotizacion finalizado ///////////////
 
     if (!mounted) return;
-    Navigator.pop(context);
     
     await showDialog(
       context: context,
@@ -806,7 +809,9 @@ class _VentaFormState extends State<VentaForm> {
 
   Future<void> seleccionarArchivos() async {
     _canFocus = false;
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
+
     final result = await FilePicker.platform.pickFiles(
       lockParentWindow: true,
       allowMultiple: true,
@@ -819,11 +824,7 @@ class _VentaFormState extends State<VentaForm> {
       });
     }
     _canFocus = true;
-    if (_fileSeleccionado.isEmpty) {
-      Navigator.pop(context);
-      return;
-    }
-    Navigator.pop(context);
+    loadingSvc.hide();
   }
 
   @override

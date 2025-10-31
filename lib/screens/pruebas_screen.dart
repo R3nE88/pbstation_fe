@@ -122,6 +122,7 @@ class _PruebasScreenState extends State<PruebasScreen> {
                 if (!mounted) return;
                 
                 if (archivo != null) {
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('✅ Archivos descargados en:\n${archivo.path}'),
@@ -135,6 +136,7 @@ class _PruebasScreenState extends State<PruebasScreen> {
                     ),
                   );
                 } else {
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('❌ Error al descargar archivos')),
                   );

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class ImpresoraForm extends StatelessWidget {
@@ -155,7 +155,8 @@ class ImpresoraForm extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () async{
                       if (!formKey.currentState!.validate()){return;} 
-                      Loading.displaySpinLoading(context);
+                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+                      loadingSvc.show();   
 
                       if(edit==null){ 
                         //AGREGAR
@@ -176,7 +177,6 @@ class ImpresoraForm extends StatelessWidget {
 
                         if (!context.mounted) return;
                         Navigator.pop(context);
-                        Navigator.pop(context);
                       } else { 
                         //MODIFICAR
                         Impresoras impresora = Impresoras( //Actualizar impresora
@@ -190,9 +190,8 @@ class ImpresoraForm extends StatelessWidget {
 
                         if (!context.mounted) return;
                         Navigator.pop(context);
-                        Navigator.pop(context);
-                        //Provider.of<ImpresorasServices>(context, listen: false).loadUltimoContador(impresora.id!);
                       }
+                      loadingSvc.hide();
                     }, 
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -99,7 +100,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     if (_formKey.currentState!.validate() && !_tipoEmpty && !_categoriaEmpty) {
 
       final productosServices = Provider.of<ProductosServices>(context, listen: false);
-      Loading.displaySpinLoading(context);      
+      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+      loadingSvc.show();   
 
       Productos producto = Productos(
         codigo: int.parse(_controllers['clave']!.text),
@@ -119,9 +121,11 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       } else {
         String id = widget.prodEdit!.id!;
         respuesta = await productosServices.updateProducto(producto, id);
-      }      
+      }    
+
+      loadingSvc.hide();
+
       if (!mounted) return;
-      Navigator.pop(context); // Cierra el loading      
       if (!context.mounted) return;
       if (respuesta == 'exito') {
         Navigator.pop(context); // Cierra el formulario o vuelve atrás

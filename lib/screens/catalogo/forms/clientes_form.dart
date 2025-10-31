@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -99,7 +100,8 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final clientesServices = Provider.of<ClientesServices>(context, listen: false);
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     String? localidad;
     if (_controllers['ciudad']!.text.isNotEmpty ||
@@ -147,9 +149,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         ? await clientesServices.createCliente(cliente)
         : await clientesServices.updateCliente(cliente, widget.cliEdit!.id!);
 
-    if (!mounted) return;
-    Navigator.pop(context);
+    loadingSvc.hide();
 
+    if (!mounted) return;
     if (respuesta?.contains('error')??true) {
       showDialog(
         context: context,
@@ -249,7 +251,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     labelText: 'Correo Electronico',
                     readOnly: _onlyRead,
                     maxLength: 30,
-                    validator: (value) => validateRequiredField(value, 'el correo electronico'),
+                    //validator: (value) => validateRequiredField(value, 'el correo electronico'),
                   ),
                 ), const SizedBox(height: 15),
                 const Separador(texto: 'Datos para Facturacion'),

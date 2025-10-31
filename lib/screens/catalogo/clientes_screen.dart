@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/clientes_form.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
@@ -151,10 +152,10 @@ class _ClientesScreenState extends State<ClientesScreen> {
                     cliente: servicios.filteredClientes[index],
                     index: index,
                     onDelete: () async {
-                      Loading.displaySpinLoading(context);
+                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+                      loadingSvc.show();
                       await servicios.deleteCliente(servicios.filteredClientes[index].id!);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      loadingSvc.hide();
                     },
                   ),
                 ),

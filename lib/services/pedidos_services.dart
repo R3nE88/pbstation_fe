@@ -11,7 +11,9 @@ import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/sucursales_services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/widgets/loading.dart';
+import 'package:provider/provider.dart';
+
+import '../provider/provider.dart';
 
 class PedidosService extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}pedidos/';
@@ -357,7 +359,8 @@ class PedidosService extends ChangeNotifier {
   }) async {
     try {
       Directory dirDestino;
-      Loading.displaySpinLoading(context);
+      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+      loadingSvc.show();
       
       if (elegirCarpeta) {
         String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
@@ -368,8 +371,7 @@ class PedidosService extends ChangeNotifier {
         if (selectedDirectory == null) {
           isDownloading = false;
           notifyListeners();
-          if (!context.mounted) return null;
-          Navigator.pop(context);
+          loadingSvc.hide();
           return null;
         }
         
@@ -379,9 +381,7 @@ class PedidosService extends ChangeNotifier {
         dirDestino = Directory('$userProfile\\Downloads');
       }
       
-      if (!context.mounted) return null;
-      Navigator.pop(context);
-
+      loadingSvc.hide();
       isDownloading = true;
       downloadProgress = 0.0;
       notifyListeners();
@@ -429,6 +429,8 @@ class PedidosService extends ChangeNotifier {
       isDownloading = false;
       downloadProgress = 0.0;
       notifyListeners();
+      if (!context.mounted) return null;
+      Provider.of<LoadingProvider>(context, listen: false).hide();
       return null;
     }
   }
@@ -444,11 +446,10 @@ class PedidosService extends ChangeNotifier {
       
 
     try {
-      // 1️⃣ Elegir carpeta de destino
       Directory dirDestino;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Loading.displaySpinLoading(context);
-      });
+      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+      loadingSvc.show();
+
       if (elegirCarpeta) {
         String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
           lockParentWindow: true,
@@ -458,8 +459,7 @@ class PedidosService extends ChangeNotifier {
         if (selectedDirectory == null) {
           isDownloading = false;
           notifyListeners();
-          if (!context.mounted) return null;
-          Navigator.pop(context);
+          loadingSvc.hide();
           return null;
         }
         
@@ -468,9 +468,8 @@ class PedidosService extends ChangeNotifier {
         final userProfile = Platform.environment['USERPROFILE'];
         dirDestino = Directory('$userProfile\\Downloads');
       }
-      if (!context.mounted) return null;
-      Navigator.pop(context);
-
+      
+      loadingSvc.hide();
       notifyListeners();
 
       // 2️⃣ Descargar el ZIP
@@ -529,6 +528,8 @@ class PedidosService extends ChangeNotifier {
       isDownloading = false;
       downloadProgress = 0.0;
       notifyListeners();
+      if (!context.mounted) return null;
+      Provider.of<LoadingProvider>(context, listen: false).hide();
       return null;
     }
   }

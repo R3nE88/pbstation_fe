@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
-import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:pbstation_frontend/widgets/separador.dart';
 import 'package:provider/provider.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
@@ -379,7 +379,8 @@ class _CorteDialogState extends State<CorteDialog> {
 
   void terminarCorte(String comentario) async{
     FocusScope.of(context).unfocus();
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     //Cerrar Corte
     Cortes corte = _corte(comentario);
@@ -418,9 +419,10 @@ class _CorteDialogState extends State<CorteDialog> {
     }
 
     await deleteMemoryCorte();
+
+    loadingSvc.hide();
   
     if (!mounted) return;
-    Navigator.pop(context);
     Navigator.pop(context);
   }
 
@@ -749,7 +751,7 @@ class _CorteDialogState extends State<CorteDialog> {
                 Row(
                   children: [
                     const Text('Tipo de cambio: '),
-                    Text(Formatos.pesos.format(widget.caja.tipoCambio), style: AppTheme.tituloClaro), //TODO: no se si dejar el dolar de config o el de la caja
+                    Text(Formatos.pesos.format(widget.caja.tipoCambio), style: AppTheme.tituloClaro),
                   ],
                 ),
               ],

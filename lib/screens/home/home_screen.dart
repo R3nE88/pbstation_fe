@@ -8,6 +8,7 @@ import 'package:pbstation_frontend/provider/modulos_provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
+import 'package:pbstation_frontend/widgets/loading_overlay.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final double barraHeight = 35;
   late PageController _pageController;
   bool _showScreenInit = false;
+  int _ultimaPaginaNavegada = -1;
+  bool _navegacionEnProgreso = false;
 
   Future<void> esperarParaMostrar() async {
     await Future.delayed(const Duration(milliseconds: 200));
@@ -33,6 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     final modProv = context.read<ModulosProvider>();
     _pageController = PageController(initialPage: modProv.subModuloSeleccionado);
+    _ultimaPaginaNavegada = modProv.subModuloSeleccionado;
+
+    // Escuchar cambios del provider
+    modProv.addListener(_onModuloChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final websocketService = Provider.of<WebSocketService>(
@@ -40,29 +47,45 @@ class _HomeScreenState extends State<HomeScreen> {
         listen: false,
       );
       websocketService.conectar();
-
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(modProv.subModuloSeleccionado);
-      }
     });
 
     esperarParaMostrar();
   }
 
+  void _onModuloChanged() {
+    if (_navegacionEnProgreso) return; // Evitar navegaciones simultáneas
+    
+    final modProv = context.read<ModulosProvider>();
+    final nuevaPagina = modProv.subModuloSeleccionado;
+    
+    // Solo navegar si realmente cambió y el controller está listo
+    if (_pageController.hasClients && 
+        nuevaPagina != _ultimaPaginaNavegada &&
+        nuevaPagina >= 0 &&
+        nuevaPagina < modProv.subModulosActuales.length) {
+      
+      _navegacionEnProgreso = true;
+      _ultimaPaginaNavegada = nuevaPagina;
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(nuevaPagina);
+          _navegacionEnProgreso = false;
+        }
+      });
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final modProv = context.watch<ModulosProvider>();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(modProv.subModuloSeleccionado);
-      }
-    });
+    // Mantener vacío
   }
 
   @override
   void dispose() {
+    final modProv = context.read<ModulosProvider>();
+    modProv.removeListener(_onModuloChanged);
     _pageController.dispose();
     super.dispose();
   }
@@ -82,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final modProv = context.watch<ModulosProvider>();
     final height = MediaQuery.of(context).size.height - barraHeight;
     
-    // Obtener las pantallas de los submódulos actuales
     final subModulos = modProv.subModulosActuales;
     final screens = subModulos.map((sub) => sub.pantalla).toList();
 
@@ -99,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundColor: AppTheme.backgroundColor,
               body: Column(
                 children: [
-                  // Custom Window Bar
                   WindowBar(overlay: false),
 
                   Expanded(
@@ -111,7 +132,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               controller: _pageController,
                               physics: const NeverScrollableScrollPhysics(),
                               onPageChanged: (index) {
-                                modProv.seleccionarSubModulo(index);
+
+                                if (!_navegacionEnProgreso && 
+                                    modProv.subModuloSeleccionado != index) {
+                                  _navegacionEnProgreso = true;
+                                  _ultimaPaginaNavegada = index;
+                                  
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    modProv.seleccionarSubModulo(index);
+                                    _navegacionEnProgreso = false;
+                                  });
+                                }
                               },
                               itemCount: screens.length,
                               itemBuilder: (context, index) {
@@ -140,14 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Left and Right Menus
             SideMenuLeft(),
             SideMenuRight(height: height + 1),
-
             UsuarioOverlay(),
-
-            // Connection Overlay
-            ConnectionOverlay()
+            ConnectionOverlay(),
+            LoadingOverlay()
           ],
         );
       },

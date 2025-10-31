@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
+import 'package:pbstation_frontend/logic/search_fields_estaticos.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/pedidos/pedidos_subir_archivo_form.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -74,28 +77,34 @@ class _PedidosDialogState extends State<PedidosDialog> {
       final bool? continuar = await showDialog(
         context: context, 
         builder: (context) {
-          return AlertDialog(
-            backgroundColor: AppTheme.containerColor2,
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('¿Le entregaste el pedido al cliente?\n', style: AppTheme.subtituloPrimario, textScaler: TextScaler.linear(1.15), textAlign: TextAlign.center),
-                Row(
-                  //mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              AlertDialog(
+                backgroundColor: AppTheme.containerColor2,
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton(
-                      onPressed: ()=>Navigator.pop(context, false), 
-                      child: const Text('No')
-                    ),
-                    ElevatedButton(
-                      onPressed: ()=>Navigator.pop(context, true), 
-                      child: const Text('Si')
+                    const Text('¿Le entregaste el pedido al cliente?\n', style: AppTheme.subtituloPrimario, textScaler: TextScaler.linear(1.15), textAlign: TextAlign.center),
+                    Row(
+                      //mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: ()=>Navigator.pop(context, false), 
+                          child: const Text('No')
+                        ),
+                        ElevatedButton(
+                          onPressed: ()=>Navigator.pop(context, true), 
+                          child: const Text('Si')
+                        )
+                      ],
                     )
                   ],
-                )
-              ],
-            ),
+                ),
+              ),
+              const WindowBar(overlay: true),
+            ],
           );
         },
       ).then((value)=>value==null?value=false:value=value);
@@ -103,16 +112,26 @@ class _PedidosDialogState extends State<PedidosDialog> {
       if (continuar==true){
         //Cambiar estado de pedido a entregado y actualizar venta con pedidoPendiente = false;
         if (!mounted) return;
-        Loading.displaySpinLoading(context);
+        final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+        loadingSvc.show();   
+        
         await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(venta.folio!);
         venta.pedidoPendiente = false;
-        if (!mounted) return;
         await pedidosSvc.actualizarEstadoPedido(pedidoId: widget.pedido.id!, estado: 'entregado');
+
+        loadingSvc.hide();
+
         if (!mounted) return;
-        Navigator.pop(context);
         Navigator.pop(context);
       }
     }
+  }
+
+  void pagarDeuda(Ventas venta){
+    SearchFieldStatics.adeudoSearchText=venta.folio??'';
+    final modProv = context.read<ModulosProvider>();
+    modProv.navegarA(modulo: 'venta', subModulo: 'adeudos');
+    Navigator.pop(context);
   }
 
   @override
@@ -400,30 +419,56 @@ class _PedidosDialogState extends State<PedidosDialog> {
                   text: 'Subir archivos y mandar a produccion',
                 ),
 
-                if (widget.pedido.archivos.isNotEmpty && venta.liquidado)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Transform.scale(
-                        scale: 0.9,
-                        child: Transform.translate(
-                          offset: const Offset(0, 7),
-                          child: ElevatedButton(
-                            onPressed: ()=>marcarComoEntregado(venta),
-                            child: Row(
-                              children: [
-                                const Text('Mercar como entregado'),
-                                Transform.translate(
-                                  offset: const Offset(5, 1.5),
-                                  child: const Icon(Icons.send)
-                                )
-                              ],
+                if (widget.pedido.archivos.isNotEmpty)
+                  if (venta.liquidado)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Transform.scale(
+                          scale: 0.9,
+                          child: Transform.translate(
+                            offset: const Offset(0, 7),
+                            child: ElevatedButton(
+                              onPressed: ()=>marcarComoEntregado(venta),
+                              child: Row(
+                                children: [
+                                  const Text('Entregar a cliente'),
+                                  Transform.translate(
+                                    offset: const Offset(5, 1.5),
+                                    child: const Icon(Icons.send)
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  )
+                      ],
+                    ),
+                    
+                  if (Login.usuarioLogeado.rol==TipoUsuario.vendedor && !venta.liquidado)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Transform.scale(
+                          scale: 0.9,
+                          child: Transform.translate(
+                            offset: const Offset(0, 7),
+                            child: ElevatedButton(
+                              onPressed: ()=>pagarDeuda(venta),
+                              child: Row(
+                                children: [
+                                  const Text('Pagar y entregar a cliente'),
+                                  Transform.translate(
+                                    offset: const Offset(5, 1.5),
+                                    child: const Icon(Icons.send)
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
               ],
             ),
           );

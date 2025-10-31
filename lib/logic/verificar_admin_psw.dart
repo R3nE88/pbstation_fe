@@ -1,9 +1,10 @@
   import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/provider/loading_state.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/custom_error_dialog.dart';
-import 'package:pbstation_frontend/widgets/loading.dart';
 import 'package:pbstation_frontend/widgets/windows_bar.dart';
+import 'package:provider/provider.dart';
 
 Future<bool?> verificarAdminPsw(BuildContext context) {
   final formKey = GlobalKey<FormState>();
@@ -11,18 +12,18 @@ Future<bool?> verificarAdminPsw(BuildContext context) {
 
   Future<void> submited() async{
     if (!formKey.currentState!.validate()) return;
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();
 
     final login = Login();
     bool success = await login.permisoDeAdmin(Login.usuarioLogeado.correo, controller.text);
 
+    loadingSvc.hide();
+
+    if(!context.mounted) return;
     if (success){
-      if(!context.mounted) return;
-      Navigator.pop(context, true);
       Navigator.pop(context, true);
     } else {
-      if(!context.mounted) return;
-      Navigator.pop(context, false);
       showDialog(
         context: context,
         builder: (context) => const Stack(

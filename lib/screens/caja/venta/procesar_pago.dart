@@ -1061,7 +1061,7 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   @override
   Widget build(BuildContext context) { 
     if (finish){
-      return const CircularProgressIndicator();
+      return const Center(child: CircularProgressIndicator());
     }
 
     //si no es deuda

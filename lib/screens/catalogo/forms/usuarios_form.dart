@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
@@ -101,7 +102,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
     }
 
     final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-    Loading.displaySpinLoading(context);
+    final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+    loadingSvc.show();   
 
     final usuario = Usuarios(
       nombre: _controllers['nombre']!.text,
@@ -117,9 +119,9 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
         ? await usuarioSvc.createUsuario(usuario)
         : await usuarioSvc.updateUsuario(usuario, widget.usuEdit!.id!);
 
-    if (!mounted) return;
-    Navigator.pop(context);
+    loadingSvc.hide();
 
+    if (!mounted) return;
     if (respuesta == 'exito') {
       Navigator.pop(context);
     } else {

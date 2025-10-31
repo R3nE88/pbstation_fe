@@ -100,4 +100,37 @@ class ModulosProvider extends ChangeNotifier {
   bool moduloBloqueado(Modulo modulo) {
     return _gestor.moduloBloqueado(modulo);
   }
+
+
+
+  // Navega directamente a un módulo y submódulo específico
+  void navegarA({required String modulo, required String subModulo}) {
+    // Primero seleccionar el módulo
+    if (_moduloSeleccionado != modulo) {
+      _moduloSeleccionado = modulo;
+    }
+    
+    // Luego buscar el índice del submódulo
+    final subModulos = subModulosActuales;
+    final index = subModulos.indexWhere((sub) => sub.nombre == subModulo);
+    
+    if (index != -1 && index != _subModuloSeleccionado) {
+      _subModuloSeleccionado = index;
+    }
+    
+    notifyListeners();
+  }
+
+  // O si prefieres usar índices directamente:
+  void navegarAPorIndice({required String modulo, required int indiceSubModulo}) {
+    if (_moduloSeleccionado != modulo) {
+      _moduloSeleccionado = modulo;
+    }
+    
+    final subModulos = subModulosActuales;
+    if (indiceSubModulo >= 0 && indiceSubModulo < subModulos.length) {
+      _subModuloSeleccionado = indiceSubModulo;
+      notifyListeners();
+    }
+  }
 }

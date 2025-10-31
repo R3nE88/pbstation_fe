@@ -5,6 +5,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/productos_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -152,10 +153,10 @@ class _ProductosScreenState extends State<ProductosScreen> {
                     producto: servicios.filteredProductos[index],
                     index: index,
                     onDelete: () async {
-                      Loading.displaySpinLoading(context);
+                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+                      loadingSvc.show();
                       await servicios.deleteProducto(servicios.filteredProductos[index].id!);
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      loadingSvc.hide();
                     },
                   ),
                 ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 class UsuariosPswForm extends StatefulWidget {
@@ -91,13 +91,15 @@ class _UsuariosPswFormState extends State<UsuariosPswForm> {
                 return;
               }
 
-              Loading.displaySpinLoading(context);
+              final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
+              loadingSvc.show();   
 
               final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
               bool respusta = await usuariosSvc.cambiarPsw(widget.usuarioId, _psw2Ctlr.text);
 
+              loadingSvc.hide();
+
               if(!context.mounted) return;
-              Navigator.pop(context);
               if (respusta){
                 Navigator.pop(context);
               }
