@@ -6,8 +6,8 @@ class Productos {
     this.id,
     required this.codigo,
     required this.descripcion,
-    required this.tipo,
-    required this.categoria,
+    required this.unidadSat,
+    required this.claveSat,
     required this.precio,
     required this.inventariable,
     required this.imprimible,
@@ -18,8 +18,8 @@ class Productos {
   String? id;
   int codigo;
   String descripcion;
-  String tipo;
-  String categoria;
+  String unidadSat;
+  String claveSat;
   Decimal precio;
   bool inventariable;
   bool imprimible;
@@ -33,8 +33,8 @@ class Productos {
     id: json['id']?.toString(),
     codigo: json['codigo'],
     descripcion: json['descripcion'],
-    tipo: json['tipo'].toString(),
-    categoria: json['categoria'].toString(),
+    unidadSat: json['unidad_sat'].toString(),
+    claveSat: json['clave_sat'].toString(),
     precio: Decimal.parse(json['precio']),
     inventariable: json['inventariable'] as bool,
     imprimible: json['imprimible'] as bool,
@@ -46,8 +46,8 @@ class Productos {
     'id': id,
     'codigo': codigo,
     'descripcion': descripcion,
-    'tipo': tipo,
-    'categoria': categoria,
+    'unidad_sat': unidadSat,
+    'clave_sat': claveSat,
     'precio': precio,
     'inventariable': inventariable,
     'imprimible': imprimible,

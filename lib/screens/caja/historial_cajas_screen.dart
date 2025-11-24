@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/caja_screen.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -24,10 +26,17 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
   @override
   void initState() {
     super.initState();
+    String? sucursalId;
+    if (Login.usuarioLogeado.permisos==Permiso.admin || Login.usuarioLogeado.rol == TipoUsuario.administrativo){
+      sucursalId = null;
+    } else {
+      sucursalId = SucursalesServices.sucursalActualID;
+    }
+
     // Cargar primera página cuando se monta el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cajasService = Provider.of<CajasServices>(context, listen: false);
-      cajasService.cargarHistorialCajas();
+      cajasService.cargarHistorialCajas(sucursalId: sucursalId);
     });
 
     // Detectar scroll para cargar más
@@ -84,12 +93,12 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
       child: Column(
         children: [ 
 
-          const Row(
+          /*const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            // ignore: avoid_redundant_argument_values
+
             children: [
           
-              /*Tooltip( //TODO: en desarrollo
+              Tooltip( //TODO: en desarrollo
                 message: 'En desarrollo...',
                 verticalOffset: 10,
                 child: ElevatedButton(
@@ -134,9 +143,9 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
                     ],
                   )
                 ),
-              ),*/
+              ),
             ],
-          ),
+          ),*/
 
           Expanded(
             child: Consumer<CajasServices>(

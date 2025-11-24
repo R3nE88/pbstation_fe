@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
@@ -18,7 +19,7 @@ class PedidosDialog extends StatefulWidget {
   const PedidosDialog({super.key, required this.pedido, required this.ventaId});
 
   final Pedidos pedido;
-  final String ventaId;
+  final String? ventaId;
 
   @override
   State<PedidosDialog> createState() => _PedidosDialogState();
@@ -31,20 +32,39 @@ class _PedidosDialogState extends State<PedidosDialog> {
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.pedido.sucursalId);
   late Color color = widget.pedido.estado.color;
+  late String ventaId = widget.ventaId??'';
 
   void descargarArchivo(String id, String archivo) async{
     final pedidosService = Provider.of<PedidosService>(context, listen: false);
+
+    //seleccionar Path
+    pedidosService.downloadProgress = 0;
+    pedidosService.isDownloading = false;
+    Directory dirDestino;
+    final loadingSvc = Provider.of<LoadingProvider>( context, listen: false );
+    WidgetsBinding.instance.addPostFrameCallback((_) { loadingSvc.show(); });
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      lockParentWindow: true,
+      dialogTitle: 'Selecciona dónde guardar el archivo ZIP',
+    ); loadingSvc.hide();
+    if (selectedDirectory==null) {
+      if (!mounted)return;
+      Navigator.pop(context);
+      return;
+    }
+    dirDestino = Directory(selectedDirectory);    
+
     File? file = await pedidosService.descargarArchivoIndividual(
       pedidoId: id,
       nombreArchivo: archivo,
-      context: context,
+      dirDestino: dirDestino
     );
     if (file!=null){
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Archivos descargados en:\n${file.path}'),
+          content: Text('✅ Archivos descargados en:\n$dirDestino'),
           duration: const Duration(seconds: 5),
           backgroundColor: AppTheme.secundario2,
           behavior: SnackBarBehavior.floating,
@@ -57,8 +77,24 @@ class _PedidosDialogState extends State<PedidosDialog> {
           action: SnackBarAction(
             label: 'Abrir carpeta',
             onPressed: () {
-              Process.run('explorer', [file.parent.path]);
+              Process.run('explorer', [dirDestino.path]);
             },
+          ),
+        ),
+      );
+    } else {
+      if (!mounted)return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Center(child: Text('❌ Error al descargar archivo')),
+          duration: const Duration(seconds: 5),
+          backgroundColor: AppTheme.colorError2.withAlpha(200),
+          behavior: SnackBarBehavior.floating,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          margin: EdgeInsets.only(
+            bottom: MediaQuery.of(context).size.height/2,
+            left: 20,
+            right: 20,
           ),
         ),
       );
@@ -66,8 +102,8 @@ class _PedidosDialogState extends State<PedidosDialog> {
   }
   
   void marcarComoEntregado(Ventas venta) async{
-    //Solo si tiene pedido pendiente
-    if (venta.pedidoPendiente){
+    //Solo si tiene pedido
+    if (venta.hasPedido){
       final pedidosSvc = Provider.of<PedidosService>(context, listen: false);
 
       //Solo con pedidos ya en sucursal, si no esta marcado como en sucursal, se puede forzar con admin password???
@@ -110,13 +146,13 @@ class _PedidosDialogState extends State<PedidosDialog> {
       ).then((value)=>value==null?value=false:value=value);
 
       if (continuar==true){
-        //Cambiar estado de pedido a entregado y actualizar venta con pedidoPendiente = false;
+        //Cambiar estado de pedido a entregado y actualizar venta con hasPedido = false;
         if (!mounted) return;
         final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
         loadingSvc.show();   
         
-        await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(venta.folio!);
-        venta.pedidoPendiente = false;
+        //await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(venta.folio!);
+        venta.hasPedido = false;
         await pedidosSvc.actualizarEstadoPedido(pedidoId: widget.pedido.id!, estado: 'entregado');
 
         loadingSvc.hide();
@@ -134,14 +170,33 @@ class _PedidosDialogState extends State<PedidosDialog> {
     Navigator.pop(context);
   }
 
+  void obtenerVenta() async{
+    final venta = await Provider.of<VentasServices>(context, listen: false).searchVenta(widget.pedido.ventaId);
+    if (venta!=null){
+      setState(() {
+        ventaId = venta.id!;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      obtenerVenta();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (ventaId.isEmpty) return const SimpleLoading();
+
     return AlertDialog(
       backgroundColor: AppTheme.containerColor1,
       content: Selector2<PedidosService, VentasServices, _DialogData>(
         selector: (context, pedidosService, ventasServices) {
           final venta = ventasServices.ventasDePedidos.firstWhere(
-            (element) => element.id == widget.ventaId
+            (element) => element.id == ventaId
           );
           
           return _DialogData(
@@ -235,33 +290,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                         Text(usuario, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
                       ],
                     ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('Pagado: ', style: AppTheme.labelStyle),
-                        Text(
-                          venta.liquidado ?
-                          Formatos.pesos.format(venta.total.toDouble())
-                          :
-                          Formatos.pesos.format(venta.abonadoTotal.toDouble()), 
-                          style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('Cliente: ', style: AppTheme.labelStyle),
-                        Text(cliente, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
-                      ],
-                    ),
                     
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,42 +309,88 @@ class _PedidosDialogState extends State<PedidosDialog> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        const Text('Cliente: ', style: AppTheme.labelStyle),
+                        Text(cliente, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
+                      ],
+                    ),
+
+                    if (!venta.cancelado)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Pagado: ', style: AppTheme.labelStyle),
+                          Text(
+                            venta.liquidado ?
+                            Formatos.pesos.format(venta.total.toDouble())
+                            :
+                            Formatos.pesos.format(venta.abonadoTotal.toDouble()), 
+                            style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)
+                          ),
+                        ],
+                      ),
+                    
+                    
+                  ],
+                ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
                         const Text('Sucursal: ', style: AppTheme.labelStyle),
                         Text(sucursal, style: AppTheme.tituloPrimario, textScaler: const TextScaler.linear(1.15)),
                       ],
                     ),
 
-                    venta.liquidado ? 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: AppTheme.isDarkTheme ? Colors.transparent : const Color.fromARGB(226, 255, 255, 255),
-                            borderRadius: BorderRadius.circular(10)
+                    !venta.cancelado ?
+                      venta.liquidado ? 
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppTheme.isDarkTheme ? Colors.transparent : const Color.fromARGB(226, 255, 255, 255),
+                              borderRadius: BorderRadius.circular(10)
+                            ),
+                            child: Text('Venta liquidada.', style: AppTheme.goodStyle, textScaler: const TextScaler.linear(1.15))
                           ),
-                          child: Text('Venta liquidada.', style: AppTheme.goodStyle, textScaler: const TextScaler.linear(1.15))
-                        ),
-                      ],
-                    )
-                    :
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Restante por pagar: ', style: AppTheme.labelStyle),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: AppTheme.isDarkTheme ? Colors.transparent : const Color.fromARGB(226, 255, 255, 255),
-                            borderRadius: BorderRadius.circular(10)
+                        ],
+                      )
+                      :
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Restante por pagar: ', style: AppTheme.labelStyle),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppTheme.isDarkTheme ? Colors.transparent : const Color.fromARGB(226, 255, 255, 255),
+                              borderRadius: BorderRadius.circular(10)
+                            ),
+                            child: Text(Formatos.pesos.format(venta.total.toDouble() - venta.abonadoTotal.toDouble()), style:AppTheme.warningStyle2, textScaler: const TextScaler.linear(1.15))
                           ),
-                          child: Text(Formatos.pesos.format(venta.total.toDouble() - venta.abonadoTotal.toDouble()), style:AppTheme.warningStyle2, textScaler: const TextScaler.linear(1.15))
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppTheme.isDarkTheme ? Colors.transparent : const Color.fromARGB(226, 255, 255, 255),
+                              borderRadius: BorderRadius.circular(10)
+                            ),
+                            child: Text('Venta y pedido Cancelados', style: AppTheme.warningStyle, textScaler: const TextScaler.linear(1.15))
+                          ),
+                        ],
+                      ),
                   ],
                 ),
 
@@ -369,55 +444,56 @@ class _PedidosDialogState extends State<PedidosDialog> {
 
                 const SizedBox(height: 10),
 
-                widget.pedido.archivos.isNotEmpty
-                ? Wrap(
-                  alignment: WrapAlignment.center,
-                  children: [
-                    const Text('Archivos: ', style: AppTheme.labelStyle),
-                    for (var i = 0; i < widget.pedido.archivos.length; i++)
-                      i == widget.pedido.archivos.length - 1
-                        ? Tooltip(
-                          message: 'descargar',
-                          showDuration: const Duration(seconds: 1),
-                          child: FeedBackButton(
-                            onlyVertical: true,
-                            onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
-                            child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
-                          ),
-                        )
-                        : Wrap(
-                          children: [
-                            Tooltip(
-                              message: 'descargar',
-                              showDuration: const Duration(seconds: 1),
-                              child: FeedBackButton(
-                                onlyVertical: true,
-                                onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
-                                child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
-                              ),
+                if (widget.pedido.fechaEntregado==null)
+                  widget.pedido.archivos.isNotEmpty
+                  ? Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      const Text('Archivos: ', style: AppTheme.labelStyle),
+                      for (var i = 0; i < widget.pedido.archivos.length; i++)
+                        i == widget.pedido.archivos.length - 1
+                          ? Tooltip(
+                            message: 'descargar',
+                            showDuration: const Duration(seconds: 1),
+                            child: FeedBackButton(
+                              onlyVertical: true,
+                              onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
+                              child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
                             ),
-                            const Text(',  '),
+                          )
+                          : Wrap(
+                            children: [
+                              Tooltip(
+                                message: 'descargar',
+                                showDuration: const Duration(seconds: 1),
+                                child: FeedBackButton(
+                                  onlyVertical: true,
+                                  onPressed: () => descargarArchivo(widget.pedido.id!, widget.pedido.archivos[i].nombre),
+                                  child: Text(widget.pedido.archivos[i].nombre, style: AppTheme.tituloPrimario)
+                                ),
+                              ),
+                              const Text(',  '),
+                            ],
+                          )
+                    ],
+                  )
+                  : ElevatedButtonIcon(
+                    onPressed: (){
+                      if(!context.mounted){ return; }
+                      showDialog(
+                        context: context,
+                        builder: (_) => Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            PedidosSubirArchivoForm(pedidoId: widget.pedido.id!),
+                            const WindowBar(overlay: true),
                           ],
-                        )
-                  ],
-                )
-                : ElevatedButtonIcon(
-                  onPressed: (){
-                    if(!context.mounted){ return; }
-                    showDialog(
-                      context: context,
-                      builder: (_) => Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          PedidosSubirArchivoForm(pedidoId: widget.pedido.id!),
-                          const WindowBar(overlay: true),
-                        ],
-                      ),
-                    );
-                  }, 
-                  icon: Icons.upload,
-                  text: 'Subir archivos y mandar a produccion',
-                ),
+                        ),
+                      );
+                    }, 
+                    icon: Icons.upload,
+                    text: 'Subir archivos y mandar a produccion',
+                  ),
 
                 if (widget.pedido.archivos.isNotEmpty)
                   if (venta.liquidado)
@@ -445,7 +521,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
                       ],
                     ),
                     
-                  if (Login.usuarioLogeado.rol==TipoUsuario.vendedor && !venta.liquidado)
+                  if (Login.usuarioLogeado.rol==TipoUsuario.vendedor && !venta.liquidado && widget.pedido.archivos.isNotEmpty)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -485,7 +561,7 @@ class _PedidosDialogState extends State<PedidosDialog> {
           
           //Header
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
@@ -535,18 +611,21 @@ class FilaDetalles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final producto = Provider.of<ProductosServices>(context, listen: false).obtenerProductoPorId(detalle.productoId);
+    String? productoDescripcion;
     String? medida;
-    if (detalle.alto!=null && detalle.ancho!=null){
+    if (producto==null) productoDescripcion = 'problema al obtener producto...';
+    
+    if (producto!.requiereMedida){
       medida = '${detalle.ancho.toString()}m x ${detalle.alto.toString()}m';
     }
-    String productoDescripcion = producto?.descripcion??'problema al obtener producto...';
+    productoDescripcion = producto.descripcion;
     if (medida!=null){
       productoDescripcion += ' ($medida)';
     }
 
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         borderRadius: const BorderRadius.only(

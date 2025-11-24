@@ -8,9 +8,9 @@ class Ventas {
     this.folio,
     required this.clienteId,
     required this.usuarioId,
+    this.usuarioIdCancelo,
     required this.sucursalId,
-    required this.pedidoPendiente,
-    this.fechaEntrega,
+    required this.hasPedido,
     required this.detalles,
     this.fechaVenta,
     this.comentariosVenta,
@@ -33,6 +33,7 @@ class Ventas {
     Decimal? abonadoTotal,
     Decimal? cambio,
     required this.liquidado,
+    this.facturaId,
     bool? wasDeuda,
     bool? cancelado,
     this.motivoCancelacion,
@@ -45,9 +46,9 @@ class Ventas {
   String? folio;
   String clienteId;
   String usuarioId;
+  String? usuarioIdCancelo;
   String sucursalId;
-  bool pedidoPendiente;
-  String? fechaEntrega;
+  bool hasPedido;
   List<DetallesVenta> detalles;
   String? fechaVenta;
   String? comentariosVenta;
@@ -70,9 +71,11 @@ class Ventas {
   Decimal abonadoTotal; 
   Decimal cambio;
   bool liquidado;
+  String? facturaId;
   bool wasDeuda;
   bool cancelado;
   String? motivoCancelacion;
+  
 
   factory Ventas.fromJson(String str) => Ventas.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -82,9 +85,9 @@ class Ventas {
     folio: json['folio'],
     clienteId: json['cliente_id'],
     usuarioId: json['usuario_id'],
+    usuarioIdCancelo: json['usuario_id_cancelo'],
     sucursalId: json['sucursal_id'],
-    pedidoPendiente: json['pedido_pendiente'],
-    fechaEntrega: json['fecha_entrega'],
+    hasPedido: json['has_pedido'],
     detalles: List<DetallesVenta>.from(
       json['detalles'].map((x) => DetallesVenta.fromMap(x as Map<String, dynamic>)),
     ),
@@ -109,9 +112,11 @@ class Ventas {
     abonadoTotal: Decimal.parse(json['abonado_total']), 
     cambio: Decimal.parse(json['cambio']), 
     liquidado: json['liquidado'],
+    facturaId: json['factura_id'],
     wasDeuda: json['was_deuda'],
     cancelado: json['cancelado'] ?? false,
-    motivoCancelacion: json['motivo_cancelacion']
+    motivoCancelacion: json['motivo_cancelacion'],
+    
   );
 
   Map<String, dynamic> toMap() => {
@@ -119,9 +124,9 @@ class Ventas {
     'folio': folio,
     'cliente_id': clienteId,
     'usuario_id': usuarioId,
+    'usuario_id_cancelo': usuarioIdCancelo,
     'sucursal_id': sucursalId,
-    'pedido_pendiente': pedidoPendiente,
-    'fecha_entrega': fechaEntrega,
+    'has_pedido': hasPedido,
     'detalles': detalles.map((d) => d.toMap()).toList(),
     'fecha_venta': fechaVenta,
     'comentarios_venta': comentariosVenta,
@@ -143,9 +148,10 @@ class Ventas {
     'abonado_trans': abonadoTrans,
     'abonado_total': abonadoTotal,
     'cambio': cambio,
-    'liquidado':liquidado,
-    'was_deuda':wasDeuda,
+    'liquidado': liquidado,
+    'factura_id': facturaId,
+    'was_deuda': wasDeuda,
     'cancelado': cancelado,
-    'motivo_cancelacion': motivoCancelacion
+    'motivo_cancelacion': motivoCancelacion,
   };
 }

@@ -109,7 +109,7 @@ class AppTheme{
       : letraOscura;
 
   static Color get colorError => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 228, 15, 0)
+      ? const Color.fromARGB(255, 254, 44, 29)
       : const Color.fromRGBO(235, 16, 0, 1);
 
   static const Color colorError2 = Color.fromARGB(255, 241, 85, 38);
@@ -149,6 +149,12 @@ class AppTheme{
     fontSize: 13,
   );
 
+  static TextStyle get errorStyle2 => TextStyle(
+    color: colorError,
+    fontWeight: FontWeight.bold
+  );
+
+
   static TextStyle get warningStyle => changeThemeInstance?.isDarkTheme == true
     ? const TextStyle(
       color: Color.fromARGB(255, 255, 155, 4),
@@ -163,6 +169,8 @@ class AppTheme{
     color: Color.fromARGB(255, 255, 179, 0), 
     fontWeight: FontWeight.bold
   );
+
+
 
   static const TextStyle labelStyle = TextStyle(
     color: Colors.white70

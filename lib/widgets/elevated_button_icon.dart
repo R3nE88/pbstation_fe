@@ -5,12 +5,14 @@ class ElevatedButtonIcon extends StatelessWidget {
   final String text;
   final IconData icon;
   final VoidCallback onPressed;
+  final double verticalPadding;
 
   const ElevatedButtonIcon({
     super.key,
     required this.text,
     required this.icon,
     required this.onPressed,
+    this.verticalPadding = 8,
   });
 
   @override
@@ -18,7 +20,7 @@ class ElevatedButtonIcon extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: verticalPadding),
         child: Stack(
           alignment: Alignment.centerLeft,
           children: [

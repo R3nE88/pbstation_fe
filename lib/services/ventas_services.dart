@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
@@ -82,6 +83,36 @@ class VentasServices extends ChangeNotifier{
       notifyListeners();
       return null;
     }
+  }
+
+  Future<Ventas?> searchVentaFolio(String folio) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse('${_baseUrl}buscar/$folio');
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final venta = Ventas.fromMap(data);
+        venta.id = data['id']?.toString();
+
+        isLoading = false;
+        notifyListeners();
+        return venta;
+      }
+    }
+    catch(e){
+      isLoading = false;
+      notifyListeners();
+    }
+    isLoading = false;
+    notifyListeners();
+    return null;
   }
 
   Future<void> loadVentasDeCaja() async {
@@ -389,7 +420,7 @@ class VentasServices extends ChangeNotifier{
     isLoading = true;
     
     try {
-      final url = Uri.parse('$_baseUrl$ventaId/cancelar?motivo_cancelacion=$motivo');
+      final url = Uri.parse('$_baseUrl$ventaId/cancelar?motivo_cancelacion=$motivo&usuario_id_cancelo=${Login.usuarioLogeado.id}');
       final resp = await http.patch(
         url,
         headers: {'tkn': Env.tkn},
@@ -420,65 +451,65 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-  Future<List<Ventas>?> marcarVentasEntregadasPorFolio(String folio) async {
-    isLoading = true;
+  // Future<List<Ventas>?> marcarVentasEntregadasPorFolio(String folio) async {
+  //   isLoading = true;
     
-    final connectionId = WebSocketService.connectionId;
-    final headers = {'tkn': Env.tkn};
+  //   final connectionId = WebSocketService.connectionId;
+  //   final headers = {'tkn': Env.tkn};
     
-    // Para notificar a los demás, menos a mi mismo (websocket)
-    if (connectionId != null) {
-      headers['X-Connection-Id'] = connectionId;
-    }
+  //   // Para notificar a los demás, menos a mi mismo (websocket)
+  //   if (connectionId != null) {
+  //     headers['X-Connection-Id'] = connectionId;
+  //   }
     
-    try {
-      final url = Uri.parse('${_baseUrl}marcar-entregada/$folio');
-      final resp = await http.patch(
-        url,
-        headers: headers,
-      );
+  //   try {
+  //     final url = Uri.parse('${_baseUrl}marcar-entregada/$folio');
+  //     final resp = await http.patch(
+  //       url,
+  //       headers: headers,
+  //     );
 
-      if (resp.statusCode == 200) {
-        final List<dynamic> listaJson = json.decode(resp.body);
+  //     if (resp.statusCode == 200) {
+  //       final List<dynamic> listaJson = json.decode(resp.body);
         
-        // Convertir la lista a objetos Ventas
-        final ventasActualizadas = listaJson.map<Ventas>((jsonElem) {
-          final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-          venta.id = (jsonElem as Map)['id']?.toString();
-          return venta;
-        }).toList();
+  //       // Convertir la lista a objetos Ventas
+  //       final ventasActualizadas = listaJson.map<Ventas>((jsonElem) {
+  //         final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+  //         venta.id = (jsonElem as Map)['id']?.toString();
+  //         return venta;
+  //       }).toList();
 
-        // Actualizar cada venta en las listas locales
-        for (var ventaActualizada in ventasActualizadas) {
-          _actualizarVentaEnListas(ventaActualizada);
-        }
+  //       // Actualizar cada venta en las listas locales
+  //       for (var ventaActualizada in ventasActualizadas) {
+  //         _actualizarVentaEnListas(ventaActualizada);
+  //       }
 
-        isLoading = false;
-        notifyListeners();
-        return ventasActualizadas;
-      } else if (resp.statusCode == 400) {
-        debugPrint('Ventas ya entregadas o error: ${resp.body}');
-        isLoading = false;
-        notifyListeners();
-        return null;
-      } else if (resp.statusCode == 404) {
-        debugPrint('No se encontraron ventas con el folio: $folio');
-        isLoading = false;
-        notifyListeners();
-        return null;
-      } else {
-        debugPrint('Error al marcar ventas como entregadas: ${resp.statusCode} ${resp.body}');
-        isLoading = false;
-        notifyListeners();
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Exception en marcarVentasEntregadasPorFolio: $e');
-      isLoading = false;
-      notifyListeners();
-      return null;
-    }
-  }
+  //       isLoading = false;
+  //       notifyListeners();
+  //       return ventasActualizadas;
+  //     } else if (resp.statusCode == 400) {
+  //       debugPrint('Ventas ya entregadas o error: ${resp.body}');
+  //       isLoading = false;
+  //       notifyListeners();
+  //       return null;
+  //     } else if (resp.statusCode == 404) {
+  //       debugPrint('No se encontraron ventas con el folio: $folio');
+  //       isLoading = false;
+  //       notifyListeners();
+  //       return null;
+  //     } else {
+  //       debugPrint('Error al marcar ventas como entregadas: ${resp.statusCode} ${resp.body}');
+  //       isLoading = false;
+  //       notifyListeners();
+  //       return null;
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Exception en marcarVentasEntregadasPorFolio: $e');
+  //     isLoading = false;
+  //     notifyListeners();
+  //     return null;
+  //   }
+  // }
 
   void updateAVenta(String id) async {
     if (!isLoading) {

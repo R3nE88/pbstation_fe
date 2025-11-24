@@ -46,6 +46,36 @@ class CajasServices extends ChangeNotifier{
     notifyListeners();
   }
 
+  Future<Cajas?> searchCajaFolio(String folio) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse('${_baseUrl}buscar/$folio');
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final caja = Cajas.fromMap(data);
+        caja.id = data['id']?.toString();
+
+        isLoading = false;
+        notifyListeners();
+        return caja;
+      }
+    }
+    catch(e){
+      isLoading = false;
+      notifyListeners();
+    }
+    isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
   Future<Cajas?> loadCaja(String id) async {    
     isLoading = true;
     try {

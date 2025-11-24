@@ -36,6 +36,7 @@ class _VentaDialogState extends State<VentaDialog> {
   Pedidos? pedido;
   late Decimal? monto = obtenerMontoPendiente(widget.venta.id!, context);
   double ntc = 0;
+  bool _buscandoPedido = false;
 
   @override
   void initState() {
@@ -47,6 +48,13 @@ class _VentaDialogState extends State<VentaDialog> {
     }
 
     datosIniciales();
+    
+    // Buscar pedido
+    if (widget.venta.hasPedido) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _buscarPedido();
+      });
+    }
   }
 
   void datosIniciales() async{
@@ -54,32 +62,67 @@ class _VentaDialogState extends State<VentaDialog> {
       ntc = widget.tc;
     } else {
       ntc = await Provider.of<CajasServices>(context, listen: false).obtenerTCDeVenta(widget.venta.id!);
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _buscarPedido() async {
+    final pedidosSvc = Provider.of<PedidosService>(context, listen: false);
+    
+    // Verificar si el pedido ya está en memoria
+    try {
+      pedidosSvc.pedidosReady.firstWhere(
+        (element) => element.ventaFolio == widget.venta.folio
+      );
+      return; // Ya está en memoria
+    } catch (e) {
+      try {
+        pedidosSvc.pedidosNotReady.firstWhere(
+          (element) => element.ventaFolio == widget.venta.folio
+        );
+        return; // Ya está en memoria
+      } catch (e) {
+        // No está en memoria, buscar en BD
+        if (_buscandoPedido) return; // Evitar búsquedas duplicadas
+        
+        setState(() {
+          _buscandoPedido = true;
+        });
+
+        try {
+          final pedidoEncontrado = await pedidosSvc.searchPedidoByVentaFolio(widget.venta.folio!);
+          
+          if (pedidoEncontrado != null && mounted) {
+            // El Selector se actualizará automáticamente si el service notifica los cambios
+            setState(() {
+              pedido = pedidoEncontrado;
+              _buscandoPedido = false;
+            });
+          } else {
+            if (mounted) {
+              setState(() {
+                _buscandoPedido = false;
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint('Error al buscar pedido: $e');
+          if (mounted) {
+            setState(() {
+              _buscandoPedido = false;
+            });
+          }
+        }
+      }
     }
   }
 
   void entregarPedido() async{
-    //Solo si tiene pedido pendiente
-    if (widget.venta.pedidoPendiente){
+    //Solo si tiene pedido
+    if (widget.venta.hasPedido){
       final pedidosSvc = Provider.of<PedidosService>(context, listen: false);
-      Pedidos? pedido;
-      try {
-        pedido = pedidosSvc
-            .pedidosReady
-            .firstWhere((element) => element.ventaId == widget.venta.id);
-      } catch (e) {
-        try {
-          pedido = pedidosSvc
-              .pedidosNotReady
-              .firstWhere((element) => element.ventaId == widget.venta.id);
-        } catch (e) {
-          pedido = null;
-        }
-      }
-      if (pedido==null) return;
-
-      //Solo con pedidos ya en sucursal
-      //if (pedido.estado!=Estado.enSucursal) return;
 
       //Abrir dialogo y preguntar si entregar
       final bool? continuar = await showDialog(
@@ -117,21 +160,23 @@ class _VentaDialogState extends State<VentaDialog> {
         },
       ).then((value)=>value==null?value=false:value=value);
 
-      //Cambiar estado de pedido a entregado y actualizar venta con pedidoPendiente = false;
+      //Cambiar estado de pedido a entregado y actualizar venta con hasPedido = false;
       if (continuar==true){ 
         
         if (!mounted) return;
         final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
         loadingSvc.show();
 
-        await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(widget.venta.folio!);
-        await pedidosSvc.actualizarEstadoPedido(pedidoId: pedido.id!, estado: 'entregado');
+        //await Provider.of<VentasServices>(context, listen: false).marcarVentasEntregadasPorFolio(widget.venta.folio!);
+        if (pedido!=null){
+          await pedidosSvc.actualizarEstadoPedido(pedidoId: pedido!.id!, estado: 'entregado');
+        }
+        
 
         loadingSvc.hide();
       }
     }
   }
-
 
   Decimal? obtenerMontoPendiente(String ventaId, context) {
     final clientesService = Provider.of<ClientesServices>(context, listen: false);
@@ -156,7 +201,11 @@ class _VentaDialogState extends State<VentaDialog> {
     return Selector<PedidosService, Pedidos?>(
       selector: (context, pedidosSvc) {
         // Solo retorna el pedido específico de esta venta
-        if (!widget.venta.pedidoPendiente) return null;
+        if (!widget.venta.hasPedido) return null;
+        
+        // Si ya encontramos el pedido en la búsqueda asíncrona, usarlo
+        if (pedido != null) return pedido;
+        
         try {
           return pedidosSvc.pedidosReady.firstWhere(
             (element) => element.ventaFolio == widget.venta.folio
@@ -167,6 +216,7 @@ class _VentaDialogState extends State<VentaDialog> {
               (element) => element.ventaFolio == widget.venta.folio
             );
           } catch (e) {
+            // Si está buscando, retornar null (se mostrará loading en la UI si es necesario)
             return null;
           }
         }
@@ -176,6 +226,7 @@ class _VentaDialogState extends State<VentaDialog> {
         return previous != current;
       },
       builder: (context, pedidoActual, child) {
+        pedido = pedidoActual;
 
         return AlertDialog(
           titlePadding: const EdgeInsets.only(left: 18, right:18, top: 12),
@@ -186,22 +237,23 @@ class _VentaDialogState extends State<VentaDialog> {
             children: [
               const Text('Venta: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.6)),
               SelectableText(widget.venta.folio??'', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.7)),
-              if (widget.venta.pedidoPendiente)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('   Pedido: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.6)),
-                    SelectableText('${pedidoActual?.folio} ', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.7)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
-                      decoration: BoxDecoration(
-                        color:  AppTheme.isDarkTheme ?const Color.fromARGB(62, 0, 0, 0) : const Color.fromARGB(211, 255, 255, 255),
-                        borderRadius: BorderRadius.circular(8)
-                      ),
-                      child: Text(pedidoActual!.estado.name, style: TextStyle(color: pedidoActual.estado.color, fontWeight: FontWeight.bold),textScaler: const TextScaler.linear(0.6))
-                    )
-                  ],
-                ),
+              if (pedidoActual!=null)
+                if (widget.venta.hasPedido)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('   Pedido: ', style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.6)),
+                      SelectableText('${pedidoActual.folio} ', style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.7)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 4),
+                        decoration: BoxDecoration(
+                          color:  AppTheme.isDarkTheme ?const Color.fromARGB(62, 0, 0, 0) : const Color.fromARGB(211, 255, 255, 255),
+                          borderRadius: BorderRadius.circular(8)
+                        ),
+                        child: Text(pedidoActual.estado.name, style: TextStyle(color: pedidoActual.estado.color, fontWeight: FontWeight.bold),textScaler: const TextScaler.linear(0.6))
+                      )
+                    ],
+                  ),
               const Spacer(),
               Text(fechaFormateada, style: AppTheme.tituloClaro, textScaler: const TextScaler.linear(0.6))
             ],
@@ -246,17 +298,19 @@ class _VentaDialogState extends State<VentaDialog> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            widget.venta.liquidado ?  
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal:8, vertical: 2),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: AppTheme.isDarkTheme ? Colors.black26 : Colors.white54,
-                              ),
-                              child: Text( 'Venta pagada', style: AppTheme.goodStyle)
-                            )
-                            : 
-                            const Text( 'Venta con deuda', style: AppTheme.warningStyle2),
+                            !widget.venta.cancelado ? 
+                              widget.venta.liquidado ?  
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal:8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppTheme.isDarkTheme ? Colors.black26 : Colors.white54,
+                                ),
+                                child: Text( 'Venta pagada', style: AppTheme.goodStyle)
+                              )
+                              : 
+                              const Text( 'Venta con deuda', style: AppTheme.warningStyle2)
+                            : Text('Venta cancelada', style: AppTheme.errorStyle2.copyWith(color: AppTheme.colorError.withAlpha(180))),
                           ],
                         ),
                       )
@@ -443,7 +497,7 @@ class _VentaDialogState extends State<VentaDialog> {
                   alignment: WrapAlignment.center,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Text('Venta Cancelada: ', style: TextStyle(color: Color.fromARGB(255, 225, 162, 53), fontWeight: FontWeight.bold)),
+                    const Text('Motivo de cancelacion: ', style:AppTheme.warningStyle2),
                     Text(widget.venta.motivoCancelacion??'', style: AppTheme.warningStyle2, textAlign: TextAlign.justify,),
                   ],
                 ), 
@@ -482,7 +536,7 @@ class _VentaDialogState extends State<VentaDialog> {
                                 builder: (context) => Stack(
                                   alignment: Alignment.topRight,
                                   children: [
-                                    MotivoCancelacion(id: widget.venta.id!, callback: widget.callback),
+                                    MotivoCancelacion(ventaId: widget.venta.id!, callback: widget.callback, pedido: pedido),
                                     const WindowBar(overlay: true),
                                   ],
                                 ),
@@ -530,26 +584,28 @@ class _VentaDialogState extends State<VentaDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    //TODO: boton para cancelar venta tambien cuando es deuda? simplificaria algo la clase por la parte esta de aqui arriba xd                    
 
                     Configuracion.esCaja ?
                     Padding(
                       padding: const EdgeInsets.only(right: 25),
                       child: ElevatedButton(
                         onPressed: (){
+                          
                           // Lógica para pagar
-                          if(!context.mounted){ return; }
+                          if(!context.mounted) return; 
                           showDialog(
                             context: context,
                             builder: (_) => Stack(
                               alignment: Alignment.topRight,
                               children: [
-                                ProcesarPago(
+                                CajasServices.cajaActual==null
+                                ? const CustomErrorDialog(respuesta: 'Necesitas tener la caja abierta para\nregistrar una venta', titulo: 'No puedes continuar')
+                                : ProcesarPago(
                                   venta: widget.venta,
                                   isDeuda: true,
                                   deudaMonto: monto?.toDouble() ?? 0, 
                                   afterProcesar: ({String? ventaId, String? ventaFolio}) => entregarPedido()
-                                ),
+                                  ),
                                 const WindowBar(overlay: true),
                               ],
                             ),
@@ -579,10 +635,11 @@ class _VentaDialogState extends State<VentaDialog> {
 
 class MotivoCancelacion extends StatelessWidget {
   const MotivoCancelacion({
-    super.key, required this.id, required this.callback,
+    super.key, required this.ventaId, required this.callback, this.pedido
   });
 
-  final String id;
+  final String ventaId;
+  final Pedidos? pedido;
   final Function() callback;
 
   @override
@@ -597,7 +654,12 @@ class MotivoCancelacion extends StatelessWidget {
 
       final ventaSvc = Provider.of<VentasServices>(context, listen: false);
       try {
-        await ventaSvc.cancelarVenta(id, controller.text);
+        await ventaSvc.cancelarVenta(ventaId, controller.text);
+        if (pedido!=null){
+          if (!context.mounted) return;
+          await Provider.of<PedidosService>(context, listen: false).cancelarPedido(pedidoId: pedido!.id!);
+        }
+
         if (!context.mounted) return;
         Navigator.pop(context, true);
         Navigator.pop(context, true);
@@ -643,7 +705,7 @@ class MotivoCancelacion extends StatelessWidget {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Por favor ingrese la contraseña';
+                    return 'Por favor ingrese el motivo';
                   }
                   return null;
                 },

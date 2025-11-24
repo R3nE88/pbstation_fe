@@ -35,34 +35,41 @@ class Pedidos {
   String? folio;
   String clienteId;
   String usuarioId;
+  String? usuarioIdEntrego;
   String sucursalId;
   String ventaId;
   String ventaFolio;
   String? descripcion;
   String fecha;
   String fechaEntrega;
+  String? fechaEntregado;
   List<Archivos> archivos;
   Estado estado;
+  bool cancelado;
 
   Pedidos({
     this.id,
     this.folio,
     required this.clienteId,
     required this.usuarioId,
+    this.usuarioIdEntrego,
     required this.sucursalId,
     required this.ventaId,
     required this.ventaFolio,
     this.descripcion,
     required this.fecha,
     required this.fechaEntrega,
+    this.fechaEntregado,
     required this.archivos,
     this.estado = Estado.pendiente,
+    this.cancelado = false,
   });
 
   factory Pedidos.fromMap(Map<String, dynamic> json) => Pedidos(
         id: json['id']?.toString(),
         clienteId: json['cliente_id'],
         usuarioId: json['usuario_id'],
+        usuarioIdEntrego: json['usuario_id_entrego'],
         sucursalId: json['sucursal_id'],
         ventaId: json['venta_id'],
         ventaFolio: json ['venta_folio'],
@@ -70,17 +77,20 @@ class Pedidos {
         descripcion: json['descripcion'],
         fecha: json['fecha'],
         fechaEntrega: json['fecha_entrega'],
+        fechaEntregado: json['fecha_entregado'],
         archivos: (json['archivos'] as List)
             .map((a) => Archivos.fromMap(a))
             .toList(),
         estado: Estado.values.firstWhere(
         (e) => e.name == json['estado']),
+        cancelado: json['cancelado']
       );
 
   Map<String, dynamic> toMap() => {
         'id': id,
         'cliente_id': clienteId,
         'usuario_id': usuarioId,
+        'usuario_id_entrego': usuarioIdEntrego,
         'sucursal_id': sucursalId,
         'venta_id': ventaId,
         'venta_folio': ventaFolio,
@@ -88,8 +98,10 @@ class Pedidos {
         'descripcion': descripcion,
         'fecha': fecha,
         'fecha_entrega': fechaEntrega,
+        'fecha_entregado': fechaEntregado,
         'archivos': archivos.map((a) => a.toMap()).toList(),
         'estado': estado.name,
+        'cancelado': cancelado
       };
 
   factory Pedidos.fromJson(String str) => Pedidos.fromMap(json.decode(str));

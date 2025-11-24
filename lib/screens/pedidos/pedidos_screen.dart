@@ -51,6 +51,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          
           Row(
             children: [
               Text(
@@ -58,12 +59,19 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 style: AppTheme.tituloClaro,
                 textScaler: const TextScaler.linear(1.3), 
               ),
-              helpIcon ? IconButton(
-                onPressed: (){
-                  //TODO Dialog
-                }, 
-                icon: const Icon(Icons.help, color: AppTheme.letraClara,)
-              ) : const SizedBox()
+              if (helpIcon) 
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Transform.translate(
+                    offset: const Offset(5, 0),
+                    child: const Tooltip(
+                      message: 'Aqui se encuentran los pedidos que se mandaron sin archivos',
+                      child: Icon(
+                        Icons.help, color: AppTheme.letraClara
+                      ),
+                    ),
+                  ),
+                )
             ],
           ),
           
@@ -103,7 +111,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
           //Header
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
@@ -161,7 +169,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
 
           //Header
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
@@ -241,10 +249,12 @@ class FilaNotReady extends StatefulWidget {
 }
 
 class _FilaNotReadyState extends State<FilaNotReady> {
-  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
-  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final dateTime = DateTime.parse(widget.pedido.fecha);
+  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(dateTime);
+  late final fechaDia = DateFormat('EEEE', 'es_MX').format(dateTime);
+  late final dateTimeE = DateTime.parse(widget.pedido.fechaEntrega);
+  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(dateTimeE);
+  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(dateTimeE);
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioId);
   late final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.pedido.sucursalId);
@@ -329,10 +339,12 @@ class FilaReady extends StatefulWidget {
 }
 
 class _FilaReadyState extends State<FilaReady> {
-  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fecha));
-  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
-  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(DateTime.parse(widget.pedido.fechaEntrega));
+  late final dateTime = DateTime.parse(widget.pedido.fecha);
+  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(dateTime);
+  late final fechaDia = DateFormat('EEEE', 'es_MX').format(dateTime);
+  late final dateTimeE = DateTime.parse(widget.pedido.fechaEntrega);
+  late final fechaEntrega = DateFormat('d MMM hh:mm a', 'es_MX').format(dateTimeE);
+  late final fechaEntregaDia = DateFormat('EEEE', 'es_MX').format(dateTimeE);
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioId);
   late final String sucursal = Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(widget.pedido.sucursalId);
@@ -397,20 +409,7 @@ class _FilaReadyState extends State<FilaReady> {
             const SizedBox() 
             : Expanded(flex: 2, child: Center(child: Text(sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
             Expanded(flex: 3, child: Center(child: Text(cliente, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, 
-              child: Center(
-                child: detalleLoaded ? 
-                  Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
-                : 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 50),
-                    child: LinearProgressIndicator(
-                      color: AppTheme.containerColor1.withAlpha(150),
-                      minHeight: 10,
-                    ),
-                  )
-              )
-            ),
+            Expanded(flex: 3, child: Center( child: Text(detalleLoaded ? detalles : '...', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.85)))),
             Expanded(flex: 2, child: Center(child: Text('$fechaEntregaDia\n$fechaEntrega', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
           ],
         ),

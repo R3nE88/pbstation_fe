@@ -21,10 +21,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+  // 🎩 TRUCO 1: Habilitar DPI awareness para mejor renderizado
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+  // 🎩 TRUCO 2: Prioridad alta del proceso (opcional, usa con cuidado)
+  // SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+
   flutter::DartProject project(L"data");
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
+
+  // 🚀 TRUCO 3: Habilitar Impeller (nuevo motor de renderizado)
+  command_line_arguments.push_back("--enable-impeller");
+  
+  // 🚀 TRUCO 4: Optimizaciones adicionales
+  // Descomentar según necesites:
+  command_line_arguments.push_back("--enable-software-rendering=false"); // Forzar hardware rendering
+  // command_line_arguments.push_back("--disable-dart-asserts"); // Solo para release
+  command_line_arguments.push_back("--enable-skparagraph"); // Mejor rendimiento de texto
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 

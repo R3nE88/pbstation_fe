@@ -891,7 +891,7 @@ class _TablaHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: AppTheme.tablaColorHeader,
         borderRadius: const BorderRadius.only(
@@ -943,7 +943,7 @@ class _FilaVentas extends StatelessWidget {
     //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
 
     TextStyle estilo;
-    if (venta.liquidado && venta.wasDeuda){
+    if (venta.liquidado && venta.wasDeuda && !venta.cancelado){
       estilo = AppTheme.goodStyle;
     } else if (!venta.liquidado) {
       estilo = AppTheme.warningStyle;
@@ -967,8 +967,10 @@ class _FilaVentas extends StatelessWidget {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
-        color: venta.cancelado ? AppTheme.colorError2.withAlpha(125) : index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        color: venta.cancelado ? 
+          AppTheme.colorError2.withAlpha(index % 2 == 0 ? 130 : 85) 
+        : index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
         child: Row(
           children: [
             Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
@@ -982,7 +984,7 @@ class _FilaVentas extends StatelessWidget {
             !venta.cancelado ?
             Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center))
             :
-            Expanded(flex: 4, child: Text('CANCELADO', style: estilo, textAlign: TextAlign.center)),
+            Expanded(flex: 4, child: Text('CANCELADO', style: estilo.copyWith(fontStyle: FontStyle.italic, fontWeight: FontWeight.w500), textScaler: const TextScaler.linear(0.9), textAlign: TextAlign.center)),
             Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
           ],
         ),

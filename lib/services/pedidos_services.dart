@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
@@ -11,9 +9,6 @@ import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/sucursales_services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:provider/provider.dart';
-
-import '../provider/provider.dart';
 
 class PedidosService extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}pedidos/';
@@ -25,9 +20,16 @@ class PedidosService extends ChangeNotifier {
   List<Pedidos> filteredPedidosReady = [];
   bool isDownloading = false;
   double downloadProgress = 0.0;
+  //historial
+  List<Pedidos> pedidosHistorial = [];
+  PaginacionInfo? paginacionHistorial;
+  bool historialIsLoading = false;
+  String? historialError;
+  String? sucursalFiltroHistorial;
+
 
   void organizar() {
-    // Combinar ambas listas antes de reorganizar
+    // Combinar todas las listas antes de reorganizar
     final todosPedidos = [...pedidosReady, ...pedidosNotReady];
     
     if (Login.usuarioLogeado.rol == TipoUsuario.vendedor && 
@@ -35,34 +37,41 @@ class PedidosService extends ChangeNotifier {
       // Filtrar pedidos por sucursal del vendedor
       final sucursalId = SucursalesServices.sucursalActualID;
       
-      // Filtrar pedidos "en espera" que pertenecen a la sucursal del vendedor
+      // Pedidos "en espera" que pertenecen a la sucursal del vendedor
       pedidosNotReady = todosPedidos
           .where((pedido) => 
               pedido.estado.name == 'enEspera' && 
               pedido.ventaId != 'esperando' &&
-              pedido.sucursalId == sucursalId)
+              pedido.sucursalId == sucursalId &&
+              !(pedido.cancelado))
           .toList();
       
-      // Mantener solo los pedidos que NO están "en espera" y pertenecen a la sucursal del vendedor
+      // Pedidos activos (no en espera, no cancelados, no entregados)
       pedidosReady = todosPedidos
           .where((pedido) => 
               pedido.estado.name != 'enEspera' && 
+              pedido.estado.name != 'entregado' &&
               pedido.ventaId != 'esperando' &&
-              pedido.sucursalId == sucursalId)
+              pedido.sucursalId == sucursalId &&
+              !(pedido.cancelado))
           .toList();
+      
     } else {
-      // Filtrar pedidos "en espera" y moverlos a pedidosNotReady
+      // Pedidos "en espera" (no cancelados)
       pedidosNotReady = todosPedidos
           .where((pedido) => 
               pedido.estado.name == 'enEspera' && 
-              pedido.ventaId != 'esperando')
+              pedido.ventaId != 'esperando' &&
+              !(pedido.cancelado))
           .toList();
       
-      // Mantener solo los pedidos que NO están "en espera" en pedidosReady
+      // Pedidos activos (no en espera, no cancelados, no entregados)
       pedidosReady = todosPedidos
           .where((pedido) => 
               pedido.estado.name != 'enEspera' && 
-              pedido.ventaId != 'esperando')
+              pedido.estado.name != 'entregado' &&
+              pedido.ventaId != 'esperando' &&
+              !(pedido.cancelado))
           .toList();
     }
 
@@ -137,6 +146,46 @@ class PedidosService extends ChangeNotifier {
           print('hubo un problema al cargar el pedido!');
         }
       }
+    }
+  }
+
+  Future<Pedidos?> searchPedidoByVentaFolio(String ventaFolio) async{
+    // Buscar primero en historial
+    if (pedidosHistorial.any((element) => element.ventaFolio == ventaFolio)){
+      return pedidosHistorial.firstWhere((element) => element.ventaFolio == ventaFolio);
+    }
+
+    isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Asumiendo que tu API tiene un endpoint para buscar por ventaFolio
+      final url = Uri.parse('${_baseUrl}by-venta-folio/$ventaFolio');
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final pedido = Pedidos.fromMap(data);
+        pedido.id = data['id']?.toString();
+        pedidosHistorial.add(pedido);
+        
+        isLoading = false;
+        notifyListeners();
+        return pedido;
+      } else {
+        debugPrint('Pedido no encontrado para venta: $ventaFolio - ${resp.statusCode}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en searchPedidoByVentaFolio: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
     }
   }
 
@@ -354,11 +403,11 @@ class PedidosService extends ChangeNotifier {
   Future<File?> descargarArchivoIndividual({
     required String pedidoId,
     required String nombreArchivo,
-    required BuildContext context,
+    required Directory dirDestino,
     bool elegirCarpeta = true,
   }) async {
     try {
-      Directory dirDestino;
+      /*Directory dirDestino;
       final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
       loadingSvc.show();
       
@@ -384,7 +433,7 @@ class PedidosService extends ChangeNotifier {
       loadingSvc.hide();
       isDownloading = true;
       downloadProgress = 0.0;
-      notifyListeners();
+      notifyListeners();*/
 
       final dio = Dio(BaseOptions(
         headers: {'tkn': Env.tkn},
@@ -429,8 +478,8 @@ class PedidosService extends ChangeNotifier {
       isDownloading = false;
       downloadProgress = 0.0;
       notifyListeners();
-      if (!context.mounted) return null;
-      Provider.of<LoadingProvider>(context, listen: false).hide();
+      /*if (!context.mounted) return null;
+      Provider.of<LoadingProvider>(context, listen: false).hide();*/
       return null;
     }
   }
@@ -438,7 +487,7 @@ class PedidosService extends ChangeNotifier {
   /// Descargar todos los archivos de un pedido como ZIP
   Future<File?> descargarArchivosZIP({
     required String pedidoId,
-    required BuildContext context,
+    required Directory dirDestino,
     bool elegirCarpeta = true,
   }) async {
       isDownloading = true;
@@ -446,32 +495,6 @@ class PedidosService extends ChangeNotifier {
       
 
     try {
-      Directory dirDestino;
-      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
-      loadingSvc.show();
-
-      if (elegirCarpeta) {
-        String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-          lockParentWindow: true,
-          dialogTitle: 'Selecciona dónde guardar el archivo ZIP',
-        );
-        
-        if (selectedDirectory == null) {
-          isDownloading = false;
-          notifyListeners();
-          loadingSvc.hide();
-          return null;
-        }
-        
-        dirDestino = Directory(selectedDirectory);
-      } else {
-        final userProfile = Platform.environment['USERPROFILE'];
-        dirDestino = Directory('$userProfile\\Downloads');
-      }
-      
-      loadingSvc.hide();
-      notifyListeners();
-
       // 2️⃣ Descargar el ZIP
       final dio = Dio(BaseOptions(
         headers: {'tkn': Env.tkn},
@@ -528,8 +551,8 @@ class PedidosService extends ChangeNotifier {
       isDownloading = false;
       downloadProgress = 0.0;
       notifyListeners();
-      if (!context.mounted) return null;
-      Provider.of<LoadingProvider>(context, listen: false).hide();
+      /*if (!context.mounted) return null;
+      Provider.of<LoadingProvider>(context, listen: false).hide();*/
       return null;
     }
   }
@@ -551,34 +574,35 @@ class PedidosService extends ChangeNotifier {
 
       final url = Uri.parse('$_baseUrl$pedidoId/estado');
 
+      // Preparar el body
+      final body = <String, String>{'estado': estado};
+      
+      // Agregar usuario_id_entrego solo si el estado es "entregado"
+      if (estado.toLowerCase() == 'entregado') {
+        body['usuario_id_entrego'] = Login.usuarioLogeado.id!;
+      }
+
       final response = await http.patch(
         url,
         headers: headers,
-        body: {'estado': estado},
+        body: body,
       );
 
       if (response.statusCode == 200) {
-        if (estado == 'entregado'){
-          pedidosNotReady.removeWhere((element) => element.id == pedidoId);
-          pedidosReady.removeWhere((element) => element.id == pedidoId);
-          notifyListeners();
-          return true;
-        }
-
         // Actualizar el pedido en la lista local
         final pedidoActualizado = Pedidos.fromJson(response.body);
         
-        // Buscar en pedidosReady
+        // Buscar y actualizar en todas las listas
         int index = pedidosReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosReady[index] = pedidoActualizado;
         }
         
-        // Buscar en pedidosNotReady
         index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosNotReady[index] = pedidoActualizado;
         }
+        
         
         // Reorganizar las listas según el nuevo estado
         organizar();
@@ -590,6 +614,186 @@ class PedidosService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error al actualizar estado: $e');
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> cancelarPedido({
+    required String pedidoId,
+  }) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final connectionId = WebSocketService.connectionId;
+
+      final headers = {
+        'tkn': Env.tkn,
+        if (connectionId != null) 'X-Connection-Id': connectionId,
+      };
+
+      final url = Uri.parse('$_baseUrl$pedidoId/cancelar');
+
+      final response = await http.patch(
+        url,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        // Actualizar el pedido en la lista local
+        final pedidoActualizado = Pedidos.fromJson(response.body);
+        
+        // Buscar y actualizar en todas las listas
+        int index = pedidosReady.indexWhere((p) => p.id == pedidoId);
+        if (index != -1) {
+          pedidosReady[index] = pedidoActualizado;
+        }
+        
+        index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
+        if (index != -1) {
+          pedidosNotReady[index] = pedidoActualizado;
+        }
+        
+        // Reorganizar las listas (moverá el pedido cancelado a historial)
+        organizar();
+        notifyListeners();
+        return true;
+      } else {
+        debugPrint('Error: ${response.statusCode} ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error al cancelar pedido: $e');
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> cargarHistorial({
+    int page = 1,
+    int pageSize = 60,
+    String? sucursalId,
+    bool append = false,
+  }) async {
+    if (historialIsLoading) return;
+
+    historialIsLoading = true;
+    historialError = null;
+    
+    if (!append) {
+      pedidosHistorial = [];
+    }
+    
+    notifyListeners();
+
+    try {
+      // Construir query parameters
+      final queryParams = {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+        if (sucursalId != null && sucursalId.isNotEmpty) 'sucursal_id': sucursalId,
+      };
+
+      final url = Uri.parse('${_baseUrl}historial').replace(queryParameters: queryParams);
+      
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn}
+      );
+
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body);
+             
+        // Parsear los pedidos
+        final List<dynamic> cajasJson = data['data'];
+        final List<Pedidos> nuevasCajas = cajasJson.map((json) {
+          final caja = Pedidos.fromMap(json as Map<String, dynamic>);
+          caja.id = (json as Map)['id']?.toString();
+          return caja;
+        }).toList();
+
+        // Agregar o reemplazar
+        if (append) {
+          pedidosHistorial.addAll(nuevasCajas);
+        } else {
+          pedidosHistorial = nuevasCajas;
+        }
+
+        // Guardar info de paginación
+        paginacionHistorial = PaginacionInfo.fromJson(data['pagination']);
+        sucursalFiltroHistorial = sucursalId;
+      } else {
+        historialError = 'Error al cargar pedidos: ${resp.statusCode}';
+      }
+    } catch (e) {
+      historialError = 'Error: $e';
+      if (kDebugMode) {
+        print('Error en cargarHistorial (pedidos): $e');
+      }
+    } finally {
+      historialIsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> cargarMasHistorial() async {
+    if (paginacionHistorial != null && paginacionHistorial!.hasNext) {
+      await cargarHistorial(
+        page: paginacionHistorial!.page + 1,
+        pageSize: paginacionHistorial!.pageSize,
+        sucursalId: sucursalFiltroHistorial,
+        append: true,
+      );
+    }
+  }
+
+  void cambiarFiltroHistorial(String? sucursalId) {
+    sucursalFiltroHistorial = sucursalId;
+    cargarHistorial(sucursalId: sucursalId);
+  }
+
+  /// Eliminar un pedido permanentemente
+  Future<bool> eliminarPedido({
+    required String pedidoId,
+  }) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final connectionId = WebSocketService.connectionId;
+
+      final headers = {
+        'tkn': Env.tkn,
+        if (connectionId != null) 'X-Connection-Id': connectionId,
+      };
+
+      final url = Uri.parse('$_baseUrl$pedidoId');
+
+      final response = await http.delete(
+        url,
+        headers: headers,
+      );
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        // Eliminar el pedido de todas las listas locales
+        pedidosReady.removeWhere((p) => p.id == pedidoId);
+        pedidosNotReady.removeWhere((p) => p.id == pedidoId);
+        filteredPedidosReady.removeWhere((p) => p.id == pedidoId);
+        pedidosHistorial.removeWhere((p) => p.id == pedidoId);
+        
+        notifyListeners();
+        return true;
+      } else {
+        debugPrint('Error: ${response.statusCode} ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error al eliminar pedido: $e');
       return false;
     } finally {
       isLoading = false;

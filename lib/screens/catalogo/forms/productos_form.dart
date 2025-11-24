@@ -37,10 +37,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   bool _requiereMedida = false;
   bool _inventariable = false;
   bool _imprimible = false;
-  bool _tipoEmpty = false;
-  bool _categoriaEmpty = false;
-  String? _tipoSeleccionado;
-  String? _categoriaSeleccionada;
+  bool _unidadEmpty = false;
+  bool _claveEmpty = false;
+  String? _unidadSeleccionado;
+  String? _claveSeleccionada;
   Decimal _precioSinIva = Decimal.zero;
 
   @override
@@ -61,25 +61,23 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       _requiereMedida = widget.prodEdit!.requiereMedida;
       _inventariable = widget.prodEdit!.inventariable;
       _imprimible = widget.prodEdit!.imprimible;
-      _tipoSeleccionado = widget.prodEdit!.tipo;
-      _categoriaSeleccionada = widget.prodEdit!.categoria;
+      _unidadSeleccionado = widget.prodEdit!.unidadSat;
+      _claveSeleccionada = widget.prodEdit!.claveSat;
     }
 
-    _dropdownItemsTipo = Constantes.tipo.entries.map((entry) {
+    _dropdownItemsTipo = Constantes.unidadesSat.entries.map((entry) {
       return DropdownMenuItem<String>(
         value: entry.key,
         child: Text(entry.value),
       );
     }).toList();
-    _tipoSeleccionado = _dropdownItemsTipo.first.value;
 
-    _dropdownItemsCat = Constantes.categoria.entries.map((entry) {
+    _dropdownItemsCat = Constantes.clavesSat.entries.map((entry) {
       return DropdownMenuItem<String>(
         value: entry.key,
         child: Text(entry.value),
       );
     }).toList();
-    _categoriaSeleccionada = _dropdownItemsCat.first.value;
   }
 
   @override
@@ -94,10 +92,10 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
 
   //METODOS
   Future<void> guardarProducto() async {
-    if (_tipoSeleccionado==null) _tipoEmpty = true;
-    if (_categoriaSeleccionada==null) _categoriaEmpty = true;
-    if (_categoriaEmpty || _tipoEmpty) setState(() {});
-    if (_formKey.currentState!.validate() && !_tipoEmpty && !_categoriaEmpty) {
+    if (_unidadSeleccionado==null) _unidadEmpty = true;
+    if (_claveSeleccionada==null) _claveEmpty = true;
+    if (_claveEmpty || _unidadEmpty) setState(() {});
+    if (_formKey.currentState!.validate() && !_unidadEmpty && !_claveEmpty) {
 
       final productosServices = Provider.of<ProductosServices>(context, listen: false);
       final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
@@ -106,8 +104,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       Productos producto = Productos(
         codigo: int.parse(_controllers['clave']!.text),
         descripcion: _controllers['descripcion']!.text,
-        tipo: _tipoSeleccionado!,
-        categoria: _categoriaSeleccionada!,
+        unidadSat: _unidadSeleccionado!,
+        claveSat: _claveSeleccionada!,
         precio: _precioSinIva,
         requiereMedida: _requiereMedida,
         inventariable: _inventariable,
@@ -228,37 +226,48 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                       ),
                     ),
                   ],
-                ),const SizedBox(height: 10),
+                ), const SizedBox(height: 10),
+
                 Row(
                   children: [
-                    Row(
-                      children: [
-                        CustomDropDown<String>(
-                          isReadOnly: _onlyRead,
-                          value: _tipoSeleccionado,
-                          hintText: 'Tipo',
-                          empty: _tipoEmpty,
-                          items: _dropdownItemsTipo,
-                          onChanged: (val) => setState(() {
-                            _tipoEmpty = false;
-                            _tipoSeleccionado = val!;
-                          }),
-                        ), const SizedBox(width: 10),
-                        CustomDropDown<String>(
-                          isReadOnly: _onlyRead,
-                          value: _categoriaSeleccionada,
-                          hintText: 'Categoría',
-                          empty: _categoriaEmpty,
-                          items: _dropdownItemsCat,
-                          onChanged: (val) => setState(() {
-                            _categoriaEmpty = false;
-                            _categoriaSeleccionada = val!;
-                          })
-                        ),
-                      ],
+                    Expanded(
+                      flex: 2,
+                      child: CustomDropDown<String>(
+                        isReadOnly: _onlyRead,
+                        value: _unidadSeleccionado,
+                        hintText: 'Unidad',
+                        empty: _unidadEmpty,
+                        items: _dropdownItemsTipo,
+                        onChanged: (val) => setState(() {
+                          _unidadEmpty = false;
+                          _unidadSeleccionado = val!;
+                        }),
+                        expanded: true,
+                      ),
                     ), const SizedBox(width: 10),
                     Expanded(
                       flex: 3,
+                      child: CustomDropDown<String>(
+                        isReadOnly: _onlyRead,
+                        value: _claveSeleccionada,
+                        hintText: 'Categoría',
+                        empty: _claveEmpty,
+                        items: _dropdownItemsCat,
+                        onChanged: (val) => setState(() {
+                          _claveEmpty = false;
+                          _claveSeleccionada = val!;
+                        }),
+                        expanded: true,
+                        
+                      ),
+                    ),
+                  ],
+                ), const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
                       child: IgnorePointer(
                         ignoring: _onlyRead,
                         child: Focus(

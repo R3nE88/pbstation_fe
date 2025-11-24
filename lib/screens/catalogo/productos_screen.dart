@@ -125,7 +125,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
         return Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
@@ -137,7 +137,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                 children: [
                   Expanded(child: Text('Codigo', textAlign: TextAlign.center)),
                   Expanded(flex: 2, child: Text('Descripcion', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Tipo', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Unidad', textAlign: TextAlign.center)),
                   Expanded(child: Text('Categoria', textAlign: TextAlign.center)),
                   //Expanded(child: Text('Precio sin Iva', textAlign: TextAlign.center)),
                   Expanded(child: Text('Precio con Iva', textAlign: TextAlign.center)),
@@ -328,14 +328,14 @@ class FilaProducto extends StatelessWidget {
           mostrarMenu(context, details.globalPosition);
         },
         child: Container(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [
               Expanded(child: Text(producto.codigo.toString(), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
               Expanded(flex: 2, child: Text(producto.descripcion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(Constantes.tipo[producto.tipo]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(Constantes.categoria[producto.categoria]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(Constantes.unidadesSat[producto.unidadSat]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(child: Text(Constantes.clavesSat[producto.claveSat]!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
               Expanded(child: Text(Formatos.pesos.format(precioConIva.toDouble()), textScaler: const TextScaler.linear(1.1), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             ],
           ),

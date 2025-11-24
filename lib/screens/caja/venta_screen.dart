@@ -352,7 +352,7 @@ class _VentaScreenState extends State<VentaScreen> {
 
           //Pasar los Datos a VentaForm
           VentasStates.tabs[index].clienteSelected = clientesS.clientes.firstWhere((element) => element.id == venta.clienteId);
-          VentasStates.tabs[index].entregaInmediata = !venta.pedidoPendiente;
+          VentasStates.tabs[index].entregaInmediata = !venta.hasPedido;
           VentasStates.tabs[index].fechaEntrega = venta.fechaEntrega!=null ? DateTime.parse(venta.fechaEntrega!) : null;
           for (var detalle in venta.detalles) {
             VentasStates.tabs[index].productos.add(productosS.productos.firstWhere((element) => element.id == detalle.productoId));
@@ -476,8 +476,11 @@ class Pestania extends StatelessWidget {
           if (!context.mounted) return;
           success = await mostrarDialogoPermiso(context);
           if (success==true){
-            if (!context.mounted) return;
+            if (!context.mounted) return; 
             Provider.of<VentasEnviadasServices>(context, listen: false).eliminarRecibida(VentasStates.tabs[index].fromVentaEnviadaData['id']!, VentasStates.tabs[index].fromVentaEnviadaData['sucursal']!);
+            for (var pedidoId in VentasStates.tabs[index].pedidosIds) {
+              Provider.of<PedidosService>(context, listen: false).eliminarPedido(pedidoId: pedidoId);
+            }
           }
         } else {
           success = true;

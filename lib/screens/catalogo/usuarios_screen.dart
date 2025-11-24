@@ -135,7 +135,7 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
         return Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
@@ -361,7 +361,7 @@ class FilaUsuario extends StatelessWidget {
           mostrarMenu(context, details.globalPosition);
         },
         child: Container(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [

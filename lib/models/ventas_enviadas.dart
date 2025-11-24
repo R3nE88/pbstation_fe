@@ -9,7 +9,7 @@ class VentasEnviadas {
     required this.usuarioId,
     required this.usuarioNombre,
     required this.sucursalId,
-    required this.pedidoPendiente,
+    required this.hasPedido,
     this.fechaEntrega,
     required this.detalles,
     this.comentariosVenta,
@@ -27,7 +27,7 @@ class VentasEnviadas {
   String usuarioId;
   String usuarioNombre;
   String sucursalId;
-  bool pedidoPendiente;
+  bool hasPedido;
   String? fechaEntrega;
   List<DetallesVenta> detalles;
   String? comentariosVenta;
@@ -48,7 +48,7 @@ class VentasEnviadas {
     usuarioId: json['usuario_id'],
     usuarioNombre: json['usuario'],
     sucursalId: json['sucursal_id'],
-    pedidoPendiente: json['pedido_pendiente'],
+    hasPedido: json['has_pedido'],
     fechaEntrega: json['fecha_entrega'],
     detalles: List<DetallesVenta>.from(
       json['detalles'].map((x) => DetallesVenta.fromMap(x as Map<String, dynamic>)),
@@ -69,7 +69,7 @@ class VentasEnviadas {
     'usuario_id': usuarioId,
     'usuario': usuarioNombre,
     'sucursal_id': sucursalId,
-    'pedido_pendiente': pedidoPendiente,
+    'has_pedido': hasPedido,
     'fecha_entrega': fechaEntrega,
     'detalles': detalles.map((d) => d.toMap()).toList(),
     'comentarios_venta': comentariosVenta,
