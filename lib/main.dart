@@ -37,6 +37,7 @@ void main() async {
   final configuracion = Configuracion();
   final impresoraServices = ImpresorasServices();
   final pedidosServices = PedidosService();
+  final facturasServices = FacturasServices();
   final websocketService = WebSocketService(
     productosService, 
     clientesServices, 
@@ -47,7 +48,8 @@ void main() async {
     cotizacionesServices,
     configuracion, 
     impresoraServices,
-    pedidosServices
+    pedidosServices,
+    facturasServices
   );
 
   runApp(
@@ -63,6 +65,7 @@ void main() async {
         ChangeNotifierProvider.value(value: configuracion),
         ChangeNotifierProvider.value(value: impresoraServices),
         ChangeNotifierProvider.value(value: pedidosServices),
+        ChangeNotifierProvider.value(value: facturasServices),
         ChangeNotifierProvider.value(value: websocketService),
         ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),

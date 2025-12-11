@@ -24,7 +24,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
   final _formKey = GlobalKey<FormState>();
   String? _regimenFiscal;
   String _titulo = 'Agregar nuevo Cliente';
-  late final List<DropdownMenuItem<String>> _dropdownItems;
   final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
@@ -68,13 +67,6 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       }
       _regimenFiscal = cliente.regimenFiscal;
     }
-
-    _dropdownItems = Constantes.regimenFiscal.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text('${entry.key} - ${entry.value}'),
-      );
-    }).toList();
   }
 
   @override
@@ -211,7 +203,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
         title: Text(_titulo),
         content: SizedBox(
           width: 600,
@@ -279,14 +271,19 @@ class _ClientesFormState extends State<ClientesFormDialog> {
       
                 Row(
                   children: [
-                    Flexible(
-                      child: CustomDropDown<String>(
+
+                    Expanded(
+                      child: SearchableDropdown(
                         isReadOnly: _onlyRead,
+                        items: Constantes.regimenFiscal,
                         value: _regimenFiscal,
-                        hintText: 'Regimen Fiscal',
-                        expanded: true,
-                        items: _dropdownItems,
-                        onChanged: (val) => setState(() => _regimenFiscal = val!),
+                        showMoreInfo: true,
+                        hint: 'Regimen Fiscal',
+                        onChanged: (value) {
+                          setState(() {
+                            _regimenFiscal = value;
+                          });
+                        },
                       ),
                     ), SizedBox(width: _onlyRead ? 0 : 10),
       

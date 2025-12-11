@@ -971,21 +971,35 @@ class _FilaVentas extends StatelessWidget {
         color: venta.cancelado ? 
           AppTheme.colorError2.withAlpha(index % 2 == 0 ? 130 : 85) 
         : index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-        child: Row(
+        child: Stack(
+          alignment: Alignment.topLeft,
           children: [
-            Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 5, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            !venta.cancelado ?
-            Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center))
-            :
-            Expanded(flex: 4, child: Text('CANCELADO', style: estilo.copyWith(fontStyle: FontStyle.italic, fontWeight: FontWeight.w500), textScaler: const TextScaler.linear(0.9), textAlign: TextAlign.center)),
-            Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            if (venta.facturaId!=null)
+              Transform.translate(
+                offset: const Offset(1, -3),
+                child: Icon(
+                  Icons.receipt, 
+                  size: 15,
+                  color: AppTheme.colorContraste.withAlpha(100),
+                )
+              ),
+            Row(
+              children: [
+                Expanded(flex: 4, child: Text(venta.folio!, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 5, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                !venta.cancelado ?
+                Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.abonadoTotal.toDouble()), style: estilo, textAlign: TextAlign.center))
+                :
+                Expanded(flex: 4, child: Text('CANCELADO', style: estilo.copyWith(fontStyle: FontStyle.italic, fontWeight: FontWeight.w500), textScaler: const TextScaler.linear(0.9), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text(fecha, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              ],
+            ),
           ],
         ),
       ),

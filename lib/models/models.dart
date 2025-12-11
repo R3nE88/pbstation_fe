@@ -16,3 +16,4 @@ export 'package:pbstation_frontend/models/productos.dart';
 export 'package:pbstation_frontend/models/usuarios.dart';
 export 'package:pbstation_frontend/models/adeudos.dart';
 export 'package:pbstation_frontend/models/cfdi.dart';
+export 'package:pbstation_frontend/models/facturas.dart';

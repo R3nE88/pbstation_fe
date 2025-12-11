@@ -25,8 +25,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
   bool _onlyRead = false;
   final _formKey = GlobalKey<FormState>();
   String _titulo = 'Agregar nuevo Usuario';
-  late final List<DropdownMenuItem<String>> _dropdownItemsPermisos;
-  late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
+  late final Map<String, String> _dropdownItemsPermisos;
+  late final Map<String, String> _dropdownItemsTipo;
   final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
@@ -55,23 +55,19 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       _controllers['telefono']!.text = '${usuario.telefono ?? ''}';
     }
 
-    _dropdownItemsPermisos = Permiso.values.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.name,
-        child: Text('Nivel ${capitalizarPrimeraLetra(entry.nivel.toString())} - ${capitalizarPrimeraLetra(entry.name)}'),
-      );
-    }).toList();
-    if (Login.usuarioLogeado.permisos.nivel==2){ //Si no es usuario admin, no puede crear admins
-      _dropdownItemsPermisos.removeWhere((element) => element.value == Permiso.admin.name);
+    //opciones para DropDownButtons
+    _dropdownItemsPermisos = {
+      for (var permiso in Permiso.values)
+        'Nivel ${permiso.nivel}': capitalizarPrimeraLetra(permiso.name)
+    };
+    if (Login.usuarioLogeado.permisos.nivel == 2) {
+      _dropdownItemsPermisos.remove('Nivel ${Permiso.admin.nivel}');
     }
 
-    _dropdownItemsTipo = TipoUsuario.values.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.name,
-        child: Text(capitalizarPrimeraLetra(entry.name)),
-      );
-    }).toList();
-
+    _dropdownItemsTipo = {
+      for (var tipo in TipoUsuario.values)
+        '${tipo.index}': capitalizarPrimeraLetra(tipo.name)
+    };
   }
 
   @override
@@ -182,7 +178,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
         title: Text(_titulo),
         content: SizedBox(
           width: 600,
@@ -191,7 +187,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                //const Separador(texto: 'General'),
+                const Separador(), const SizedBox(height: 15),
+                
                 Row(
                   children: [
                     Expanded(
@@ -228,29 +225,40 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
                       ),
                     ), const SizedBox(width: 15),
 
-                    CustomDropDown<String>(
-                      isReadOnly: _onlyRead,
-                      value: _tipoSeleccionado,
-                      hintText: 'Tipo de usuario ',
-                      empty: _tipoEmpty,
-                      items: _dropdownItemsTipo,
-                      onChanged: (val) => setState(() {
-                        _tipoEmpty = false;
-                        _tipoSeleccionado = val!;
-                      }),
+                    Expanded(
+                      child: SearchableDropdown(
+                        empty: _tipoEmpty,
+                        isReadOnly: _onlyRead,
+                        items: _dropdownItemsTipo,
+                        value: _tipoSeleccionado,
+                        hint: 'Tipo de usuario',
+                        onChanged: (value) {
+                          setState(() {
+                            _tipoEmpty = false;
+                            _tipoSeleccionado = value;
+                          });
+                        },
+                        searchMoreInfo: false,
+                      ),
                     ), const SizedBox(width: 15),
 
-                    CustomDropDown<String>(
-                      isReadOnly: _onlyRead,
-                      value: _permisoSeleccionado,
-                      hintText: 'Permisos  ',
-                      empty: _permisoEmpty,
-                      items: _dropdownItemsPermisos,
-                      onChanged: (val) => setState(() {
-                        _permisoEmpty = false;
-                        _permisoSeleccionado = val!;
-                      }),
+                    Expanded(
+                      child: SearchableDropdown(
+                        empty: _permisoEmpty,
+                        isReadOnly: _onlyRead,
+                        items: _dropdownItemsPermisos,
+                        value: _permisoSeleccionado,
+                        hint: 'Permisos',
+                        onChanged: (value) {
+                          setState(() {
+                            _permisoEmpty = false;
+                            _permisoSeleccionado = value;
+                          });
+                        },
+                        searchMoreInfo: false,
+                      ),
                     ),
+                    
                   ],
                 ), const SizedBox(height: 15),
                 

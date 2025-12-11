@@ -451,6 +451,51 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
+  Future<Ventas?> facturar(String ventaId, String facturaId) async {
+    isLoading = true;
+    notifyListeners();
+    
+    try {
+      final url = Uri.parse('$_baseUrl$ventaId/factura?factura_id=$facturaId');
+      final resp = await http.patch(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        final ventaActualizada = Ventas.fromMap(data);
+        ventaActualizada.id = data['id']?.toString();
+
+        // Actualizar la venta en las listas locales si existe
+        _actualizarVentaEnListas(ventaActualizada);
+
+        isLoading = false;
+        notifyListeners();
+        return ventaActualizada;
+      } else if (resp.statusCode == 404) {
+        debugPrint('Venta no encontrada: $ventaId');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else if (resp.statusCode == 400) {
+        debugPrint('Error de validación: ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      } else {
+        debugPrint('Error al actualizar factura_id: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception en actualizarFacturaVenta: $e');
+      isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
   // Future<List<Ventas>?> marcarVentasEntregadasPorFolio(String folio) async {
   //   isLoading = true;
     

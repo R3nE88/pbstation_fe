@@ -156,18 +156,36 @@ class _IngresarFolioDialogState extends State<IngresarFolioDialog> {
       //es folio de venta
       final Ventas? venta = await Provider.of<VentasServices>(context, listen: false).searchVentaFolio(_ctrl.text);
       if (venta!=null){
-        if (!mounted) return;
-        Navigator.pop(context);
-        showDialog(
-          context: context,
-          builder: (_) => Stack(
-            alignment: Alignment.topRight,
-            children: [
-              FacturarVentaDialog(venta: venta),
-              const WindowBar(overlay: true),
-            ],
-          )
-        );
+
+        //verificar que no este facturado ya
+        if (venta.facturaId!=null){
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (_) => const Stack(
+              alignment: Alignment.topRight,
+              children: [
+                CustomErrorDialog(titulo: 'No valido para facturar', respuesta: 'Esta venta ya se encuentra facturada',),
+                WindowBar(overlay: true),
+              ],
+            )
+          );
+          setState(() {isLoading = false;});
+          
+        } else {
+          if (!mounted) return;
+          Navigator.pop(context);
+          showDialog(
+            context: context,
+            builder: (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                FacturarVentaDialog(venta: venta),
+                const WindowBar(overlay: true),
+              ],
+            )
+          );
+        }
       } else {
         setState(() {
           color = Colors.red;

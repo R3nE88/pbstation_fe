@@ -24,8 +24,6 @@ class ProductoFormDialog extends StatefulWidget {
 class _ProductoFormDialogState extends State<ProductoFormDialog> {
   bool _onlyRead = false;
   String _titulo = 'Agregar nuevo Producto';
-  late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
-  late final List<DropdownMenuItem<String>> _dropdownItemsCat;
   final _formKey = GlobalKey<FormState>();
   final Map<String, TextEditingController> _controllers = {
     'clave': TextEditingController(),
@@ -39,6 +37,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   bool _imprimible = false;
   bool _unidadEmpty = false;
   bool _claveEmpty = false;
+  bool _valorImpresionError = false;
   String? _unidadSeleccionado;
   String? _claveSeleccionada;
   Decimal _precioSinIva = Decimal.zero;
@@ -48,7 +47,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     super.initState();
     if (widget.prodEdit != null) {
       _onlyRead = widget.onlyRead ?? false;
-      _titulo = _onlyRead ? 'Datos del Cliente' : 'Editar Cliente';
+      _titulo = _onlyRead ? 'Datos del Producto' : 'Editar Producto';
 
       final producto = widget.prodEdit!;
       _controllers['clave']!.text = producto.codigo.toString();
@@ -64,20 +63,6 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
       _unidadSeleccionado = widget.prodEdit!.unidadSat;
       _claveSeleccionada = widget.prodEdit!.claveSat;
     }
-
-    _dropdownItemsTipo = Constantes.unidadesSat.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text(entry.value),
-      );
-    }).toList();
-
-    _dropdownItemsCat = Constantes.clavesSat.entries.map((entry) {
-      return DropdownMenuItem<String>(
-        value: entry.key,
-        child: Text(entry.value),
-      );
-    }).toList();
   }
 
   @override
@@ -94,8 +79,9 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
   Future<void> guardarProducto() async {
     if (_unidadSeleccionado==null) _unidadEmpty = true;
     if (_claveSeleccionada==null) _claveEmpty = true;
-    if (_claveEmpty || _unidadEmpty) setState(() {});
-    if (_formKey.currentState!.validate() && !_unidadEmpty && !_claveEmpty) {
+    if (_imprimible && _controllers['valor_impresion']!.text.isEmpty) _valorImpresionError = true;
+    if (_claveEmpty || _unidadEmpty || _valorImpresionError) setState(() {});
+    if (_formKey.currentState!.validate() && !_unidadEmpty && !_claveEmpty && !_valorImpresionError) {
 
       final productosServices = Provider.of<ProductosServices>(context, listen: false);
       final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
@@ -176,7 +162,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -191,7 +177,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Separador(texto: 'General'), 
+                const Separador(), const SizedBox(height: 15),
+
                 Row(
                   children: [
                     SizedBox(
@@ -232,35 +219,38 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                   children: [
                     Expanded(
                       flex: 2,
-                      child: CustomDropDown<String>(
-                        isReadOnly: _onlyRead,
-                        value: _unidadSeleccionado,
-                        hintText: 'Unidad',
+                      child: SearchableDropdown(
                         empty: _unidadEmpty,
-                        items: _dropdownItemsTipo,
-                        onChanged: (val) => setState(() {
-                          _unidadEmpty = false;
-                          _unidadSeleccionado = val!;
-                        }),
-                        expanded: true,
+                        isReadOnly: _onlyRead,
+                        items: Constantes.unidadesSat,
+                        value: _unidadSeleccionado,
+                        hint: 'Seleccione la unidad',
+                        onChanged: (value) {
+                          setState(() {
+                            _unidadEmpty = false;
+                            _unidadSeleccionado = value;
+                          });
+                        },
                       ),
                     ), const SizedBox(width: 10),
+
                     Expanded(
                       flex: 3,
-                      child: CustomDropDown<String>(
-                        isReadOnly: _onlyRead,
-                        value: _claveSeleccionada,
-                        hintText: 'Categoría',
+                      child: SearchableDropdown(
                         empty: _claveEmpty,
-                        items: _dropdownItemsCat,
-                        onChanged: (val) => setState(() {
-                          _claveEmpty = false;
-                          _claveSeleccionada = val!;
-                        }),
-                        expanded: true,
-                        
+                        isReadOnly: _onlyRead,
+                        items: Constantes.clavesSat,
+                        value: _claveSeleccionada,
+                        showMoreInfo: true,
+                        hint: 'Selecciona una clave SAT (Categoria)',
+                        onChanged: (value) {
+                          setState(() {
+                            _claveEmpty = false;
+                            _claveSeleccionada = value;
+                          });
+                        },
                       ),
-                    ),
+                    )
                   ],
                 ), const SizedBox(height: 10),
 
@@ -323,8 +313,8 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                const Separador(texto: 'Caracteristicas'), 
+                const SizedBox(height: 5),
+                
                 IgnorePointer(
                   ignoring: _onlyRead,
                   child: Row(
@@ -344,6 +334,27 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     ],
                   ),
                 ),
+
+                IgnorePointer(
+                  ignoring: _onlyRead,
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        focusColor: AppTheme.focusColor,
+                        value: _inventariable,
+                        onChanged: (value) {
+                          if (_onlyRead==false){
+                            setState(() {
+                              _inventariable = value ?? false;
+                            });
+                          }
+                        }
+                      ),
+                      const Text('Inventariable   '),
+                    ],
+                  ),
+                ),
+
                 IgnorePointer(
                   ignoring: _onlyRead,
                   child: Row(
@@ -353,39 +364,30 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         children: [
                           Checkbox(
                             focusColor: AppTheme.focusColor,
-                            value: _inventariable,
-                            onChanged: (value) {
-                              if (_onlyRead==false){
-                                setState(() {
-                                  _inventariable = value ?? false;
-                                });
-                              }
-                            }
-                          ),
-                          const Text('Inventariable   '),
-                        ],
-                      ), 
-                      Row(
-                        children: [
-                          Checkbox(
-                            focusColor: AppTheme.focusColor,
                             value: _imprimible,
                             onChanged: (value) {
                               if (_onlyRead==false){
                                 setState(() {
                                   _imprimible = value ?? false;
+                                  if (value==false && _valorImpresionError){
+                                    _valorImpresionError = false;
+                                  }
+                                  if (value==false){
+                                    _controllers['valor_impresion']!.clear();
+                                  }
                                 });
                               }
                             }
                           ),
                           const Text('Contar como impresion  '),
                           SizedBox(
-                            width: 110,
+                            width: 40,
                             child: TextFormField(
                               controller: _controllers['valor_impresion']!,
                               keyboardType: TextInputType.number,
                               inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
                               readOnly: _imprimible==false?true : _onlyRead, //si esta marcado el checkbox habilitar
+                              canRequestFocus: _imprimible,
                               buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                               maxLength: 3,
                               textAlign: TextAlign.center,
@@ -395,38 +397,45 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                                 contentPadding: EdgeInsets.zero,
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
-                                  borderSide: const BorderSide(color: AppTheme.letraClara),
+                                  borderSide: BorderSide(color: _valorImpresionError ? AppTheme.colorError :AppTheme.letraClara),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
-                                  borderSide: const BorderSide(color: AppTheme.letraClara),
+                                  borderSide: BorderSide(color: _valorImpresionError ? AppTheme.colorError :AppTheme.letraClara),
                                 ),
                               ),
-                              validator: (value) {
-                                if (_imprimible && (value == null || value.isEmpty)) {
-                                  return 'valor de impresion';
+                              onChanged: (value) {
+                                if (value.isNotEmpty && _valorImpresionError){
+                                  setState(() { _valorImpresionError = false; });
                                 }
-                                return null;
                               },
-                              autovalidateMode: AutovalidateMode.onUserInteraction,
                             ),
                           ),
+                          if (_valorImpresionError)
+                            Text('  Valor de impresion', style: AppTheme.errorStyle)
                         ],
                       ),
+                    
+                      !_onlyRead ? ElevatedButton(
+                        onPressed: () async => guardarProducto(),
+                        style: AppTheme.botonGuardar,
+                        child: const Text('Guardar Producto')
+                      ) : const SizedBox(),
                     ],
                   ),
-                ),          
+                ),
+
               ],
             ),
           ),
         ),
-        actions: [
+        /*actions: [
           !_onlyRead ? ElevatedButton(
             onPressed: () async => guardarProducto(),
             style: AppTheme.botonGuardar,
             child: const Text('Guardar Producto')
           ) : const SizedBox(),
-        ],
+        ],*/
       ),
     );
   }

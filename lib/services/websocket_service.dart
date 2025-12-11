@@ -20,7 +20,8 @@ class WebSocketService with ChangeNotifier {
     CotizacionesServices cotizacionesServices,
     Configuracion configuracion,
     ImpresorasServices impresoraService,
-    PedidosService pedidosServices
+    PedidosService pedidosServices,
+    FacturasServices facturasServices,
   ) {
     _instance._productoSvc     = productosService;
     _instance._clienteSvc      = clientesService;
@@ -32,6 +33,7 @@ class WebSocketService with ChangeNotifier {
     _instance._config          = configuracion;
     _instance._impresoraSvc    = impresoraService;
     _instance._pedidosSvc      = pedidosServices;
+    _instance._facturasSvc     = facturasServices;
 
     _instance._setupHandlers();
     return _instance;
@@ -59,6 +61,7 @@ class WebSocketService with ChangeNotifier {
   late Configuracion _config;
   late ImpresorasServices _impresoraSvc;
   late PedidosService _pedidosSvc;
+  late FacturasServices _facturasSvc;
 
   final Map<String, void Function(String)> _handlers = {};
 
@@ -115,6 +118,7 @@ class WebSocketService with ChangeNotifier {
         'delete-venta-deuda':(id) => _ventaSvc.removeAVentaDeuda(id), 
         'post-pedido':       (id) => _pedidosSvc.loadAPedido(id),
         'update-pedido':     (id) => _pedidosSvc.loadPedidos(force: true),
+        'post_factura':      (id) => print('post_factura'),
         'ventaenviada':      (id) {
           if (id == SucursalesServices.sucursalActualID){
             _ventaEnviadasSvc.recibirVenta();

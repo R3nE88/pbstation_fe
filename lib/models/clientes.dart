@@ -18,6 +18,8 @@ class Clientes {
     this.colonia,
     this.localidad,
     required this.adeudos,
+    this.protegido = false,
+    this.activo = true,
   });
 
   String? id; 
@@ -34,6 +36,8 @@ class Clientes {
   String? colonia;
   String? localidad;
   List<Adeudos> adeudos;
+  bool protegido;
+  bool activo;
 
   factory Clientes.fromJson(String str) => Clientes.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
@@ -55,6 +59,8 @@ class Clientes {
     adeudos: List<Adeudos>.from(
       json['adeudos'].map((x) => Adeudos.fromMap(x as Map<String, dynamic>)),
     ),
+    protegido: json['protegido'],
+    activo: json['activo']
   );
 
   Map<String, dynamic> toMap() => {
@@ -72,5 +78,7 @@ class Clientes {
     'colonia':colonia,
     'localidad':localidad,
     'adeudos': adeudos.map((d) => d.toMap()).toList(),
+    'protegido': protegido,
+    'activo': activo
   };
 }

@@ -218,7 +218,7 @@ class FilaCliente extends StatelessWidget {
           elevation: 2,
           items: [
             const PopupMenuItem(
-              value: 'leer',
+              value: 'leer',  
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -227,26 +227,28 @@ class FilaCliente extends StatelessWidget {
                 ],
               ),
             ),
-            const PopupMenuItem(
-              value: 'editar',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
-                  Text('  Editar', style: AppTheme.subtituloPrimario),
-                ],
+            if (!cliente.protegido)
+              const PopupMenuItem(
+                value: 'editar',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+                    Text('  Editar', style: AppTheme.subtituloPrimario),
+                  ],
+                ),
               ),
-            ),
-            const PopupMenuItem(
-              value: 'eliminar',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
-                  Text('  Eliminar', style: AppTheme.subtituloPrimario),
-                ],
+            if (!cliente.protegido)
+              const PopupMenuItem(
+                value: 'eliminar',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+                    Text('  Eliminar', style: AppTheme.subtituloPrimario),
+                  ],
+                ),
               ),
-            ),
           ],
         );
       } else {
@@ -301,6 +303,7 @@ class FilaCliente extends StatelessWidget {
                 alignment: Alignment.topRight,
                 children: [
                   ClientesFormDialog(cliEdit: cliente),
+                  const WindowBar(overlay: true),
                 ],
               ),
             );

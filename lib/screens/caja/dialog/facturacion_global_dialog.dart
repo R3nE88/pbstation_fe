@@ -13,7 +13,7 @@ class FacturaGlobalDialog extends StatelessWidget {
       elevation: 2,
       backgroundColor: AppTheme.containerColor1,
       content: const Column(
-        mainAxisSize: MainAxisSize.min
+        mainAxisSize: MainAxisSize.min,
       )
     );
   }

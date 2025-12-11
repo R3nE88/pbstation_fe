@@ -158,7 +158,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
         title: Text(_titulo),
         content: SizedBox(
           width: 550,
@@ -167,7 +167,8 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Separador(texto: 'General'),
+                const Separador(), const SizedBox(height: 15),
+                
                 Row(
                   children: [
                     Expanded(

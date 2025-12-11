@@ -22,9 +22,14 @@ class CustomErrorDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Center(child: Text('Regresar'))
+        Center(
+          child: SizedBox(
+            width: 120,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Center(child: Text('Regresar'))
+            ),
+          ),
         )
       ],
     );
