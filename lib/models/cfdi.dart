@@ -57,6 +57,7 @@ class CfdiItem {
   final double quantity;
   final double unitPrice;
   final double subtotal;
+  final double discount;
   final String taxObject;
   final List<CfdiTax> taxes;
   final double total;
@@ -69,6 +70,7 @@ class CfdiItem {
     required this.quantity,
     required this.unitPrice,
     required this.subtotal,
+    required this.discount,
     required this.taxObject,
     required this.taxes,
     required this.total,
@@ -82,6 +84,7 @@ class CfdiItem {
         'Quantity': quantity,
         'UnitPrice': unitPrice,
         'Subtotal': subtotal,
+        'discount': discount,
         'TaxObject': taxObject,
         'Taxes': taxes.map((x) => x.toJson()).toList(),
         'Total': total,

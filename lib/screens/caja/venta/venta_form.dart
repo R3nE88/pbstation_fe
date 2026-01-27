@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:decimal/decimal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -83,6 +84,8 @@ class _VentaFormState extends State<VentaForm> {
   late Map<String, String> _fromVentaEnviadaData;
   late List<String> _pedidosIds;
 
+  final List<DateTime> _dates = [];
+
   @override
   void initState() {
     super.initState();
@@ -135,20 +138,14 @@ class _VentaFormState extends State<VentaForm> {
     };
     HardwareKeyboard.instance.addHandler(_keyHandler);
 
-    _botonFocus.onKey = (FocusNode node, RawKeyEvent event) {
-      if (event is RawKeyDownEvent) {
+    _botonFocus.onKeyEvent = (FocusNode node, KeyEvent event) {
+      if (event is KeyDownEvent){
         if (event.logicalKey == LogicalKeyboardKey.tab) {
           _tabPressed = true;
         }
       }
-      return KeyEventResult.ignored; // permite la navegación normal
+      return KeyEventResult.ignored;
     };
-
-    /*if (_fromVentaEnviada){
-      _canFocus = false;
-    } else {
-      _canFocus = true;
-    }*/
   }
 
   @override
@@ -168,7 +165,7 @@ class _VentaFormState extends State<VentaForm> {
     return Decimal.parse(entrada.replaceAll('MX\$', '').replaceAll(',', '')); 
   }
 
-  void calcularSubtotal(){
+  void calcularTotalDetalle(){
     if (_productoSelected== null) { return; }
 
     Decimal precio = _productoSelected!.precio;
@@ -182,9 +179,9 @@ class _VentaFormState extends State<VentaForm> {
     CalculosDinero calcular = CalculosDinero();
     late final Map<String, dynamic> resultado;
     if (_productoSelected?.requiereMedida == true && _anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
-       resultado = calcular.calcularSubtotalConMedida(precio, cantidad, Decimal.parse(_anchoController.text), Decimal.parse(_altoController.text), descuento);
+       resultado = calcular.calcularTotalDetalleConMedida(precio, cantidad, Decimal.parse(_anchoController.text), Decimal.parse(_altoController.text), descuento);
     } else {
-      resultado = calcular.calcularSubtotal(precio, cantidad, descuento);
+      resultado = calcular.calcularTotalDetalle(precio, cantidad, descuento);
     }
       _ivaController.text = Formatos.pesos.format(resultado['iva']);
       _productoTotalController.text = Formatos.pesos.format(resultado['total']);
@@ -227,7 +224,7 @@ class _VentaFormState extends State<VentaForm> {
             Dialog(
               backgroundColor: AppTheme.containerColor1,
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.5,
+                //height: MediaQuery.of(context).size.height * 0.5,
                 width: MediaQuery.of(context).size.height * 0.5,
                 child: Theme(
                   data: Theme.of(context).copyWith(
@@ -239,14 +236,15 @@ class _VentaFormState extends State<VentaForm> {
                       onSurface: Colors.white, // Color del texto en general
                     ),
                   ),
-                  child: CalendarDatePicker(
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 31)),
-                    onDateChanged: (selectedDate) {
-                      Navigator.pop(context, selectedDate);
+                  child: CalendarDatePicker2(
+                    config: CalendarDatePicker2Config(
+                      
+                    ),
+                    value: _dates,
+                    onValueChanged: (selectedDate) {
+                      Navigator.pop(context, selectedDate.first);
                     },
-                  ),
+                  )
                 ),
               ),
             ),
@@ -333,7 +331,11 @@ class _VentaFormState extends State<VentaForm> {
     
     List<File> archivos = [];
     archivos.addAll(_fileSeleccionado);
-        
+
+    Decimal iva = Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', ''));
+    Decimal subtotal = Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')) + _descuentoAplicado - iva;
+    Decimal total = Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', ''));
+
     DetallesVenta detalle = DetallesVenta(
       productoId: _productoSelected!.id!,
       cantidad: int.parse(_cantidadController.text.replaceAll(',', '')),
@@ -342,8 +344,9 @@ class _VentaFormState extends State<VentaForm> {
       comentarios: _comentarioController.text.isNotEmpty ? _comentarioController.text : null,
       descuento: int.tryParse(_descuentoController.text.replaceAll('%', '').replaceAll(',', '')) ?? 0,
       descuentoAplicado: _descuentoAplicado,
-      iva: Decimal.parse(_ivaController.text.replaceAll('MX\$', '').replaceAll(',', '')),
-      subtotal: Decimal.parse(_productoTotalController.text.replaceAll('MX\$', '').replaceAll(',', '')),
+      iva: iva,
+      subtotal: subtotal.round(scale: 2), 
+      total: total,
       archivos: archivos
     );
           
@@ -382,10 +385,10 @@ class _VentaFormState extends State<VentaForm> {
     _comentarioController.text = _detallesVenta[index].comentarios!=null ? _detallesVenta[index].comentarios.toString() : '';
     _descuentoController.text = '${_detallesVenta[index].descuento.toString()}%';
     _ivaController.text = _detallesVenta[index].iva.toString();
-    _productoTotalController.text = _detallesVenta[index].subtotal.toString();
+    _productoTotalController.text = _detallesVenta[index].total.toString();
     _fileSeleccionado = _detallesVenta[index].archivos??[];
     VentasStates.tabs[widget.index].fileSeleccionado = _fileSeleccionado;
-    calcularSubtotal();
+    calcularTotalDetalle();
           
     _detallesVenta.removeAt(index);
     _productos.removeAt(index);
@@ -1143,7 +1146,7 @@ class _VentaFormState extends State<VentaForm> {
                                         setState(() {
                                           _productoSelected = selected;
                                           VentasStates.tabs[widget.index].productoSelected = selected;
-                                          calcularSubtotal();
+                                          calcularTotalDetalle();
                                         });
                                       },
                                       onItemUnselected: () {
@@ -1204,7 +1207,7 @@ class _VentaFormState extends State<VentaForm> {
                                         if (value==false && _cantidadController.text == ''){
                                           _cantidadController.text = '1';
                                           setState(() {
-                                            calcularSubtotal();
+                                            calcularTotalDetalle();
                                           });
                                         }
                                       },
@@ -1216,7 +1219,7 @@ class _VentaFormState extends State<VentaForm> {
                                         onFieldSubmitted: (value) => agregarProducto(),
                                         onChanged: (value) {
                                           setState(() {
-                                            calcularSubtotal();
+                                            calcularTotalDetalle();
                                           });
                                         },
                                       ),
@@ -1271,7 +1274,7 @@ class _VentaFormState extends State<VentaForm> {
                                               if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
                                                 if (_anchoController.text != '0' && _altoController.text != '0') {
                                                   setState(() {
-                                                    calcularSubtotal();
+                                                    calcularTotalDetalle();
                                                   });
                                                 }
                                               }
@@ -1323,7 +1326,7 @@ class _VentaFormState extends State<VentaForm> {
                                               if (_anchoController.text.isNotEmpty && _altoController.text.isNotEmpty) {
                                                 if (_anchoController.text != '0' && _altoController.text != '0') {
                                                   setState(() {
-                                                    calcularSubtotal();
+                                                    calcularTotalDetalle();
                                                   });
                                                 }
                                               }
@@ -1442,12 +1445,12 @@ class _VentaFormState extends State<VentaForm> {
                                               if (!hasFocus) {
                                                 if (_descuentoController.text.isEmpty) {
                                                   _descuentoController.text = '0';
-                                                  calcularSubtotal();
+                                                  calcularTotalDetalle();
                                                 }
                                                 _descuentoController.text = '${_descuentoController.text.replaceAll('%', '')}%';
                                               } else {
                                                 _descuentoController.text = '';
-                                                calcularSubtotal();
+                                                calcularTotalDetalle();
                                               }
                                             },
                                             child: TextFormField(
@@ -1495,7 +1498,7 @@ class _VentaFormState extends State<VentaForm> {
                                                 if (int.parse(_descuentoController.text) > 100) {
                                                   _descuentoController.text = '100';
                                                 } 
-                                                calcularSubtotal();
+                                                calcularTotalDetalle();
                                               },
                                             ),
                                           ),
@@ -1922,7 +1925,8 @@ class FilaDetalles extends StatelessWidget {
           offset.dy,
         ),
         color: AppTheme.dropDownColor,
-        elevation: 2,
+        elevation: 4,
+        shadowColor: Colors.black,
         items: [
           const PopupMenuItem(
             value: 'modificar',
@@ -1982,10 +1986,10 @@ class FilaDetalles extends StatelessWidget {
                     Expanded(child: Text(Formatos.numero.format(detalle!.cantidad.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                     Expanded(flex: 8, child: Text(descripcionProducto, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                     Expanded(flex: 4, child: Text(Formatos.pesos.format(producto!.precio.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-                    Expanded(flex: 4, child: Text(Formatos.pesos.format((detalle!.subtotal + detalle!.descuentoAplicado - detalle!.iva).toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                     Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.descuentoAplicado.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                     Expanded(flex: 3, child: Text(Formatos.pesos.format(detalle!.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-                    Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.subtotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text(Formatos.pesos.format(detalle!.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                   ],
                 ),
                 detalle!.archivos?.isNotEmpty??false ? Icon(Icons.filter_rounded, color: AppTheme.isDarkTheme ? AppTheme.letraClara : AppTheme.primario1, size: 20) : const SizedBox()

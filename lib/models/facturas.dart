@@ -38,9 +38,9 @@ class Facturas {
     fecha: DateTime.parse(json['fecha']),
     receptorRfc: json['receptor_rfc'],
     receptorNombre: json['receptor_nombre'],
-    subTotal: Decimal.parse(json['subtotal']),
-    impuestos: Decimal.parse(json['impuestos']),
-    total: Decimal.parse(json['total'])
+    subTotal: Decimal.parse(json['subtotal'].toString()),
+    impuestos: Decimal.parse(json['impuestos'].toString()),
+    total: Decimal.parse(json['total'].toString())
   );
 
   Map<String, dynamic> toMap() => {

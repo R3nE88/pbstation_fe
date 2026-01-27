@@ -218,7 +218,8 @@ class FilaProducto extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 2,
+          elevation: 4,
+          shadowColor: Colors.black,
           items: [
             const PopupMenuItem(
               value: 'leer',
@@ -262,7 +263,8 @@ class FilaProducto extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 2,
+          elevation: 4,
+          shadowColor: Colors.black,
           items: [
             const PopupMenuItem(
               value: 'leer',

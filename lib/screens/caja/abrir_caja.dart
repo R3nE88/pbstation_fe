@@ -93,12 +93,7 @@ class _AbrirCajaState extends State<AbrirCaja> {
   @override
   Widget build(BuildContext context) {
     if (SucursalesServices.sucursalActualID==null){
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Necesitas tener una sucursal vinculada a esta terminal\npara acceder a esta pantalla.', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)
-        ],
-      );
+      return const AdvertenciaSucursal();
     }
 
 

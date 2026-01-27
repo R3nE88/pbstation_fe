@@ -15,6 +15,7 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -126,6 +127,10 @@ class _MyAppState extends State<MyApp> {
           title: 'PBStation',
           initialRoute: 'login',
           routes: appRoutes,
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [
+            Locale('es', 'MX'),
+          ],
           theme: (changeTheme.isDarkTheme 
               ? AppTheme.customThemeDark.copyWith(
                 shadowColor: Colors.transparent,

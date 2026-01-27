@@ -127,12 +127,14 @@ class ConfiguracionModulos {
           nombre: 'venta',
           icono: Icons.attach_money,
           pantalla: VentaScreen(),
+          tiposPermitidos: {TipoUsuario.vendedor}
         ),
         SubModulo(
           nombre: 'caja',
           icono: Icons.point_of_sale,
           pantalla: CajaScreen(),
           onlyCaja: true,
+          tiposPermitidos: {TipoUsuario.vendedor}
         ),
         SubModulo(
           nombre: 'facturas',
@@ -217,7 +219,7 @@ class ConfiguracionModulos {
     const Modulo(
       nombre: 'impresoras',
       iconoPrincipal: Icons.print,
-      tiposPermitidos: {TipoUsuario.vendedor, TipoUsuario.administrativo},
+      tiposPermitidos: {TipoUsuario.vendedor},
       subModulos: [
         SubModulo(
           nombre: 'impresoras',

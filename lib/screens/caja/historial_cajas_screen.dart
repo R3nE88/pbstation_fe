@@ -33,14 +33,15 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
       sucursalId = SucursalesServices.sucursalActualID;
     }
 
+    // Detectar scroll para cargar más
+    _scrollController.addListener(_onScroll);
+
     // Cargar primera página cuando se monta el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final cajasService = Provider.of<CajasServices>(context, listen: false);
       cajasService.cargarHistorialCajas(sucursalId: sucursalId);
     });
-
-    // Detectar scroll para cargar más
-    _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {

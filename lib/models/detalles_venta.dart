@@ -14,6 +14,7 @@ class DetallesVenta {
     required this.descuentoAplicado,
     required this.iva,
     required this.subtotal,
+    required this.total,
     this.cotizacionPrecio,
     this.archivos
   });
@@ -28,6 +29,7 @@ class DetallesVenta {
   Decimal descuentoAplicado;
   Decimal iva;
   Decimal subtotal;
+  Decimal total;
   Decimal? cotizacionPrecio; 
   List<File>? archivos;
 
@@ -45,6 +47,7 @@ class DetallesVenta {
     descuentoAplicado: Decimal.parse(json['descuento_aplicado'].toString()),
     iva: Decimal.parse(json['iva'].toString()),
     subtotal: Decimal.parse(json['subtotal'].toString()),
+    total: Decimal.parse(json['total'].toString()),
     cotizacionPrecio: json['cotizacion_precio']!=null ? Decimal.tryParse(json['cotizacion_precio'].toString()) : null,
   );
 
@@ -59,6 +62,7 @@ class DetallesVenta {
     'descuento_aplicado': descuentoAplicado,
     'iva': iva,
     'subtotal': subtotal,
+    'total': total,
     'cotizacion_precio': cotizacionPrecio
   };
 }

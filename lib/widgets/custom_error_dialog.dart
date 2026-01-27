@@ -18,7 +18,7 @@ class CustomErrorDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(respuesta, textAlign: TextAlign.center),
+          SelectableText(respuesta, textAlign: TextAlign.center),
         ],
       ),
       actions: [

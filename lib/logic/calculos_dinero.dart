@@ -9,34 +9,35 @@ class CalculosDinero {
     return Decimal.parse((Configuracion.iva/100).toString());
   }
 
-  Map<String, dynamic> calcularSubtotal (Decimal productoPrecio, int productoCantidad, int descuento){
+  Map<String, dynamic> calcularTotalDetalle (Decimal productoPrecio, int productoCantidad, int descuento){
     Decimal subtotal = productoPrecio * Decimal.fromInt(productoCantidad);
 
     Decimal descuentoAplicado = subtotal * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = subtotal-descuentoAplicado;
 
-    Decimal iva = totalSinIva * leerIva().round(scale: 2);
-    Decimal total = (totalSinIva + iva).round(scale: 1); 
+    Decimal iva = totalSinIva * leerIva().round(scale: 6);
+    Decimal total = (totalSinIva + iva).round(scale: 6); 
 
     return {
-      'descuento' : descuentoAplicado,
+      'descuento' : descuentoAplicado.round(scale: 6),
       'iva' : iva.toDouble(),
       'total' : total.toDouble()
     };
   }
 
-  Map<String, dynamic> calcularSubtotalConMedida (Decimal productoPrecio, int productoCantidad, Decimal ancho, Decimal alto, int descuento){ 
+  Map<String, dynamic> calcularTotalDetalleConMedida (Decimal productoPrecio, int productoCantidad, Decimal ancho, Decimal alto, int descuento){ 
     Decimal subtotal = productoPrecio * Decimal.fromInt(productoCantidad);
     Decimal totalMedida = ((ancho * alto) * subtotal);
   
     Decimal descuentoAplicado = totalMedida * (Decimal.fromInt(descuento) / Decimal.fromInt(100)).toDecimal();
     Decimal totalSinIva = totalMedida-descuentoAplicado;
 
-    Decimal iva = totalSinIva * leerIva().round(scale: 2);
-    Decimal total = (totalSinIva + iva).round(scale: 1); 
+    Decimal iva = totalSinIva * leerIva().round(scale: 6);
+    Decimal total = (totalSinIva + iva).round(scale: 6); 
 
     return {
-      'descuento' : descuentoAplicado,
+      'subtotal': subtotal,
+      'descuento' : descuentoAplicado.round(scale: 6),
       'iva' : iva.toDouble(),
       'total' : total.toDouble()
     };
@@ -49,10 +50,10 @@ class CalculosDinero {
     Decimal total = Decimal.parse('0');
 
     for (var detalle in detallesVenta) {
-      subtotal += detalle.subtotal-detalle.iva+detalle.descuentoAplicado;
+      subtotal += detalle.subtotal;
       totalDescuento += detalle.descuentoAplicado;
       totalIva += detalle.iva;
-      total += detalle.subtotal;
+      total += detalle.total;
     }
 
     return {
@@ -66,14 +67,14 @@ class CalculosDinero {
   double dolarAPesos(double importe, double tc){
     Decimal imp = Decimal.parse(importe.toString());
     Decimal precioDolar = Decimal.parse(tc.toString());
-    Decimal total = (imp * precioDolar).round(scale: 2);
+    Decimal total = (imp * precioDolar).round(scale: 6);
     return total.toDouble();
   }
 
   double pesosADolar(double importe, double tc){
     Decimal imp = Decimal.parse(importe.toString());
     Decimal precioDolar = Decimal.parse(tc.toString());
-    Decimal total = (imp / precioDolar).toDecimal(scaleOnInfinitePrecision: 2); //TODO: AssertionError (Assertion failed: "scaleOnInfinitePrecision is required for rationale without finite precision")
+    Decimal total = (imp / precioDolar).toDecimal(scaleOnInfinitePrecision: 6);
     return total.toDouble();
   }
 

@@ -230,7 +230,8 @@ class _VentaDialogState extends State<VentaDialog> {
 
         return AlertDialog(
           titlePadding: const EdgeInsets.only(left: 18, right:18, top: 12),
-          elevation: 2,
+          elevation: 4,
+          shadowColor: Colors.black,
           backgroundColor: AppTheme.containerColor2,
           title: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -733,7 +734,7 @@ class FilaDetalles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final producto = Provider.of<ProductosServices>(context, listen:false).obtenerProductoPorId(detalle.productoId)?.descripcion;
-    final subSubTotal = detalle.subtotal.toDouble() - detalle.iva.toDouble() + detalle.descuentoAplicado.toDouble();
+    //final subTotal = detalle.subtotal.toDouble(); // - detalle.iva.toDouble() + detalle.descuentoAplicado.toDouble();
     return Container(
       height: 25,
       color: color%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
@@ -743,9 +744,9 @@ class FilaDetalles extends StatelessWidget {
           Expanded(flex: 3, child: Center(child: Text(producto??'No se encontro el producto', style: AppTheme.subtituloConstraste))),
           Expanded(flex: 3, child: Center(child: Text(detalle.comentarios??'-', style: AppTheme.subtituloConstraste))),
           Expanded(flex: 2, child: Center(child: Text(detalle.descuento==0 ? '-' : '${detalle.descuento}%', style: AppTheme.subtituloConstraste))),
-          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(subSubTotal), style: AppTheme.subtituloConstraste))),
-          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.iva.toDouble()), style: AppTheme.subtituloConstraste))),
           Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.subtotal.toDouble()), style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.iva.toDouble()), style: AppTheme.subtituloConstraste))),
+          Expanded(flex: 2, child: Center(child: Text(Formatos.pesos.format(detalle.total.toDouble()), style: AppTheme.subtituloConstraste))),
         ],
       ),
     );

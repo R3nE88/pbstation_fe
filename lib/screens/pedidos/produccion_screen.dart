@@ -470,7 +470,8 @@ class _FilaPedidosState extends State<FilaPedidos> {
         offset.dy,
       ),
       color: AppTheme.dropDownColor,
-      elevation: 2,
+      elevation: 4,
+      shadowColor: Colors.black,
       items: [
         PopupMenuItem(
           value: 'promover',
@@ -729,7 +730,8 @@ class _DescargaDialogState extends State<DescargaDialog> {
     final pedidosService = Provider.of<PedidosService>(context);
 
     return AlertDialog(
-      elevation: 2,
+      elevation: 4,
+      shadowColor: Colors.black,
       backgroundColor: AppTheme.containerColor2,
       content: SizedBox(
         child: pedidosService.isDownloading ? 

@@ -75,7 +75,8 @@ class SucursalesServices extends ChangeNotifier{
 
   Future<void> establecerSucursal(Sucursales sucursal) async{
     final directory = await getApplicationSupportDirectory();
-    final file = File('${directory.path}/config.json');
+    final String fileName = Env.debug ? 'config_debug' : 'config';
+    final file = File('${directory.path}/$fileName.json');
     if (kDebugMode) {
       print('Ruta del archivo: ${file.path}');
     }
@@ -112,7 +113,8 @@ class SucursalesServices extends ChangeNotifier{
 
   Future<void> desvincularSucursal(bool miSucursal) async {
     final directory = await getApplicationSupportDirectory();
-    final file = File('${directory.path}/config.json');
+    final String fileName = Env.debug ? 'config_debug' : 'config';
+    final file = File('${directory.path}/$fileName.json');
     if (kDebugMode) {
       print('Ruta del archivo: ${file.path}');
     }

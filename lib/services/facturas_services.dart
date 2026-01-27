@@ -11,6 +11,13 @@ class FacturasServices extends ChangeNotifier{
   List<Facturas> facturas = [];
   bool isLoading = false;
 
+  //Historial de facturas con paginación
+  List<Facturas> historialFacturas = [];
+  PaginacionInfo? paginacionHistorial;
+  bool historialIsLoading = false;
+  String? historialError;
+  String? sucursalFiltroHistorial;
+
   Future<String> facturarVenta(Cfdi cfdi) async {
     try {
       final url = Uri.parse('${_baseUrl}crear');
@@ -111,5 +118,87 @@ class FacturasServices extends ChangeNotifier{
       notifyListeners();
     }
   }
+
+  Future<void> cargarHistorialFacturas({
+    int page = 1,
+    int pageSize = 60,
+    String? sucursalId,
+    bool append = false,
+  }) async {
+    if (historialIsLoading) return;
+
+    historialIsLoading = true;
+    historialError = null;
+    
+    if (!append) {
+      historialFacturas = [];
+    }
+    
+    notifyListeners();
+
+    try {
+      // Construir query parameters
+      final queryParams = {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+        if (sucursalId != null && sucursalId.isNotEmpty) 'sucursal_id': sucursalId,
+      };
+
+      final url = Uri.parse('${_baseUrl}all').replace(queryParameters: queryParams);
+      
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn}
+      );
+
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body);
+             
+        // Parsear las facturas
+        final List<dynamic> facturasJson = data['data'];
+        final List<Facturas> nuevasFacturas = facturasJson.map((json) {
+          final factura = Facturas.fromMap(json as Map<String, dynamic>);
+          factura.id = (json as Map)['id']?.toString();
+          return factura;
+        }).toList();
+
+        // Agregar o reemplazar
+        if (append) {
+          historialFacturas.addAll(nuevasFacturas);
+        } else {
+          historialFacturas = nuevasFacturas;
+        }
+
+        // Guardar info de paginación
+        paginacionHistorial = PaginacionInfo.fromJson(data['pagination']);
+        sucursalFiltroHistorial = sucursalId;
+      } else {
+        historialError = 'Error al cargar facturas: ${resp.statusCode}';
+      }
+    } catch (e) {
+      historialError = 'Error: $e';
+      if (kDebugMode) {
+        print('Error en cargarHistorialFacturas: $e');
+      }
+    } finally {
+      historialIsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> cargarMasHistorialFacturas() async {
+    if (paginacionHistorial != null && paginacionHistorial!.hasNext) {
+      await cargarHistorialFacturas(
+        page: paginacionHistorial!.page + 1,
+        pageSize: paginacionHistorial!.pageSize,
+        sucursalId: sucursalFiltroHistorial,
+        append: true,
+      );
+    }
+  }
+
+  void cambiarFiltroSucursalHistorial(String? sucursalId) {
+    sucursalFiltroHistorial = sucursalId;
+    cargarHistorialFacturas(sucursalId: sucursalId);
+  }
 }
-// 251115B01

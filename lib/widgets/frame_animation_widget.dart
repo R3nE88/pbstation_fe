@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart'; // Agregar este import
 
 class FrameAnimationWidget extends StatefulWidget {
   final double fps;
@@ -37,7 +37,7 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
   bool _tickerStarted = false;
 
   int get _effectiveFrameCount =>
-      (_frameCount / widget.frameStep).floor(); // total de frames a mostrar
+      (_frameCount / widget.frameStep).floor();
 
   @override
   void initState() {
@@ -48,11 +48,14 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
 
   Future<void> _loadFrames() async {
     try {
-      final manifestContent =
-          await DefaultAssetBundle.of(context).loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap = json.decode(manifestContent);
-
-      final framePaths = manifestMap.keys
+      // NUEVA API para Flutter 3.38+
+      final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      
+      // Obtener todos los assets
+      final allAssets = assetManifest.listAssets();
+      
+      // Filtrar solo los frames
+      final framePaths = allAssets
           .where((String key) =>
               key.startsWith('assets/frames/') && key.endsWith('.png'))
           .toList()
@@ -61,8 +64,11 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
       _frameCount = framePaths.length;
 
       if (_frameCount == 0) {
+        debugPrint('No se encontraron frames en assets/frames/');
         return;
       }
+
+      debugPrint('Cargando $_frameCount frames...');
 
       final List<ImageProvider> images = [];
       for (String path in framePaths) {
@@ -103,6 +109,11 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
       }
     } catch (e) {
       debugPrint('Error loading frames: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -116,7 +127,6 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
     final elapsedTime = elapsed - _startTime;
     final elapsedSeconds = elapsedTime.inMicroseconds / 1000000.0;
 
-    // totalFrames basado en tiempo real
     final totalFrames = elapsedSeconds * widget.fps;
     final newFrameIndex = (totalFrames % _effectiveFrameCount).floor();
     final currentCycle = (totalFrames / _effectiveFrameCount).floor();
@@ -141,18 +151,33 @@ class _FrameAnimationWidgetState extends State<FrameAnimationWidget>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) { return const SizedBox(); }
+    if (_isLoading) {
+      return SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     if (_preloadedImages.isEmpty) {
       return Container(
         width: widget.width,
         height: widget.height,
         color: Colors.grey[300],
-        child: const Center(child: Text('No frames loaded')),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48),
+              SizedBox(height: 8),
+              Text('No frames loaded'),
+              Text('Verifica assets/frames/ en pubspec.yaml'),
+            ],
+          ),
+        ),
       );
     }
 
-    // Calcular qué frame real corresponde según el "step"
     final actualFrame = (_currentFrame * widget.frameStep).clamp(0, _frameCount - 1);
 
     return Image(

@@ -1,8 +1,9 @@
+import 'dart:async'; // 👈 Nuevo import
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/provider/loading_state.dart';
 import 'package:provider/provider.dart';
-import 'package:pbstation_frontend/widgets/widgets.dart'; // Importa tu WindowBar
+import 'package:pbstation_frontend/widgets/widgets.dart';
 
 class LoadingOverlay extends StatefulWidget {
   const LoadingOverlay({super.key});
@@ -14,20 +15,41 @@ class LoadingOverlay extends StatefulWidget {
 class _LoadingOverlayState extends State<LoadingOverlay> {
   OverlayEntry? _overlayEntry;
   bool _show = false;
+  Timer? _dotsTimer; // 👈 Timer para animar los puntos
+  int _dotsCount = 1; // 👈 Contador de puntos (1, 2, 3)
 
   Future<void> esperarParaMostrar() async {
     await Future.delayed(const Duration(seconds: 2));
     setState(() => _show = true);
   }
 
+  // 👇 Método para animar los puntos
+  void _startDotsAnimation() {
+    _dotsTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (mounted) {
+        setState(() {
+          _dotsCount = (_dotsCount % 3) + 1; // Cicla entre 1, 2, 3
+        });
+        _updateOverlay(); // Actualiza el overlay
+      }
+    });
+  }
+
+  // 👇 Método para actualizar el overlay sin recrearlo
+  void _updateOverlay() {
+    _overlayEntry?.markNeedsBuild();
+  }
+
   @override
   void initState() {
     super.initState();
     esperarParaMostrar();
+    _startDotsAnimation(); // 👈 Iniciar animación de puntos
   }
 
   @override
   void dispose() {
+    _dotsTimer?.cancel(); // 👈 Cancelar el timer
     _overlayEntry?.remove();
     _overlayEntry = null;
     super.dispose();
@@ -100,7 +122,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     return shortcuts;
   }
 
-  void _showOverlay() {
+  void _showOverlay(String? message) {
     if (_overlayEntry != null) return;
     if (_show == false) return;
 
@@ -138,23 +160,26 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                         height: double.infinity,
                         color: Colors.black45,
                         alignment: Alignment.center,
-                        // ignore: prefer_const_constructors
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
 
-                            /*Text(
-                              'Espere un momento',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            const CircularProgressIndicator(),
+
+                            if (message!=null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(
+                                '$message${'.' * _dotsCount}', // 👈 Puntos animados
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),*/
+                            ),
                             
-                            CircularProgressIndicator()
-
                           ],
                         ),
                       ),
@@ -198,7 +223,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
           } else {
             FocusScope.of(context).unfocus();
             FocusManager.instance.primaryFocus?.unfocus();
-            _showOverlay();
+            _showOverlay(loadingProvider.message);
           }
         });
     

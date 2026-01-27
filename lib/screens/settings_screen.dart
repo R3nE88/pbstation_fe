@@ -123,6 +123,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: DropdownButton<String>(
                           hint: const Text('Selecciona un dispositivo USB'),
                           value: _selectedDevice,
+                          iconEnabledColor: Colors.white,
+                          dropdownColor: AppTheme.isDarkTheme?AppTheme.tablaColorHeader:AppTheme.tablaColorHeader,
                           items: _devices.map((String device) {
                             return DropdownMenuItem<String>(
                               value: device,
@@ -152,6 +154,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: DropdownButton<String>(
                           hint: const Text('Selecciona un tamaño'),
                           value: _selectedSize,
+                          iconEnabledColor: Colors.white,
+                          dropdownColor: AppTheme.isDarkTheme?AppTheme.tablaColorHeader:AppTheme.tablaColorHeader,
                           items: _sizes.map((String size) {
                             return DropdownMenuItem<String>(
                               value: size,

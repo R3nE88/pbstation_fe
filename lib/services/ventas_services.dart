@@ -225,17 +225,17 @@ class VentasServices extends ChangeNotifier{
           // Si existe, actualizamos los valores sumándolos
           final productoExistente = acumulador[productoId]!;
           productoExistente.cantidad += detalle.cantidad;
-          productoExistente.subTotal += detalle.subtotal - detalle.iva;
+          productoExistente.subTotal += detalle.subtotal; // - detalle.iva;
           productoExistente.iva += detalle.iva;
-          productoExistente.total += detalle.subtotal;
+          productoExistente.total += detalle.total;
         } else {
           // Si no existe, creamos una nueva entrada
           final nuevaVentaPorProducto = VentasPorProducto(
             productoId: productoId,
             cantidad: detalle.cantidad,
-            subTotal: detalle.subtotal - detalle.iva,
+            subTotal: detalle.subtotal, // - detalle.iva,
             iva: detalle.iva,
-            total: detalle.subtotal // El total inicial
+            total: detalle.total // El total inicial
           );
           acumulador[productoId] = nuevaVentaPorProducto;
         }
@@ -451,30 +451,42 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-  Future<Ventas?> facturar(String ventaId, String facturaId) async {
+
+ Future<Map<String, dynamic>?> facturar(
+    List<String> folios, 
+    String facturaId
+  ) async {
     isLoading = true;
     notifyListeners();
     
     try {
-      final url = Uri.parse('$_baseUrl$ventaId/factura?factura_id=$facturaId');
+      final url = Uri.parse('${_baseUrl}factura');
       final resp = await http.patch(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {
+          'tkn': Env.tkn,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'folios': folios,
+          'factura_id': facturaId,
+        }),
       );
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        final ventaActualizada = Ventas.fromMap(data);
-        ventaActualizada.id = data['id']?.toString();
-
-        // Actualizar la venta en las listas locales si existe
-        _actualizarVentaEnListas(ventaActualizada);
+        
+        debugPrint('Ventas actualizadas por folio: ${data['modified_count']} de ${data['matched_count']}');
+        debugPrint('Folios procesados: ${data['folios_procesados']}');
+        
+        // Actualizar las ventas en las listas locales
+        _actualizarVentasPorFolios(folios, facturaId);
 
         isLoading = false;
         notifyListeners();
-        return ventaActualizada;
+        return data;
       } else if (resp.statusCode == 404) {
-        debugPrint('Venta no encontrada: $ventaId');
+        debugPrint('No se encontraron ventas con los folios proporcionados');
         isLoading = false;
         notifyListeners();
         return null;
@@ -490,71 +502,13 @@ class VentasServices extends ChangeNotifier{
         return null;
       }
     } catch (e) {
-      debugPrint('Exception en actualizarFacturaVenta: $e');
+      debugPrint('Exception en facturar: $e');
       isLoading = false;
       notifyListeners();
       return null;
     }
   }
-  // Future<List<Ventas>?> marcarVentasEntregadasPorFolio(String folio) async {
-  //   isLoading = true;
-    
-  //   final connectionId = WebSocketService.connectionId;
-  //   final headers = {'tkn': Env.tkn};
-    
-  //   // Para notificar a los demás, menos a mi mismo (websocket)
-  //   if (connectionId != null) {
-  //     headers['X-Connection-Id'] = connectionId;
-  //   }
-    
-  //   try {
-  //     final url = Uri.parse('${_baseUrl}marcar-entregada/$folio');
-  //     final resp = await http.patch(
-  //       url,
-  //       headers: headers,
-  //     );
 
-  //     if (resp.statusCode == 200) {
-  //       final List<dynamic> listaJson = json.decode(resp.body);
-        
-  //       // Convertir la lista a objetos Ventas
-  //       final ventasActualizadas = listaJson.map<Ventas>((jsonElem) {
-  //         final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-  //         venta.id = (jsonElem as Map)['id']?.toString();
-  //         return venta;
-  //       }).toList();
-
-  //       // Actualizar cada venta en las listas locales
-  //       for (var ventaActualizada in ventasActualizadas) {
-  //         _actualizarVentaEnListas(ventaActualizada);
-  //       }
-
-  //       isLoading = false;
-  //       notifyListeners();
-  //       return ventasActualizadas;
-  //     } else if (resp.statusCode == 400) {
-  //       debugPrint('Ventas ya entregadas o error: ${resp.body}');
-  //       isLoading = false;
-  //       notifyListeners();
-  //       return null;
-  //     } else if (resp.statusCode == 404) {
-  //       debugPrint('No se encontraron ventas con el folio: $folio');
-  //       isLoading = false;
-  //       notifyListeners();
-  //       return null;
-  //     } else {
-  //       debugPrint('Error al marcar ventas como entregadas: ${resp.statusCode} ${resp.body}');
-  //       isLoading = false;
-  //       notifyListeners();
-  //       return null;
-  //     }
-  //   } catch (e) {
-  //     debugPrint('Exception en marcarVentasEntregadasPorFolio: $e');
-  //     isLoading = false;
-  //     notifyListeners();
-  //     return null;
-  //   }
-  // }
 
   void updateAVenta(String id) async {
     if (!isLoading) {
@@ -583,6 +537,48 @@ class VentasServices extends ChangeNotifier{
         isLoading = false;
         notifyListeners();
       }
+    }
+  }
+
+  Future<List<Ventas>> obtenerVentasSinFacturarPorDia(String fecha) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse('${_baseUrl}por-dia/$fecha');
+      final resp = await http.get(
+        url,
+        headers: {'tkn': Env.tkn},
+      );
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> listaJson = json.decode(resp.body);
+        
+        final ventas = listaJson.map<Ventas>((jsonElem) {
+          final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+          venta.id = (jsonElem as Map)['id']?.toString();
+          return venta;
+        }).toList();
+
+        isLoading = false;
+        notifyListeners();
+        return ventas;
+      } else if (resp.statusCode == 404) {
+        debugPrint('No se encontraron ventas para la fecha: $fecha');
+        isLoading = false;
+        notifyListeners();
+        return [];
+      } else {
+        debugPrint('Error al obtener ventas del día: ${resp.statusCode} ${resp.body}');
+        isLoading = false;
+        notifyListeners();
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Exception en obtenerVentasSinFacturarPorDia: $e');
+      isLoading = false;
+      notifyListeners();
+      return [];
     }
   }
 
@@ -617,6 +613,28 @@ class VentasServices extends ChangeNotifier{
     final indexPedidos = ventasDePedidos.indexWhere((v) => v.id == ventaActualizada.id);
     if (indexPedidos != -1) {
       ventasDePedidos[indexPedidos] = ventaActualizada;
+    }
+  }
+
+  // Método helper para actualizar ventas por folios de forma eficiente
+  void _actualizarVentasPorFolios(List<String> folios, String facturaId) {
+    final foliosSet = folios.toSet();
+    
+    // Actualizar todas las listas con un solo pasaje
+    _actualizarListaPorFolios(ventasDeCaja, foliosSet, facturaId);
+    _actualizarListaPorFolios(ventasDeCorteActual, foliosSet, facturaId);
+    _actualizarListaPorFolios(ventasConDeuda, foliosSet, facturaId);
+    _actualizarListaPorFolios(ventasConDeudaFiltered, foliosSet, facturaId);
+    _actualizarListaPorFolios(ventasDeCajaHistorial, foliosSet, facturaId);
+    _actualizarListaPorFolios(ventasDePedidos, foliosSet, facturaId);
+  }
+
+  // Método helper para actualizar una lista específica de ventas por folio
+  void _actualizarListaPorFolios(List<Ventas> lista, Set<String> folios, String facturaId) {
+    for (var venta in lista) {
+      if (folios.contains(venta.folio)) {
+        venta.facturaId = facturaId;
+      }
     }
   }
 }

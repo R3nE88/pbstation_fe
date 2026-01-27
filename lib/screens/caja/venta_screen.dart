@@ -378,58 +378,6 @@ class _VentaScreenState extends State<VentaScreen> {
   }
 }
 
-class AdvertenciaSucursal extends StatelessWidget {
-  const AdvertenciaSucursal({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        color: AppTheme.containerColor1,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Esta terminal aún no tiene una sucursal asignada.',
-                  style: AppTheme.tituloClaro,
-                  textScaler: TextScaler.linear(1.5),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ), 
-            Transform.translate(
-              offset: const Offset(0, -5),
-              child: const Text(
-                'Asigne una para realizar ventas.',
-                style: AppTheme.tituloClaro,
-                textScaler: TextScaler.linear(1.5),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 10),
-            RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                children: <TextSpan>[
-                  const TextSpan(text: 'Acceda a  ', style: AppTheme.subtituloPrimario),
-                  TextSpan(text: 'Catálogo', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
-                  const TextSpan(text: ' > ', style: AppTheme.subtituloPrimario,),
-                  TextSpan(text: 'Sucursales', style: AppTheme.tituloClaro.copyWith(fontSize: 16)),
-                  const TextSpan(text: '  con una cuenta de administrador y asigne una sucursal\na esta terminal para continuar.', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class Pestania extends StatelessWidget {
   const Pestania({
@@ -454,7 +402,8 @@ class Pestania extends StatelessWidget {
         offset.dy,
       ),
       color: AppTheme.dropDownColor,
-      elevation: 2,
+      elevation: 4,
+      shadowColor: Colors.black,
       items: [
         const PopupMenuItem(
           value: 'limpiar',

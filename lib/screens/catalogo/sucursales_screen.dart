@@ -220,7 +220,8 @@ class FilaSucursales extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 2,
+          elevation: 4,
+          shadowColor: Colors.black,
           items: [
             sucursal.id != SucursalesServices.sucursalActualID ? const PopupMenuItem(
               value: 'vincular',
@@ -285,7 +286,8 @@ class FilaSucursales extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 2,
+          elevation: 4,
+          shadowColor: Colors.black,
           items: [
             const PopupMenuItem(
               value: 'leer',

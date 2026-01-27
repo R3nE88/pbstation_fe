@@ -1,3 +1,4 @@
+export 'package:pbstation_frontend/widgets/advertencia_sucursal.dart';
 export 'package:pbstation_frontend/widgets/searchable_dropdown.dart';
 export 'package:pbstation_frontend/widgets/elevated_button_icon.dart';
 export 'package:pbstation_frontend/widgets/loading_widget.dart';

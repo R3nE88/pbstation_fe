@@ -258,7 +258,8 @@ class FilaCotizaciones extends StatelessWidget {
           offset.dy,
         ),
         color: AppTheme.dropDownColor,
-        elevation: 2,
+        elevation: 4,
+        shadowColor: Colors.black,
         items: [
           PopupMenuItem(
             value: 'leer',

@@ -16,9 +16,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-    bool _loading = false;
-    bool _loaded = false;
-    bool _servicesLoaded = false;
+  bool _loading = false;
+  bool _loaded = false;
+  bool _servicesLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+  }
 
   @override
   Widget build(BuildContext context) {

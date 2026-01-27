@@ -6,9 +6,6 @@ import 'package:pbstation_frontend/screens/pedidos/pedidos_dialog.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
-import 'package:pbstation_frontend/widgets/body_padding.dart';
-import 'package:pbstation_frontend/widgets/elevated_button_icon.dart';
-import 'package:pbstation_frontend/widgets/feedback_button.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 

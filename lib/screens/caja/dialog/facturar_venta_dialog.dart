@@ -85,27 +85,41 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
         loadingSvc.hide();
         return jsonEncode({'Message':'Hubo un problema para encontrar un producto'});
       }
+
+      final qty = item.cantidad.toDouble();
+      final unitPrice = producto.precio.toDouble();
+      final descuento = item.descuentoAplicado.toDouble();
+
+      final subtotalOriginal = qty * unitPrice;
+      final subtotalFiscal = subtotalOriginal - descuento;
+
+      final iva = subtotalFiscal * 0.08;
+      final totalFiscal = subtotalFiscal + iva;
+
       items.add(CfdiItem(
         productCode: producto.claveSat,
         description: producto.descripcion,
         unit: Constantes.unidadesSat[producto.unidadSat]!,
         unitCode: producto.unidadSat,
-        quantity: item.cantidad.toDouble(),
-        unitPrice: producto.precio.toDouble(),
-        subtotal: ((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+        quantity: qty,
+        unitPrice: unitPrice,
+        subtotal: double.parse(subtotalOriginal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+        discount: descuento,
         taxObject: '02',
         taxes: [
           CfdiTax(
             name: 'IVA',
             rate: (Configuracion.iva/100).toDouble(),
-            total: item.iva.toDouble(),
-            base: ((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+            total: double.parse(iva.toStringAsFixed(6)),
+            base: double.parse(subtotalFiscal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
             isRetention: false,
           ),
         ],
-        total: item.subtotal.toDouble(),
+        total: double.parse(totalFiscal.toStringAsFixed(6)),// item.subtotal.toDouble(),
       ));
     }
+
+    //print(json.encode(items[0]));
     
     //crear objeto Factura
     final cfdi = Cfdi(
@@ -142,7 +156,7 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       final facturaId = await facturasSvc.createFactura(factura);
       if (facturaId!=null){
         if (!mounted) return 'exito';
-        await Provider.of<VentasServices>(context, listen: false).facturar(widget.venta.id!, facturaId);
+        await Provider.of<VentasServices>(context, listen: false).facturar([widget.venta.folio!], facturaId);
       }
       
       loadingSvc.hide();
@@ -189,7 +203,7 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
         .map((detalle) => detalle.iva)
         .reduce((a, b) => a + b);
     _total = widget.venta.detalles
-        .map((detalle) => detalle.subtotal)
+        .map((detalle) => detalle.total)
         .reduce((a, b) => a + b);
   }
 
@@ -198,7 +212,8 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
     final clientesServices = Provider.of<ClientesServices>(context);
 
     return AlertDialog(
-      elevation: 2,
+      elevation: 4,
+      shadowColor: Colors.black,
       backgroundColor: AppTheme.containerColor1,
       content: SizedBox(
         width: 500,
@@ -547,7 +562,7 @@ class _FilaDetallesVentaState extends State<FilaDetallesVenta> {
           Expanded(
             child: Center(
               child: Text(
-                Formatos.pesos.format(widget.detalle.subtotal.toDouble()),
+                Formatos.pesos.format(widget.detalle.total.toDouble()),
                 style: AppTheme.subtituloConstraste,
                 textScaler: const TextScaler.linear(0.85),
               ),
