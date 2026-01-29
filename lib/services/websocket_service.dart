@@ -33,7 +33,7 @@ class WebSocketService with ChangeNotifier {
     _instance._config          = configuracion;
     _instance._impresoraSvc    = impresoraService;
     _instance._pedidosSvc      = pedidosServices;
-    _instance._facturasSvc     = facturasServices;
+    //_instance._facturasSvc     = facturasServices;
 
     _instance._setupHandlers();
     return _instance;
@@ -61,7 +61,7 @@ class WebSocketService with ChangeNotifier {
   late Configuracion _config;
   late ImpresorasServices _impresoraSvc;
   late PedidosService _pedidosSvc;
-  late FacturasServices _facturasSvc;
+  //late FacturasServices _facturasSvc;
 
   final Map<String, void Function(String)> _handlers = {};
 

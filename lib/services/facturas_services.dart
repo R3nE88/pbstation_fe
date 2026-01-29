@@ -8,7 +8,7 @@ import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class FacturasServices extends ChangeNotifier{
   final String _baseUrl = 'http:${Constantes.baseUrl}facturacion/';
-  List<Facturas> facturas = [];
+  //List<Facturas> facturas = [];
   bool isLoading = false;
 
   //Historial de facturas con paginación
@@ -101,7 +101,8 @@ class FacturasServices extends ChangeNotifier{
         final nuevo = Facturas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        facturas.insert(0, nuevo);
+        historialFacturas.add(nuevo);
+        
         if (kDebugMode) {
           print('factura creada en be!');
         }

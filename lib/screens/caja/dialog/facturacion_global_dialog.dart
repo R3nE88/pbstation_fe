@@ -195,11 +195,29 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
             Container(
               width: 750,
               height: 400,
-              color: AppTheme.tablaColor1,
+              color: widget.ventas.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
               child: ListView.builder(
-                itemCount: widget.ventas.length,
+                itemCount: widget.ventas.length+1,
                 itemBuilder: (context, index) {
-                  return FilaVentasSinFacturar(ventas: widget.ventas, index: index);
+                  if (index!=0){
+                    return FilaVentasSinFacturar(ventas: widget.ventas, index: index-1);
+                  }
+
+                  //Header
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.tablaColorHeaderSelected,
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(child: Center(child: Text('Folio de venta', style: AppTheme.tituloPrimario))),
+                        Expanded(child: Center(child: Text('SubTotal', style: AppTheme.tituloPrimario))),
+                        Expanded(child: Center(child: Text('Descuento', style: AppTheme.tituloPrimario))),
+                        Expanded(child: Center(child: Text('Impuestos', style: AppTheme.tituloPrimario))),
+                        Expanded(child: Center(child: Text('Total', style: AppTheme.tituloPrimario))),
+                      ],
+                    ),
+                  );
                 },
               ),
             ),  
@@ -224,13 +242,18 @@ class FilaVentasSinFacturar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(ventas[index].folio ?? 'na', style: AppTheme.subtituloConstraste),
-          Text(ventas[index].fechaVenta ?? 'na', style: AppTheme.subtituloConstraste),
-          Text(Formatos.pesos.format(ventas[index].abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical:4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Center(child: Text(ventas[index].folio ?? 'na', style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].subTotal.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].descuento.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].iva.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].total.toDouble()), style: AppTheme.subtituloConstraste))),
+          ],
+        ),
       )
     );
   }
