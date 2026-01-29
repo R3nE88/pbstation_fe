@@ -36,7 +36,6 @@ class _HoverSideMenuState extends State<HoverSideMenu>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _curvedAnimation;
-  late BoxDecoration _gradient;
 
   @override
   void initState() {
@@ -49,30 +48,27 @@ class _HoverSideMenuState extends State<HoverSideMenu>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
-
-    _initGradient();
   }
 
-  void _initGradient() {
-    _gradient =
-        widget.side == MenuSide.left
-            ? BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.1, 0.9],
-                colors: [AppTheme.primario2, AppTheme.primario1],
-              ),
-            )
-            : BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.1, 0.9],
-                colors: [AppTheme.secundario1, AppTheme.secundario2],
-              ),
-            );
-  }
+  // Getter para el gradiente - se recalcula cuando cambia el tema
+  BoxDecoration get _gradient =>
+      widget.side == MenuSide.left
+          ? BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.1, 0.9],
+              colors: [AppTheme.primario2, AppTheme.primario1],
+            ),
+          )
+          : BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.1, 0.9],
+              colors: [AppTheme.secundario1, AppTheme.secundario2],
+            ),
+          );
 
   @override
   void dispose() {
