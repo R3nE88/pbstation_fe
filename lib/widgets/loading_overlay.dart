@@ -44,7 +44,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   void initState() {
     super.initState();
     esperarParaMostrar();
-    _startDotsAnimation(); // 👈 Iniciar animación de puntos
+    // Timer ahora solo se inicia cuando se muestra el overlay
   }
 
   @override
@@ -57,7 +57,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
 
   Map<ShortcutActivator, Intent> _buildBlockingShortcuts() {
     final Map<ShortcutActivator, Intent> shortcuts = {};
-    
+
     final keysToBlock = [
       LogicalKeyboardKey.enter,
       LogicalKeyboardKey.escape,
@@ -112,11 +112,16 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     ];
 
     for (final key in keysToBlock) {
-      shortcuts[SingleActivator(key)] = const DoNothingAndStopPropagationIntent();
-      shortcuts[SingleActivator(key, control: true)] = const DoNothingAndStopPropagationIntent();
-      shortcuts[SingleActivator(key, shift: true)] = const DoNothingAndStopPropagationIntent();
-      shortcuts[SingleActivator(key, alt: true)] = const DoNothingAndStopPropagationIntent();
-      shortcuts[SingleActivator(key, meta: true)] = const DoNothingAndStopPropagationIntent();
+      shortcuts[SingleActivator(key)] =
+          const DoNothingAndStopPropagationIntent();
+      shortcuts[SingleActivator(key, control: true)] =
+          const DoNothingAndStopPropagationIntent();
+      shortcuts[SingleActivator(key, shift: true)] =
+          const DoNothingAndStopPropagationIntent();
+      shortcuts[SingleActivator(key, alt: true)] =
+          const DoNothingAndStopPropagationIntent();
+      shortcuts[SingleActivator(key, meta: true)] =
+          const DoNothingAndStopPropagationIntent();
     }
 
     return shortcuts;
@@ -126,79 +131,82 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     if (_overlayEntry != null) return;
     if (_show == false) return;
 
+    // Iniciar animación de puntos solo cuando se muestra el overlay
+    _startDotsAnimation();
+
     _overlayEntry = OverlayEntry(
-      builder: (context) => Material(
-        color: Colors.transparent,
-        child: Shortcuts(
-          shortcuts: _buildBlockingShortcuts(),
-          child: Actions(
-            actions: {
-              DoNothingAndStopPropagationIntent: CallbackAction<DoNothingAndStopPropagationIntent>(
-                onInvoke: (intent) => null,
-              ),
-            },
-            child: KeyboardListener(
-              focusNode: FocusNode()..requestFocus(),
-              autofocus: true,
-              onKeyEvent: (KeyEvent event) {
-                // Bloquear eventos de teclado
-              },
-              child: Focus(
-                autofocus: true,
-                canRequestFocus: true,
-                onKeyEvent: (node, event) {
-                  return KeyEventResult.handled;
-                },
-                child: Stack(
-                  children: [
-                    // Contenido principal del overlay (bloqueador)
-                    GestureDetector(
-                      onTap: () {},
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        color: Colors.black45,
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-
-                            const CircularProgressIndicator(),
-
-                            if (message!=null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 16),
-                              child: Text(
-                                '$message${'.' * _dotsCount}', // 👈 Puntos animados
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            
-                          ],
-                        ),
+      builder:
+          (context) => Material(
+            color: Colors.transparent,
+            child: Shortcuts(
+              shortcuts: _buildBlockingShortcuts(),
+              child: Actions(
+                actions: {
+                  DoNothingAndStopPropagationIntent:
+                      CallbackAction<DoNothingAndStopPropagationIntent>(
+                        onInvoke: (intent) => null,
                       ),
+                },
+                child: KeyboardListener(
+                  focusNode: FocusNode()..requestFocus(),
+                  autofocus: true,
+                  onKeyEvent: (KeyEvent event) {
+                    // Bloquear eventos de teclado
+                  },
+                  child: Focus(
+                    autofocus: true,
+                    canRequestFocus: true,
+                    onKeyEvent: (node, event) {
+                      return KeyEventResult.handled;
+                    },
+                    child: Stack(
+                      children: [
+                        // Contenido principal del overlay (bloqueador)
+                        GestureDetector(
+                          onTap: () {},
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            color: Colors.black45,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const CircularProgressIndicator(),
+
+                                if (message != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: Text(
+                                      '$message${'.' * _dotsCount}', // 👈 Puntos animados
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // WindowBar en la parte superior
+                        const Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: WindowBar(overlay: true),
+                        ),
+                      ],
                     ),
-                    
-                    // WindowBar en la parte superior
-                    const Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: WindowBar(overlay: true),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
     );
 
     final navigatorState = Navigator.of(context, rootNavigator: true);
@@ -209,6 +217,8 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   }
 
   void _hideOverlay() {
+    _dotsTimer?.cancel(); // Detener timer cuando se oculta
+    _dotsTimer = null;
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
@@ -226,7 +236,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
             _showOverlay(loadingProvider.message);
           }
         });
-    
+
         return const SizedBox.shrink();
       },
     );

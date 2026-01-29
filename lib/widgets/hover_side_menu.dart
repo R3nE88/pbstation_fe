@@ -25,40 +25,58 @@ class HoverSideMenu extends StatefulWidget {
     this.duration = const Duration(milliseconds: 150),
     this.contentSwitchThreshold = 200,
     this.side = MenuSide.right,
-    required this.enabled
+    required this.enabled,
   });
 
   @override
   State<HoverSideMenu> createState() => _HoverSideMenuState();
 }
 
-class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProviderStateMixin {
+class _HoverSideMenuState extends State<HoverSideMenu>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _animation;
-  late final ValueNotifier<double> _widthNotifier;
-  late BoxDecoration gradiante;
-
+  late final Animation<double> _curvedAnimation;
+  late BoxDecoration _gradient;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
-    _widthNotifier = ValueNotifier(widget.collapsedWidth);
+    _controller = AnimationController(vsync: this, duration: widget.duration);
 
-    _animation.addListener(() {
-      final t = _animation.value;
-      _widthNotifier.value = widget.collapsedWidth + (widget.expandedWidth - widget.collapsedWidth) * t;
-    });
+    // Animación con curva suave para las transiciones visuales
+    _curvedAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    _initGradient();
+  }
+
+  void _initGradient() {
+    _gradient =
+        widget.side == MenuSide.left
+            ? BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.1, 0.9],
+                colors: [AppTheme.primario2, AppTheme.primario1],
+              ),
+            )
+            : BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.1, 0.9],
+                colors: [AppTheme.secundario1, AppTheme.secundario2],
+              ),
+            );
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _widthNotifier.dispose();
     super.dispose();
   }
 
@@ -74,34 +92,6 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final contentSwitchThreshold = widget.contentSwitchThreshold;
-
-    if (widget.side == MenuSide.left){
-      gradiante = BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.1,0.9],
-          colors: [
-            AppTheme.primario2,
-            AppTheme.primario1,
-          ]
-        )
-      );
-    } else {
-      gradiante = BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0.1,0.9],
-          colors: [
-            AppTheme.secundario1,
-            AppTheme.secundario2,
-          ]
-        )
-      );
-    }
-
     return Positioned(
       bottom: 0,
       left: widget.side == MenuSide.left ? 0 : null,
@@ -109,39 +99,73 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
       child: Material(
         color: Colors.transparent,
         child: Stack(
-          alignment: widget.side == MenuSide.left ? Alignment.topLeft : Alignment.topRight,
+          alignment:
+              widget.side == MenuSide.left
+                  ? Alignment.topLeft
+                  : Alignment.topRight,
           children: [
-            if(widget.side == MenuSide.left)
-            ValueListenableBuilder<double>(
-              valueListenable: _widthNotifier,
-              builder: (context, width, child) {
-                return InverseBorder(extraWidth: width);
-              },
-            ),
+            // InverseBorder solo para lado izquierdo
+            if (widget.side == MenuSide.left)
+              AnimatedBuilder(
+                animation: _curvedAnimation,
+                builder: (context, child) {
+                  final width =
+                      widget.collapsedWidth +
+                      (widget.expandedWidth - widget.collapsedWidth) *
+                          _curvedAnimation.value;
+                  return InverseBorder(extraWidth: width);
+                },
+              ),
+
+            // Contenido principal del menú
             MouseRegion(
               onEnter: _onEnter,
               onExit: _onExit,
               child: AnimatedBuilder(
-                animation: _animation,
+                animation: _curvedAnimation,
                 builder: (context, child) {
-                  final t = _animation.value;
-                  final width = widget.collapsedWidth + (widget.expandedWidth - widget.collapsedWidth) * t;
-                  final showContent = width >= contentSwitchThreshold;
+                  final t = _curvedAnimation.value;
+                  final width =
+                      widget.collapsedWidth +
+                      (widget.expandedWidth - widget.collapsedWidth) * t;
+
+                  // Opacidades con mayor overlap para evitar parpadeo
+                  // Colapsado: 100% en t=0, empieza a desvanecerse en t=0.3, 0% en t=0.7
+                  // Expandido: 0% en t=0.3, gradualmente aparece, 100% en t=0.7
+                  final collapsedOpacity = ((0.7 - t) / 0.4).clamp(0.0, 1.0);
+                  final expandedOpacity = ((t - 0.3) / 0.4).clamp(0.0, 1.0);
 
                   return RepaintBoundary(
                     child: Container(
                       width: width,
                       height: widget.height,
-                      decoration: gradiante,
-                      child: showContent
-                          ? Align(
-                              alignment: Alignment.topCenter,
-                              child: widget.menuContent,
-                            )
-                          : Align(
-                              alignment: Alignment.topCenter,
-                              child: widget.menuContentColapsed ?? const SizedBox(),
-                            )
+                      decoration: _gradient,
+                      clipBehavior: Clip.hardEdge,
+                      // Stack con crossfade suave usando opacidades superpuestas
+                      child: Stack(
+                        children: [
+                          // Contenido colapsado
+                          if (collapsedOpacity > 0)
+                            Opacity(
+                              opacity: collapsedOpacity,
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child:
+                                    widget.menuContentColapsed ??
+                                    const SizedBox(),
+                              ),
+                            ),
+                          // Contenido expandido
+                          if (expandedOpacity > 0)
+                            Opacity(
+                              opacity: expandedOpacity,
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child: widget.menuContent,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -154,11 +178,8 @@ class _HoverSideMenuState extends State<HoverSideMenu> with SingleTickerProvider
   }
 }
 
-
 class InverseBorder extends StatelessWidget {
-  const InverseBorder({
-    super.key, required this.extraWidth,
-  });
+  const InverseBorder({super.key, required this.extraWidth});
 
   final double extraWidth;
 
@@ -173,24 +194,24 @@ class InverseBorder extends StatelessWidget {
             Transform.translate(
               offset: const Offset(0, -0.5),
               child: Container(
-                height: size, 
+                height: size,
                 width: size,
                 decoration: BoxDecoration(
                   color: AppTheme.primario2,
                   border: Border(
-                    right: BorderSide(color: AppTheme.secundario1)
-                  )
+                    right: BorderSide(color: AppTheme.secundario1),
+                  ),
                 ),
               ),
             ),
             Container(
-              height: size, 
+              height: size,
               width: size,
-              decoration:BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppTheme.secundario1,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(50)
-                )
+                  topLeft: Radius.circular(50),
+                ),
               ),
             ),
           ],

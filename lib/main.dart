@@ -19,12 +19,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Inicializa en paralelo (OPTIMIZACIÓN SEGURA)
   await Future.wait([
     initializeDateFormatting('es_ES'),
-    PackageInfo.fromPlatform().then((info) => Constantes.version = info.version),
-    themePreferences()
+    PackageInfo.fromPlatform().then(
+      (info) => Constantes.version = info.version,
+    ),
+    themePreferences(),
   ]);
 
   // Tu código original de servicios
@@ -40,17 +42,17 @@ void main() async {
   final pedidosServices = PedidosService();
   final facturasServices = FacturasServices();
   final websocketService = WebSocketService(
-    productosService, 
-    clientesServices, 
+    productosService,
+    clientesServices,
     usuariosServices,
-    ventasServices, 
+    ventasServices,
     ventasEnvServices,
     sucursalesServices,
     cotizacionesServices,
-    configuracion, 
+    configuracion,
     impresoraServices,
     pedidosServices,
-    facturasServices
+    facturasServices,
   );
 
   runApp(
@@ -71,18 +73,24 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CajasServices()),
         ChangeNotifierProvider(create: (_) => ChangeTheme()),
         ChangeNotifierProvider(create: (_) => LoadingProvider()),
-        ChangeNotifierProvider(create: (_) => ModulosProvider(
-          contextoUsuario: ContextoUsuario.desdeLogin(
-            permiso: Login.usuarioLogeado.permisos,
-            tipoUsuario: Login.usuarioLogeado.rol,
-            esCaja: Configuracion.esCaja,
-          ),
-          moduloInicial: Login.usuarioLogeado.rol == TipoUsuario.maquilador ? 'pedidos' : ''
-          //moduloInicial: Login.isMaquila ? 'pedidos' : ''
-        )),
+        ChangeNotifierProvider(
+          create:
+              (_) => ModulosProvider(
+                contextoUsuario: ContextoUsuario.desdeLogin(
+                  permiso: Login.usuarioLogeado.permisos,
+                  tipoUsuario: Login.usuarioLogeado.rol,
+                  esCaja: Configuracion.esCaja,
+                ),
+                moduloInicial:
+                    Login.usuarioLogeado.rol == TipoUsuario.maquilador
+                        ? 'pedidos'
+                        : '',
+                //moduloInicial: Login.isMaquila ? 'pedidos' : ''
+              ),
+        ),
       ],
-      child: const MyApp()
-    )
+      child: const MyApp(),
+    ),
   );
 
   // Ventana después de runApp (OPTIMIZACIÓN SEGURA)
@@ -97,7 +105,7 @@ void main() async {
   });
 }
 
-Future<void> themePreferences() async{
+Future<void> themePreferences() async {
   final prefs = await SharedPreferences.getInstance();
   ThemePreferences.isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
 }
@@ -107,13 +115,23 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
+
 class _MyAppState extends State<MyApp> {
-  
   @override
   void initState() {
     super.initState();
-    Provider.of<ChangeTheme>(context, listen: false).isDarkTheme = ThemePreferences.isDarkTheme;
+    Provider.of<ChangeTheme>(context, listen: false).isDarkTheme =
+        ThemePreferences.isDarkTheme;
     Ticket.preloadResources();
+
+    // Pre-cachear logos del sidebar para mejorar rendimiento
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(const AssetImage('assets/images/logo_normal.png'), context);
+      precacheImage(
+        const AssetImage('assets/images/logo_darkmode.png'),
+        context,
+      );
+    });
   }
 
   @override
@@ -121,30 +139,29 @@ class _MyAppState extends State<MyApp> {
     return Consumer<ChangeTheme>(
       builder: (context, changeTheme, _) {
         AppTheme.initialize(changeTheme);
-        
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'PBStation',
           initialRoute: 'login',
           routes: appRoutes,
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          supportedLocales: const [
-            Locale('es', 'MX'),
-          ],
-          theme: (changeTheme.isDarkTheme 
-              ? AppTheme.customThemeDark.copyWith(
+          supportedLocales: const [Locale('es', 'MX')],
+          theme: (changeTheme.isDarkTheme
+                  ? AppTheme.customThemeDark.copyWith(
+                    shadowColor: Colors.transparent,
+                    splashFactory: NoSplash.splashFactory,
+                  )
+                  : AppTheme.customTheme)
+              .copyWith(
                 shadowColor: Colors.transparent,
                 splashFactory: NoSplash.splashFactory,
-              )
-              : AppTheme.customTheme).copyWith(
-            shadowColor: Colors.transparent,
-            splashFactory: NoSplash.splashFactory,
-          ),
+              ),
           scrollBehavior: const MaterialScrollBehavior().copyWith(
-            dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad}
+            dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
           ),
         );
-      }
+      },
     );
   }
 }
