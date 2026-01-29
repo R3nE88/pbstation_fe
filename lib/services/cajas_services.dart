@@ -4,9 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class CajasServices extends ChangeNotifier{
+class CajasServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
@@ -33,15 +34,15 @@ class CajasServices extends ChangeNotifier{
   static Cajas? cajaHistorial;
   static List<Cortes>? cortesHistorial;
 
-  Future<void> initCaja() async{
+  Future<void> initCaja() async {
     forLogininit = true;
     //obtener Caja
     final prefs = await SharedPreferences.getInstance();
     cajaActualId = prefs.getString(Env.debug ? 'caja_id_debug' : 'caja_id');
-    if (cajaActualId!=null && cajaActualId!='buscando'){
+    if (cajaActualId != null && cajaActualId != 'buscando') {
       loadCaja(cajaActualId!);
     }
-    
+
     forLoginloaded = true;
     notifyListeners();
   }
@@ -54,7 +55,7 @@ class CajasServices extends ChangeNotifier{
       final url = Uri.parse('${_baseUrl}buscar/$folio');
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
@@ -66,8 +67,7 @@ class CajasServices extends ChangeNotifier{
         notifyListeners();
         return caja;
       }
-    }
-    catch(e){
+    } catch (e) {
       isLoading = false;
       notifyListeners();
     }
@@ -76,12 +76,13 @@ class CajasServices extends ChangeNotifier{
     return null;
   }
 
-  Future<Cajas?> loadCaja(String id) async {    
+  Future<Cajas?> loadCaja(String id) async {
     isLoading = true;
     try {
       final url = Uri.parse('$_baseUrl$id');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
       final body = json.decode(resp.body);
       cajaActual = Cajas.fromMap(body as Map<String, dynamic>);
@@ -97,16 +98,17 @@ class CajasServices extends ChangeNotifier{
     return cajaActual;
   }
 
-  Future<void> loadUltimoCorte() async{
+  Future<void> loadUltimoCorte() async {
     isLoading = true;
     try {
       final url = Uri.parse('$_baseUrl$cajaActualId/cortes/ultimo');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
       final body = json.decode(resp.body);
       //solo obtener corte que no se a finalizado
-      if (Cortes.fromMap(body as Map<String, dynamic>).fechaCorte==null){
+      if (Cortes.fromMap(body as Map<String, dynamic>).fechaCorte == null) {
         corteActual = Cortes.fromMap(body);
         corteActual!.id = (body as Map)['id']?.toString();
         corteActualId = corteActual!.id;
@@ -117,8 +119,8 @@ class CajasServices extends ChangeNotifier{
     isLoading = false;
   }
 
-  Future<void> loadCortesDeCaja() async{
-    if (cajaActualId==null) return;
+  Future<void> loadCortesDeCaja() async {
+    if (cajaActualId == null) return;
 
     if (cortesDeCajaIsLoaded) return;
     cortesDeCajaIsLoading = true;
@@ -126,16 +128,17 @@ class CajasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('$_baseUrl$cajaActualId/cortes/all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
-      
-      final List<dynamic> listaJson = json.decode(resp.body);
-      cortesDeCaja = listaJson.map<Cortes>((jsonElem) {
-        final cor = Cortes.fromMap(jsonElem as Map<String, dynamic>);
-        cor.id = (jsonElem as Map)['id']?.toString();
-        return cor;
-      }).toList(); 
 
+      final List<dynamic> listaJson = json.decode(resp.body);
+      cortesDeCaja =
+          listaJson.map<Cortes>((jsonElem) {
+            final cor = Cortes.fromMap(jsonElem as Map<String, dynamic>);
+            cor.id = (jsonElem as Map)['id']?.toString();
+            return cor;
+          }).toList();
     } catch (e) {
       cortesDeCajaIsLoading = false;
     }
@@ -150,8 +153,11 @@ class CajasServices extends ChangeNotifier{
       final url = Uri.parse(_baseUrl);
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
-        body: caja.toJson(),   
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+        body: caja.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -186,8 +192,11 @@ class CajasServices extends ChangeNotifier{
       final url = Uri.parse('$_baseUrl$cajaActualId/cortes');
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
-        body: corte.toJson(),   
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+        body: corte.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -222,8 +231,11 @@ class CajasServices extends ChangeNotifier{
       final url = Uri.parse('$_baseUrl$corteActualId/movimientos');
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
-        body: movimiento.toJson(),   
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+        body: movimiento.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -232,7 +244,10 @@ class CajasServices extends ChangeNotifier{
         nuevo.id = data['id']?.toString();
 
         //corteActual!.movimientosCaja.add(nuevo);
-        cortesDeCaja.firstWhere((element) => element.id == corteActualId).movimientosCaja.add(nuevo);
+        cortesDeCaja
+            .firstWhere((element) => element.id == corteActualId)
+            .movimientosCaja
+            .add(nuevo);
 
         notifyListeners();
 
@@ -240,7 +255,9 @@ class CajasServices extends ChangeNotifier{
           print('movimiento creado y agregado a caja!');
         }
       } else {
-        debugPrint('Error al crear movimiento: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al crear movimiento: ${resp.statusCode} ${resp.body}',
+        );
       }
     } catch (e) {
       debugPrint('Exception en agregarMovimiento: $e');
@@ -251,13 +268,16 @@ class CajasServices extends ChangeNotifier{
     }
   }
 
-  Future<void> cerrarCaja(Cajas caja) async{
+  Future<void> cerrarCaja(Cajas caja) async {
     isLoading = true;
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
         body: caja.toJson(),
       );
 
@@ -280,22 +300,28 @@ class CajasServices extends ChangeNotifier{
   Future<void> actualizarDatosCorte(Cortes corte, String id) async {
     isLoading = true;
     corte.id = id;
-    
+
     try {
       final url = Uri.parse('${_baseUrl}cortes');
       final resp = await http.put(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
         body: corte.toJson(),
       );
 
       if (resp.statusCode == 204) {
-        cortesDeCaja = cortesDeCaja.map((c) => c.id == corte.id ? corte : c).toList();
+        cortesDeCaja =
+            cortesDeCaja.map((c) => c.id == corte.id ? corte : c).toList();
         if (corteActualId == corte.id) {
           corteActual = corte;
         }
       } else {
-        debugPrint('Error al actualizar corte: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al actualizar corte: ${resp.statusCode} ${resp.body}',
+        );
       }
     } catch (e) {
       debugPrint('Exception en actualizarDatosCorte: $e');
@@ -305,7 +331,7 @@ class CajasServices extends ChangeNotifier{
     }
   }
 
-  void eliminarCajaActualSoloDePrueba() async{
+  void eliminarCajaActualSoloDePrueba() async {
     cajaActual = null;
     cajaActualId = null;
     final prefs = await SharedPreferences.getInstance();
@@ -323,11 +349,11 @@ class CajasServices extends ChangeNotifier{
 
     historialIsLoading = true;
     historialError = null;
-    
+
     if (!append) {
       historialCajas = [];
     }
-    
+
     notifyListeners();
 
     try {
@@ -335,26 +361,30 @@ class CajasServices extends ChangeNotifier{
       final queryParams = {
         'page': page.toString(),
         'page_size': pageSize.toString(),
-        if (sucursalId != null && sucursalId.isNotEmpty) 'sucursal_id': sucursalId,
+        if (sucursalId != null && sucursalId.isNotEmpty)
+          'sucursal_id': sucursalId,
       };
 
-      final url = Uri.parse('${_baseUrl}all').replace(queryParameters: queryParams);
-      
+      final url = Uri.parse(
+        '${_baseUrl}all',
+      ).replace(queryParameters: queryParams);
+
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn}
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);
-             
+
         // Parsear las cajas
         final List<dynamic> cajasJson = data['data'];
-        final List<Cajas> nuevasCajas = cajasJson.map((json) {
-          final caja = Cajas.fromMap(json as Map<String, dynamic>);
-          caja.id = (json as Map)['id']?.toString();
-          return caja;
-        }).toList();
+        final List<Cajas> nuevasCajas =
+            cajasJson.map((json) {
+              final caja = Cajas.fromMap(json as Map<String, dynamic>);
+              caja.id = (json as Map)['id']?.toString();
+              return caja;
+            }).toList();
 
         // Agregar o reemplazar
         if (append) {
@@ -396,14 +426,15 @@ class CajasServices extends ChangeNotifier{
     cargarHistorialCajas(sucursalId: sucursalId);
   }
 
-  Future<void> loadDatosCompletosDeCaja(String cajaId) async{
+  Future<void> loadDatosCompletosDeCaja(String cajaId) async {
     isLoadingHistorial = true;
     //TODO: cargar caja seleccionada y cortes
     //TODO: traer movimientos tambien (pero antes, cargar movimientos de otros cortes en misma caja)
     try {
       final url = Uri.parse('$_baseUrl$cajaId');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
       final body = json.decode(resp.body);
       cajaHistorial = Cajas.fromMap(body as Map<String, dynamic>);
@@ -416,14 +447,16 @@ class CajasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('$_baseUrl$cajaId/cortes/all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
       final List<dynamic> listaJson = json.decode(resp.body);
-      cortesHistorial = listaJson.map<Cortes>((jsonElem) {
-        final cor = Cortes.fromMap(jsonElem as Map<String, dynamic>);
-        cor.id = (jsonElem as Map)['id']?.toString();
-        return cor;
-      }).toList(); 
+      cortesHistorial =
+          listaJson.map<Cortes>((jsonElem) {
+            final cor = Cortes.fromMap(jsonElem as Map<String, dynamic>);
+            cor.id = (jsonElem as Map)['id']?.toString();
+            return cor;
+          }).toList();
     } catch (e) {
       debugPrint('$e');
       isLoadingHistorial = false;
@@ -437,7 +470,8 @@ class CajasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}ventas/$ventaId/tipo-cambio');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {

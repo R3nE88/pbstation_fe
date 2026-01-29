@@ -4,11 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:pbstation_frontend/constantes.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class SucursalesServices extends ChangeNotifier{
+class SucursalesServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}sucursales/';
   List<Sucursales> sucursales = [];
   Sucursales? sucursalActual;
@@ -19,9 +20,9 @@ class SucursalesServices extends ChangeNotifier{
   bool init = false;
   bool sucursalError = false;
 
-  SucursalesServices(){
-    if (init==false){
-      init=true;
+  SucursalesServices() {
+    if (init == false) {
+      init = true;
       obtenerSucursalId();
     }
   }
@@ -29,18 +30,16 @@ class SucursalesServices extends ChangeNotifier{
   //Esto es para mapear y buscar sucursal//
   void cargarSucursales(List<Sucursales> nuevasSucursales) {
     sucursales = nuevasSucursales;
-    _sucursalesPorId = {
-      for (var c in sucursales) c.id!: c
-    };
+    _sucursalesPorId = {for (var c in sucursales) c.id!: c};
     notifyListeners();
   }
-  
+
   String obtenerNombreSucursalPorId(String id) {
     return _sucursalesPorId[id]?.nombre ?? '¡no se encontró la sucursal!';
   } //Aqui termina  para mapear y buscar sucursales//
 
   Future<void> obtenerSucursalId() async {
-    if (init==false) return;
+    if (init == false) return;
     try {
       final directory = await getApplicationSupportDirectory();
       final String fileName = Env.debug ? 'config_debug' : 'config';
@@ -73,7 +72,7 @@ class SucursalesServices extends ChangeNotifier{
     }
   }
 
-  Future<void> establecerSucursal(Sucursales sucursal) async{
+  Future<void> establecerSucursal(Sucursales sucursal) async {
     final directory = await getApplicationSupportDirectory();
     final String fileName = Env.debug ? 'config_debug' : 'config';
     final file = File('${directory.path}/$fileName.json');
@@ -105,7 +104,9 @@ class SucursalesServices extends ChangeNotifier{
       print('✅ Sucursal establecida como: ${sucursal.id}');
     }
 
-    sucursalActual = sucursales.firstWhere((element) => element.id == sucursal.id);
+    sucursalActual = sucursales.firstWhere(
+      (element) => element.id == sucursal.id,
+    );
     sucursalActualID = sucursalActual!.id;
     WebSocketService.reconectarConSucursal();
     notifyListeners();
@@ -142,47 +143,53 @@ class SucursalesServices extends ChangeNotifier{
     if (kDebugMode) {
       print('✅ Sucursal eliminada del archivo config.json');
     }
-    
+
     // Si es mi sucursal, limpiar
-    if (miSucursal){
+    if (miSucursal) {
       sucursalActual = null;
       sucursalActualID = null;
       WebSocketService.reconectarSinSucursal();
     }
-    
+
     notifyListeners();
   }
 
-  Future<List<Sucursales>> loadSucursales() async { 
+  Future<List<Sucursales>> loadSucursales() async {
     if (loaded) return [];
     isLoading = true;
-    
+
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      sucursales = listaJson.map<Sucursales>((jsonElem) {
-        final suc = Sucursales.fromMap(jsonElem as Map<String, dynamic>);
-        suc.id = (jsonElem as Map)['id']?.toString();
-        return suc;
-      }).toList();
-
+      sucursales =
+          listaJson.map<Sucursales>((jsonElem) {
+            final suc = Sucursales.fromMap(jsonElem as Map<String, dynamic>);
+            suc.id = (jsonElem as Map)['id']?.toString();
+            return suc;
+          }).toList();
     } catch (e) {
       isLoading = false;
       notifyListeners();
       return [];
     }
 
-    if (sucursalActualID!=null && sucursalActual==null){
+    if (sucursalActualID != null && sucursalActual == null) {
       try {
-        sucursalActual = sucursales.firstWhere((element) => element.id == sucursalActualID);
-      } catch (e) { sucursalActual = null; sucursalActualID = null;}
+        sucursalActual = sucursales.firstWhere(
+          (element) => element.id == sucursalActualID,
+        );
+      } catch (e) {
+        sucursalActual = null;
+        sucursalActualID = null;
+      }
     }
-    
+
     isLoading = false;
     loaded = true;
     cargarSucursales(sucursales);
@@ -196,7 +203,8 @@ class SucursalesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final body = json.decode(resp.body);
@@ -205,7 +213,6 @@ class SucursalesServices extends ChangeNotifier{
         sucursales.add(suc);
         isLoading = false;
         cargarSucursales(sucursales);
-
       } catch (e) {
         if (kDebugMode) {
           print('hubo un problema al cargar a sucursal!');
@@ -219,8 +226,8 @@ class SucursalesServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -233,7 +240,7 @@ class SucursalesServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: headers,
-        body: sucursal.toJson(),   
+        body: sucursal.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -262,14 +269,14 @@ class SucursalesServices extends ChangeNotifier{
     }
   }
 
-  Future<bool> deleteSucursal(String id) async{
+  Future<bool> deleteSucursal(String id) async {
     Sucursales sucursal = sucursales.firstWhere((element) => element.id == id);
     sucursal.id = id;
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -283,12 +290,11 @@ class SucursalesServices extends ChangeNotifier{
         headers: headers,
         body: sucursal.toJson(),
       );
-      if (resp.statusCode == 204){
+      if (resp.statusCode == 204) {
         deleteASucursal(id);
         desvincularSucursal(id == sucursalActualID);
       }
-    }
-    catch (e){
+    } catch (e) {
       debugPrint('error en deleteSucursal: $e');
       return false;
     }
@@ -296,7 +302,7 @@ class SucursalesServices extends ChangeNotifier{
   }
 
   void deleteASucursal(String id) {
-    sucursales.removeWhere((sucursal) => sucursal.id==id);
+    sucursales.removeWhere((sucursal) => sucursal.id == id);
     desvincularSucursal(id == sucursalActualID);
     notifyListeners();
   }
@@ -307,8 +313,8 @@ class SucursalesServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -327,11 +333,14 @@ class SucursalesServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Sucursales.fromMap(data);
         updated.id = data['id']?.toString();
-        sucursales = sucursales.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        sucursales =
+            sucursales
+                .map((cli) => cli.id == updated.id ? updated : cli)
+                .toList();
 
         //Si es mi sucursal actualizar mis datos
-        if (sucursalActualID!=null){
-          if (sucursalActualID! == id){
+        if (sucursalActualID != null) {
+          if (sucursalActualID! == id) {
             sucursalActual = updated;
             sucursalActualID = id;
             sucursalActual!.id = sucursalActualID;
@@ -342,7 +351,9 @@ class SucursalesServices extends ChangeNotifier{
         notifyListeners();
         return 'exito';
       } else {
-        debugPrint('Error al actualizar sucursal: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al actualizar sucursal: ${resp.statusCode} ${resp.body}',
+        );
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
@@ -355,19 +366,23 @@ class SucursalesServices extends ChangeNotifier{
     }
   }
 
-  void updateASucursal(String id)async{
+  void updateASucursal(String id) async {
     if (!isLoading) {
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Sucursales.fromMap(data);
         updated.id = data['id']?.toString();
-        sucursales = sucursales.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        sucursales =
+            sucursales
+                .map((cli) => cli.id == updated.id ? updated : cli)
+                .toList();
 
         cargarSucursales(sucursales);
         isLoading = false;

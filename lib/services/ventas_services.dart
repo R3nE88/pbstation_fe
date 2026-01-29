@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class VentasServices extends ChangeNotifier{
+class VentasServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
   List<Ventas> ventasDeCaja = [];
   List<Ventas> ventasDeCorteActual = [];
@@ -25,38 +25,39 @@ class VentasServices extends ChangeNotifier{
   bool isLoadingHistorial = false;
   List<Ventas> ventasDeCajaHistorial = [];
 
-  void filtrarDeudas(String query){
+  void filtrarDeudas(String query) {
     query = query.toLowerCase().trim();
     if (query.isEmpty) {
       ventasConDeudaFiltered = ventasConDeuda;
     } else {
-      ventasConDeudaFiltered = ventasConDeuda.where((pedido) {
-        return pedido.folio?.toLowerCase().contains(query)??false;
-      }).toList();
+      ventasConDeudaFiltered =
+          ventasConDeuda.where((pedido) {
+            return pedido.folio?.toLowerCase().contains(query) ?? false;
+          }).toList();
     }
     notifyListeners();
   }
 
   Future<Ventas?> searchVenta(String ventaId) async {
-    if (ventasDePedidos.any((element) => element.id == ventaId)){
+    if (ventasDePedidos.any((element) => element.id == ventaId)) {
       return ventasDePedidos.firstWhere((element) => element.id == ventaId);
     }
 
     isLoading = true;
     notifyListeners();
-    
+
     try {
       final url = Uri.parse('$_baseUrl$ventaId');
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
         final venta = Ventas.fromMap(data);
         venta.id = data['id']?.toString();
-        
+
         isLoading = false;
         ventasDePedidos.add(venta);
         notifyListeners();
@@ -93,7 +94,7 @@ class VentasServices extends ChangeNotifier{
       final url = Uri.parse('${_baseUrl}buscar/$folio');
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
@@ -105,8 +106,7 @@ class VentasServices extends ChangeNotifier{
         notifyListeners();
         return venta;
       }
-    }
-    catch(e){
+    } catch (e) {
       isLoading = false;
       notifyListeners();
     }
@@ -116,31 +116,32 @@ class VentasServices extends ChangeNotifier{
   }
 
   Future<void> loadVentasDeCaja() async {
-    if (CajasServices.cajaActualId==null) return;
-    
+    if (CajasServices.cajaActualId == null) return;
+
     if (loaded) return;
     isLoading = true;
 
     try {
       final url = Uri.parse('${_baseUrl}caja/${CajasServices.cajaActualId}');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       ventasDeCaja.clear();
-      ventasDeCaja = listaJson.map<Ventas>((jsonElem) {
-        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)['id']?.toString();
-        return x;
-      }).toList();
-
+      ventasDeCaja =
+          listaJson.map<Ventas>((jsonElem) {
+            final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+            x.id = (jsonElem as Map)['id']?.toString();
+            return x;
+          }).toList();
     } catch (e) {
       isLoading = false;
       notifyListeners();
     }
-    
+
     loaded = true;
     isLoading = false;
     notifyListeners();
@@ -152,53 +153,56 @@ class VentasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}caja/$cajaId');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
       ventasDeCajaHistorial.clear();
-      ventasDeCajaHistorial = listaJson.map<Ventas>((jsonElem) {
-        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)['id']?.toString();
-        return x;
-      }).toList();
-
+      ventasDeCajaHistorial =
+          listaJson.map<Ventas>((jsonElem) {
+            final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+            x.id = (jsonElem as Map)['id']?.toString();
+            return x;
+          }).toList();
     } catch (e) {
       isLoadingHistorial = false;
       notifyListeners();
     }
-    
+
     isLoadingHistorial = false;
     notifyListeners();
   }
 
   Future<void> loadVentasDeCorteActual() async {
-    if (CajasServices.corteActualId==null) return;
+    if (CajasServices.corteActualId == null) return;
 
     if (ventasCorteActualLoaded) return;
     ventasDeCorteLoading = true;
     isLoading = true;
-    
+
     try {
       final url = Uri.parse('${_baseUrl}corte/${CajasServices.corteActualId}');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
-      
+
       ventasDeCorteActual.clear();
-      ventasDeCorteActual = listaJson.map<Ventas>((jsonElem) {
-        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)['id']?.toString();
-        return x;
-      }).toList();
+      ventasDeCorteActual =
+          listaJson.map<Ventas>((jsonElem) {
+            final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+            x.id = (jsonElem as Map)['id']?.toString();
+            return x;
+          }).toList();
     } catch (e) {
       isLoading = false;
       notifyListeners();
     }
-    
+
     ventasCorteActualLoaded = true;
     isLoading = false;
     ventasDeCorteLoading = false;
@@ -206,9 +210,7 @@ class VentasServices extends ChangeNotifier{
   }
 
   Future<List<Ventas>> loadVentasDeCortes(List<String> ventasIds) async {
-    final ventasMap = {
-      for (var venta in ventasDeCaja) venta.id: venta,
-    };
+    final ventasMap = {for (var venta in ventasDeCaja) venta.id: venta};
     return ventasIds.map((id) => ventasMap[id]).whereType<Ventas>().toList();
   }
 
@@ -216,8 +218,12 @@ class VentasServices extends ChangeNotifier{
     final Map<String, VentasPorProducto> acumulador = {};
 
     for (final venta in ventas) {
-      if (venta.cancelado){ continue; }
-      if (venta.liquidado && venta.wasDeuda){ continue; }
+      if (venta.cancelado) {
+        continue;
+      }
+      if (venta.liquidado && venta.wasDeuda) {
+        continue;
+      }
       for (final detalle in venta.detalles) {
         final productoId = detalle.productoId;
         // Verificamos si ya existe una entrada para este producto
@@ -235,7 +241,7 @@ class VentasServices extends ChangeNotifier{
             cantidad: detalle.cantidad,
             subTotal: detalle.subtotal, // - detalle.iva,
             iva: detalle.iva,
-            total: detalle.total // El total inicial
+            total: detalle.total, // El total inicial
           );
           acumulador[productoId] = nuevaVentaPorProducto;
         }
@@ -251,11 +257,16 @@ class VentasServices extends ChangeNotifier{
   Future<Ventas?> createVenta(Ventas venta) async {
     isLoading = true;
     try {
-      final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=false');
+      final url = Uri.parse(
+        '$_baseUrl${CajasServices.corteActualId}?is_deuda=false',
+      );
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
-        body: venta.toJson(),   
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+        body: venta.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -289,8 +300,8 @@ class VentasServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -298,12 +309,10 @@ class VentasServices extends ChangeNotifier{
     }
 
     try {
-      final url = Uri.parse('$_baseUrl${CajasServices.corteActualId}?is_deuda=true');
-      final resp = await http.post(
-        url,
-        headers: headers,
-        body: venta.toJson(),
+      final url = Uri.parse(
+        '$_baseUrl${CajasServices.corteActualId}?is_deuda=true',
       );
+      final resp = await http.post(url, headers: headers, body: venta.toJson());
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
@@ -313,14 +322,20 @@ class VentasServices extends ChangeNotifier{
         ventasDeCaja.add(ventaPagada);
         ventasDeCorteActual.add(ventaPagada);
         CajasServices.corteActual!.ventasIds.add(ventaPagada.id!);
-        ventasConDeuda.removeWhere((ventaDeuda) => ventaDeuda.id == ventaOriginalID);
-        ventasConDeudaFiltered.removeWhere((ventaDeuda) => ventaDeuda.id == ventaOriginalID);
+        ventasConDeuda.removeWhere(
+          (ventaDeuda) => ventaDeuda.id == ventaOriginalID,
+        );
+        ventasConDeudaFiltered.removeWhere(
+          (ventaDeuda) => ventaDeuda.id == ventaOriginalID,
+        );
 
         marcarDeudaComoPagada(ventaOriginalID);
         notifyListeners();
         return ventaPagada;
-      }else {
-        debugPrint('Error al actualizar venta: ${resp.statusCode} ${resp.body}');
+      } else {
+        debugPrint(
+          'Error al actualizar venta: ${resp.statusCode} ${resp.body}',
+        );
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
@@ -333,13 +348,13 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-  void removeAVentaDeuda(String id)async{
-    ventasConDeuda.removeWhere((venta) => venta.id==id);
-    ventasConDeudaFiltered.removeWhere((venta) => venta.id==id);
+  void removeAVentaDeuda(String id) async {
+    ventasConDeuda.removeWhere((venta) => venta.id == id);
+    ventasConDeudaFiltered.removeWhere((venta) => venta.id == id);
     notifyListeners();
   }
 
-  Future<void> loadAdeudos(List<Clientes> adeudados, String? sucursalId) async{
+  Future<void> loadAdeudos(List<Clientes> adeudados, String? sucursalId) async {
     adeudoLoading = true;
     ventasConDeuda.clear();
     ventasConDeudaFiltered.clear();
@@ -349,28 +364,29 @@ class VentasServices extends ChangeNotifier{
         ventasIds.add(adeudo.ventaId);
       }
     }
-     try {
+    try {
       late final Uri url;
-      if (sucursalId==null){
+      if (sucursalId == null) {
         url = Uri.parse('${_baseUrl}por-id');
       } else {
         url = Uri.parse('${_baseUrl}por-id?sucursal_id=$sucursalId');
       }
-       
+
       final resp = await http.post(
-        url, 
+        url,
         headers: {
-          'tkn': Env.tkn, 
+          ...AuthService.getAuthHeaders(),
           'Content-Type': 'application/json',
-        }, 
-        body: json.encode(ventasIds)
+        },
+        body: json.encode(ventasIds),
       );
       final List<dynamic> listaJson = json.decode(resp.body);
-      ventasConDeuda = listaJson.map<Ventas>((jsonElem) {
-        final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)['id']?.toString();
-        return x;
-      }).toList();
+      ventasConDeuda =
+          listaJson.map<Ventas>((jsonElem) {
+            final x = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+            x.id = (jsonElem as Map)['id']?.toString();
+            return x;
+          }).toList();
       ventasConDeudaFiltered = ventasConDeuda;
     } catch (e) {
       isLoading = false;
@@ -383,12 +399,12 @@ class VentasServices extends ChangeNotifier{
 
   Future<Ventas?> marcarDeudaComoPagada(String ventaId) async {
     isLoading = true;
-    
+
     try {
       final url = Uri.parse('$_baseUrl$ventaId/marcar-deuda');
       final resp = await http.patch(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
@@ -403,7 +419,9 @@ class VentasServices extends ChangeNotifier{
         notifyListeners();
         return ventaActualizada;
       } else {
-        debugPrint('Error al marcar venta como deuda: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al marcar venta como deuda: ${resp.statusCode} ${resp.body}',
+        );
         isLoading = false;
         notifyListeners();
         return null;
@@ -418,12 +436,14 @@ class VentasServices extends ChangeNotifier{
 
   Future<Ventas?> cancelarVenta(String ventaId, String motivo) async {
     isLoading = true;
-    
+
     try {
-      final url = Uri.parse('$_baseUrl$ventaId/cancelar?motivo_cancelacion=$motivo&usuario_id_cancelo=${Login.usuarioLogeado.id}');
+      final url = Uri.parse(
+        '$_baseUrl$ventaId/cancelar?motivo_cancelacion=$motivo&usuario_id_cancelo=${Login.usuarioLogeado.id}',
+      );
       final resp = await http.patch(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
@@ -451,34 +471,32 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-
- Future<Map<String, dynamic>?> facturar(
-    List<String> folios, 
-    String facturaId
+  Future<Map<String, dynamic>?> facturar(
+    List<String> folios,
+    String facturaId,
   ) async {
     isLoading = true;
     notifyListeners();
-    
+
     try {
       final url = Uri.parse('${_baseUrl}factura');
       final resp = await http.patch(
         url,
         headers: {
-          'tkn': Env.tkn,
+          ...AuthService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'folios': folios,
-          'factura_id': facturaId,
-        }),
+        body: json.encode({'folios': folios, 'factura_id': facturaId}),
       );
 
       if (resp.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(resp.body);
-        
-        debugPrint('Ventas actualizadas por folio: ${data['modified_count']} de ${data['matched_count']}');
+
+        debugPrint(
+          'Ventas actualizadas por folio: ${data['modified_count']} de ${data['matched_count']}',
+        );
         debugPrint('Folios procesados: ${data['folios_procesados']}');
-        
+
         // Actualizar las ventas en las listas locales
         _actualizarVentasPorFolios(folios, facturaId);
 
@@ -496,7 +514,9 @@ class VentasServices extends ChangeNotifier{
         notifyListeners();
         return null;
       } else {
-        debugPrint('Error al actualizar factura_id: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al actualizar factura_id: ${resp.statusCode} ${resp.body}',
+        );
         isLoading = false;
         notifyListeners();
         return null;
@@ -509,14 +529,14 @@ class VentasServices extends ChangeNotifier{
     }
   }
 
-
   void updateAVenta(String id) async {
     if (!isLoading) {
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         if (resp.statusCode == 200) {
@@ -527,7 +547,9 @@ class VentasServices extends ChangeNotifier{
           // Buscar y actualizar en todas las listas
           _actualizarVentaEnListas(ventaActualizada);
         } else {
-          debugPrint('Error al actualizar venta: ${resp.statusCode} ${resp.body}');
+          debugPrint(
+            'Error al actualizar venta: ${resp.statusCode} ${resp.body}',
+          );
         }
 
         isLoading = false;
@@ -548,17 +570,18 @@ class VentasServices extends ChangeNotifier{
       final url = Uri.parse('${_baseUrl}por-dia/$fecha');
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
         final List<dynamic> listaJson = json.decode(resp.body);
-        
-        final ventas = listaJson.map<Ventas>((jsonElem) {
-          final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
-          venta.id = (jsonElem as Map)['id']?.toString();
-          return venta;
-        }).toList();
+
+        final ventas =
+            listaJson.map<Ventas>((jsonElem) {
+              final venta = Ventas.fromMap(jsonElem as Map<String, dynamic>);
+              venta.id = (jsonElem as Map)['id']?.toString();
+              return venta;
+            }).toList();
 
         isLoading = false;
         notifyListeners();
@@ -569,7 +592,9 @@ class VentasServices extends ChangeNotifier{
         notifyListeners();
         return [];
       } else {
-        debugPrint('Error al obtener ventas del día: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al obtener ventas del día: ${resp.statusCode} ${resp.body}',
+        );
         isLoading = false;
         notifyListeners();
         return [];
@@ -585,32 +610,42 @@ class VentasServices extends ChangeNotifier{
   // Método helper para actualizar la venta en todas las listas
   void _actualizarVentaEnListas(Ventas ventaActualizada) {
     // Actualizar en ventasDeCaja
-    final indexCaja = ventasDeCaja.indexWhere((v) => v.id == ventaActualizada.id);
+    final indexCaja = ventasDeCaja.indexWhere(
+      (v) => v.id == ventaActualizada.id,
+    );
     if (indexCaja != -1) {
       ventasDeCaja[indexCaja] = ventaActualizada;
     }
 
     // Actualizar en ventasDeCorteActual
-    final indexCorte = ventasDeCorteActual.indexWhere((v) => v.id == ventaActualizada.id);
+    final indexCorte = ventasDeCorteActual.indexWhere(
+      (v) => v.id == ventaActualizada.id,
+    );
     if (indexCorte != -1) {
       ventasDeCorteActual[indexCorte] = ventaActualizada;
     }
 
     // Actualizar en ventasConDeuda
-    final indexDeuda = ventasConDeuda.indexWhere((v) => v.id == ventaActualizada.id);
+    final indexDeuda = ventasConDeuda.indexWhere(
+      (v) => v.id == ventaActualizada.id,
+    );
     if (indexDeuda != -1) {
       ventasConDeuda[indexDeuda] = ventaActualizada;
       ventasConDeudaFiltered[indexDeuda] = ventaActualizada;
     }
 
     // Actualizar en ventasDeCajaHistorial
-    final indexHistorial = ventasDeCajaHistorial.indexWhere((v) => v.id == ventaActualizada.id);
+    final indexHistorial = ventasDeCajaHistorial.indexWhere(
+      (v) => v.id == ventaActualizada.id,
+    );
     if (indexHistorial != -1) {
       ventasDeCajaHistorial[indexHistorial] = ventaActualizada;
     }
 
     // Actualizar en ventasDePedidos
-    final indexPedidos = ventasDePedidos.indexWhere((v) => v.id == ventaActualizada.id);
+    final indexPedidos = ventasDePedidos.indexWhere(
+      (v) => v.id == ventaActualizada.id,
+    );
     if (indexPedidos != -1) {
       ventasDePedidos[indexPedidos] = ventaActualizada;
     }
@@ -619,7 +654,7 @@ class VentasServices extends ChangeNotifier{
   // Método helper para actualizar ventas por folios de forma eficiente
   void _actualizarVentasPorFolios(List<String> folios, String facturaId) {
     final foliosSet = folios.toSet();
-    
+
     // Actualizar todas las listas con un solo pasaje
     _actualizarListaPorFolios(ventasDeCaja, foliosSet, facturaId);
     _actualizarListaPorFolios(ventasDeCorteActual, foliosSet, facturaId);
@@ -630,7 +665,11 @@ class VentasServices extends ChangeNotifier{
   }
 
   // Método helper para actualizar una lista específica de ventas por folio
-  void _actualizarListaPorFolios(List<Ventas> lista, Set<String> folios, String facturaId) {
+  void _actualizarListaPorFolios(
+    List<Ventas> lista,
+    Set<String> folios,
+    String facturaId,
+  ) {
     for (var venta in lista) {
       if (folios.contains(venta.folio)) {
         venta.facturaId = facturaId;

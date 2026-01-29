@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class FacturasServices extends ChangeNotifier{
+class FacturasServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}facturacion/';
   //List<Facturas> facturas = [];
   bool isLoading = false;
@@ -33,14 +33,15 @@ class FacturasServices extends ChangeNotifier{
         // Si trae mensaje de error aunque sea 200
         if (body.containsKey('Message')) {
         } else {
-          body.addEntries({'exito':'true'}.entries);
+          body.addEntries({'exito': 'true'}.entries);
         }
-      } 
+      }
 
       return jsonEncode(body);
-      
     } catch (e) {
-      return jsonEncode({'Message':'Hubo un problema al crear la factura.\n$e'});
+      return jsonEncode({
+        'Message': 'Hubo un problema al crear la factura.\n$e',
+      });
     }
   }
 
@@ -79,8 +80,8 @@ class FacturasServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -93,7 +94,7 @@ class FacturasServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: headers,
-        body: factura.toJson(),   
+        body: factura.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -102,7 +103,7 @@ class FacturasServices extends ChangeNotifier{
         nuevo.id = data['id']?.toString();
 
         historialFacturas.add(nuevo);
-        
+
         if (kDebugMode) {
           print('factura creada en be!');
         }
@@ -130,11 +131,11 @@ class FacturasServices extends ChangeNotifier{
 
     historialIsLoading = true;
     historialError = null;
-    
+
     if (!append) {
       historialFacturas = [];
     }
-    
+
     notifyListeners();
 
     try {
@@ -142,26 +143,30 @@ class FacturasServices extends ChangeNotifier{
       final queryParams = {
         'page': page.toString(),
         'page_size': pageSize.toString(),
-        if (sucursalId != null && sucursalId.isNotEmpty) 'sucursal_id': sucursalId,
+        if (sucursalId != null && sucursalId.isNotEmpty)
+          'sucursal_id': sucursalId,
       };
 
-      final url = Uri.parse('${_baseUrl}all').replace(queryParameters: queryParams);
-      
+      final url = Uri.parse(
+        '${_baseUrl}all',
+      ).replace(queryParameters: queryParams);
+
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn}
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);
-             
+
         // Parsear las facturas
         final List<dynamic> facturasJson = data['data'];
-        final List<Facturas> nuevasFacturas = facturasJson.map((json) {
-          final factura = Facturas.fromMap(json as Map<String, dynamic>);
-          factura.id = (json as Map)['id']?.toString();
-          return factura;
-        }).toList();
+        final List<Facturas> nuevasFacturas =
+            facturasJson.map((json) {
+              final factura = Facturas.fromMap(json as Map<String, dynamic>);
+              factura.id = (json as Map)['id']?.toString();
+              return factura;
+            }).toList();
 
         // Agregar o reemplazar
         if (append) {

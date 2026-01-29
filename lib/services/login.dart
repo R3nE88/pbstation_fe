@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/usuarios.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 
 class Login {
   final String _baseUrl = 'http:${Constantes.baseUrl}login';
   static late Usuarios usuarioLogeado;
   bool isLoading = false;
-    
+
   Future<bool> login(String correo, String psw) async {
     isLoading = true;
     final url = Uri.parse(_baseUrl);
@@ -20,12 +20,9 @@ class Login {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'tkn': Env.tkn
+          ...AuthService.getAuthHeaders(),
         },
-        body: jsonEncode({
-          'correo': correo,
-          'psw': psw,
-        }),
+        body: jsonEncode({'correo': correo, 'psw': psw}),
       );
 
       if (resp.statusCode == 200) {
@@ -64,18 +61,15 @@ class Login {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'tkn': Env.tkn
+          ...AuthService.getAuthHeaders(),
         },
-        body: jsonEncode({
-          'correo': correo,
-          'psw': psw,
-        }),
+        body: jsonEncode({'correo': correo, 'psw': psw}),
       );
 
       if (resp.statusCode == 200) {
         try {
           Usuarios user = Usuarios.fromJson(resp.body);
-          if (user.permisos.tieneAlMenos(Permiso.elevado)){
+          if (user.permisos.tieneAlMenos(Permiso.elevado)) {
             return true;
           }
         } catch (e) {
@@ -83,7 +77,7 @@ class Login {
             print('Error parsing JSON: $e');
           }
         }
-      } 
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error during HTTP request: $e');

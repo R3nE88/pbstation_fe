@@ -2,18 +2,18 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class VentasEnviadasServices extends ChangeNotifier{
+class VentasEnviadasServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}ventas_enviadas/';
   List<VentasEnviadas> ventas = [];
   bool isLoading = false;
   bool loaded = false;
 
-  Future<List<VentasEnviadas>> ventasRecibidas() async { 
+  Future<List<VentasEnviadas>> ventasRecibidas() async {
     if (!Configuracion.esCaja || loaded) return [];
 
     isLoading = true;
@@ -21,42 +21,43 @@ class VentasEnviadasServices extends ChangeNotifier{
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      ventas = listaJson.map<VentasEnviadas>((jsonElem) {
-        final x = VentasEnviadas.fromMap(jsonElem as Map<String, dynamic>);
-        x.id = (jsonElem as Map)['id']?.toString();
-        return x;
-      }).toList();
-
+      ventas =
+          listaJson.map<VentasEnviadas>((jsonElem) {
+            final x = VentasEnviadas.fromMap(jsonElem as Map<String, dynamic>);
+            x.id = (jsonElem as Map)['id']?.toString();
+            return x;
+          }).toList();
     } catch (e) {
       isLoading = false;
       notifyListeners();
       return [];
     }
-    
+
     loaded = true;
     isLoading = false;
     notifyListeners();
     return ventas;
   }
 
-  void recibirVenta() async{
+  void recibirVenta() async {
     ventas.clear();
-    loaded=false;
+    loaded = false;
     await ventasRecibidas();
   }
 
   Future<String> enviarVenta(VentasEnviadas venta) async {
     isLoading = true;
-    
+
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -67,8 +68,11 @@ class VentasEnviadasServices extends ChangeNotifier{
       final url = Uri.parse(_baseUrl);
       final resp = await http.post(
         url,
-        headers: {'Content-Type': 'application/json', 'tkn': Env.tkn},
-        body: venta.toJson(),   
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeaders(),
+        },
+        body: venta.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -90,13 +94,13 @@ class VentasEnviadasServices extends ChangeNotifier{
     }
   }
 
-  Future<bool> eliminarRecibida(String id, String sucursal) async{
+  Future<bool> eliminarRecibida(String id, String sucursal) async {
     bool exito = false;
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -105,16 +109,14 @@ class VentasEnviadasServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('$_baseUrl$id?sucursal=$sucursal');
-      final resp = await http.delete(
-        url, headers: headers
-        );
-      if (resp.statusCode == 204){
-        ventas.removeWhere((venta) => venta.id==id);
+      final resp = await http.delete(url, headers: headers);
+      if (resp.statusCode == 204) {
+        ventas.removeWhere((venta) => venta.id == id);
         exito = true;
       }
     } catch (e) {
       exito = false;
-    } 
+    }
     notifyListeners();
     return exito;
   }

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class ClientesServices extends ChangeNotifier{
+class ClientesServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
@@ -18,9 +18,7 @@ class ClientesServices extends ChangeNotifier{
   //Esto es para mapear y buscar clientes//
   void cargarClientes(List<Clientes> nuevosClientes) {
     clientes = nuevosClientes;
-    _clientesPorId = {
-      for (var c in clientes) c.id!: c
-    };
+    _clientesPorId = {for (var c in clientes) c.id!: c};
     notifyListeners();
   }
 
@@ -34,39 +32,41 @@ class ClientesServices extends ChangeNotifier{
     if (query.isEmpty) {
       filteredClientes = clientes;
     } else {
-      filteredClientes = clientes.where((cliente) {
-        return cliente.nombre.toLowerCase().contains(query) ||
-              (cliente.rfc ?? '').toLowerCase().contains(query);
-      }).toList();
+      filteredClientes =
+          clientes.where((cliente) {
+            return cliente.nombre.toLowerCase().contains(query) ||
+                (cliente.rfc ?? '').toLowerCase().contains(query);
+          }).toList();
     }
     notifyListeners();
-  }//Aqui termina para SearchField
+  } //Aqui termina para SearchField
 
   //Metodos HTTPs
-  Future<List<Clientes>> loadClientes() async { 
+  Future<List<Clientes>> loadClientes() async {
     if (loaded) return clientes;
     isLoading = true;
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      clientes = listaJson.map<Clientes>((jsonElem) {
-        final cli = Clientes.fromMap(jsonElem as Map<String, dynamic>);
-        cli.id = (jsonElem as Map)['id']?.toString();
-        return cli;
-      }).toList();
+      clientes =
+          listaJson.map<Clientes>((jsonElem) {
+            final cli = Clientes.fromMap(jsonElem as Map<String, dynamic>);
+            cli.id = (jsonElem as Map)['id']?.toString();
+            return cli;
+          }).toList();
       filteredClientes = clientes;
-
     } catch (e) {
       isLoading = false;
       notifyListeners();
       return [];
     }
-    
+
     loaded = true;
     isLoading = false;
     cargarClientes(clientes);
@@ -79,7 +79,8 @@ class ClientesServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final body = json.decode(resp.body);
@@ -103,8 +104,8 @@ class ClientesServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -117,7 +118,7 @@ class ClientesServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: headers,
-        body: cliente.toJson(),   
+        body: cliente.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -147,13 +148,13 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  Future<bool> deleteCliente(String id) async{
+  Future<bool> deleteCliente(String id) async {
     bool exito = false;
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -162,23 +163,21 @@ class ClientesServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('$_baseUrl$id');
-      final resp = await http.delete(
-        url, headers: headers
-      );
-      if (resp.statusCode == 204){
-        clientes.removeWhere((cliente) => cliente.id==id);
+      final resp = await http.delete(url, headers: headers);
+      if (resp.statusCode == 204) {
+        clientes.removeWhere((cliente) => cliente.id == id);
         filteredClientes = clientes;
         exito = true;
       }
     } catch (e) {
       exito = false;
-    } 
+    }
     notifyListeners();
     return exito;
   }
 
   void deleteACliente(String id) {
-    clientes.removeWhere((cliente) => cliente.id==id);
+    clientes.removeWhere((cliente) => cliente.id == id);
     filteredClientes = clientes;
     notifyListeners();
   }
@@ -189,14 +188,14 @@ class ClientesServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
       headers['X-Connection-Id'] = connectionId;
     }
-    
+
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.put(
@@ -209,14 +208,19 @@ class ClientesServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
-        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        clientes =
+            clientes
+                .map((cli) => cli.id == updated.id ? updated : cli)
+                .toList();
 
         filteredClientes = clientes;
         cargarClientes(clientes);
         notifyListeners();
         return 'exito';
       } else {
-        debugPrint('Error al actualizar cliente: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al actualizar cliente: ${resp.statusCode} ${resp.body}',
+        );
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
@@ -229,22 +233,26 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  void updateACliente(String id)async{
+  void updateACliente(String id) async {
     if (!isLoading) {
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
-        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        clientes =
+            clientes
+                .map((cli) => cli.id == updated.id ? updated : cli)
+                .toList();
         filteredClientes = clientes;
         cargarClientes(clientes);
-        
+
         isLoading = false;
         notifyListeners();
       } catch (e) {
@@ -257,21 +265,21 @@ class ClientesServices extends ChangeNotifier{
     }
   }
 
-  List<Clientes> loadAdeudos(){
+  List<Clientes> loadAdeudos() {
     clientesConAdeudo.clear();
     for (var cliente in clientes) {
-      if (cliente.adeudos.isNotEmpty){
+      if (cliente.adeudos.isNotEmpty) {
         clientesConAdeudo.add(cliente);
       }
     }
     return clientesConAdeudo;
   }
 
-  Future<void> adeudarCliente (String clienteId, Adeudos adeudo) async {
+  Future<void> adeudarCliente(String clienteId, Adeudos adeudo) async {
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -283,14 +291,17 @@ class ClientesServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: headers,
-        body: adeudo.toJson(),   
+        body: adeudo.toJson(),
       );
 
       if (resp.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Clientes.fromMap(data);
         updated.id = data['id']?.toString();
-        clientes = clientes.map((cli) => cli.id == updated.id ? updated : cli).toList();
+        clientes =
+            clientes
+                .map((cli) => cli.id == updated.id ? updated : cli)
+                .toList();
         filteredClientes = clientes;
       } else {
         debugPrint('Error al crear adeudo: ${resp.statusCode} ${resp.body}');
@@ -305,8 +316,8 @@ class ClientesServices extends ChangeNotifier{
   Future<void> quitarDeuda(String ventaId, String clienteId) async {
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -315,12 +326,9 @@ class ClientesServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('$_baseUrl$clienteId/adeudos/$ventaId');
-      final resp = await http.delete(
-        url, 
-        headers: headers
-      );
-      
-      if (resp.statusCode == 202) {      
+      final resp = await http.delete(url, headers: headers);
+
+      if (resp.statusCode == 202) {
         // Función auxiliar para quitar adeudo de un cliente
         void quitarAdeudoDeCliente(List<Clientes> lista) {
           try {
@@ -330,20 +338,20 @@ class ClientesServices extends ChangeNotifier{
             // Cliente no encontrado en esta lista
           }
         }
-        
+
         // Actualizar en todas las listas
         quitarAdeudoDeCliente(clientes);
         quitarAdeudoDeCliente(filteredClientes);
         quitarAdeudoDeCliente(clientesConAdeudo);
-        
+
         // Solo eliminar de clientesConAdeudo si ya no tiene adeudos
-        clientesConAdeudo.removeWhere((c) => 
-          c.id == clienteId && c.adeudos.isEmpty
+        clientesConAdeudo.removeWhere(
+          (c) => c.id == clienteId && c.adeudos.isEmpty,
         );
       }
     } catch (e) {
       debugPrint('$e');
-    } 
+    }
     notifyListeners();
   }
 }

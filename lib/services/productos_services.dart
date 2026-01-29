@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
-class ProductosServices extends ChangeNotifier{
+class ProductosServices extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
@@ -16,30 +16,30 @@ class ProductosServices extends ChangeNotifier{
 
   void cargarProductos(List<Productos> nuevosProductos) {
     _productosPorId.clear();
-    _productosPorId = {
-      for (var p in productos) p.id!: p
-    };
+    _productosPorId = {for (var p in productos) p.id!: p};
     notifyListeners();
   }
-  
+
   Productos? obtenerProductoPorId(String id) {
     return _productosPorId[id];
   }
-  
+
   String descripcionConCantidad(DetallesVenta detalles) {
     final producto = _productosPorId[detalles.productoId];
-    if (producto==null) return 'No se encontro el producto';
+    if (producto == null) return 'No se encontro el producto';
     final descripcion = producto.descripcion;
-    if (producto.requiereMedida){
+    if (producto.requiereMedida) {
       return '${detalles.cantidad} $descripcion(${detalles.ancho}x${detalles.alto})';
     }
     return '${detalles.cantidad} $descripcion';
   }
-  
+
   String obtenerDetallesComoTexto(List<DetallesVenta> detalles) {
-    return detalles.map((detalle) {
-      return descripcionConCantidad(detalle);
-    }).join(' - ');
+    return detalles
+        .map((detalle) {
+          return descripcionConCantidad(detalle);
+        })
+        .join(' - ');
   }
 
   void filtrarProductos(String query) {
@@ -47,40 +47,42 @@ class ProductosServices extends ChangeNotifier{
     if (query.isEmpty) {
       filteredProductos = productos;
     } else {
-      filteredProductos = productos.where((producto) {
-        return producto.descripcion.toLowerCase().contains(query) ||
-              producto.codigo.toString().contains(query);
-      }).toList();
+      filteredProductos =
+          productos.where((producto) {
+            return producto.descripcion.toLowerCase().contains(query) ||
+                producto.codigo.toString().contains(query);
+          }).toList();
     }
     notifyListeners();
   }
 
-  Future<List<Productos>> loadProductos() async {   
+  Future<List<Productos>> loadProductos() async {
     if (loaded) return productos;
     isLoading = true;
 
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      productos = listaJson.map<Productos>((jsonElem) {
-        final prod = Productos.fromMap(jsonElem as Map<String, dynamic>);
-        prod.id = (jsonElem as Map)['id']?.toString();
-        return prod;
-      }).toList();
+      productos =
+          listaJson.map<Productos>((jsonElem) {
+            final prod = Productos.fromMap(jsonElem as Map<String, dynamic>);
+            prod.id = (jsonElem as Map)['id']?.toString();
+            return prod;
+          }).toList();
       filteredProductos = productos;
-
     } catch (e) {
       isLoading = false;
       notifyListeners();
       return [];
     }
-    
-    loaded=true;
+
+    loaded = true;
     isLoading = false;
     cargarProductos(productos);
     return productos;
@@ -92,13 +94,14 @@ class ProductosServices extends ChangeNotifier{
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final body = json.decode(resp.body);
         final prod = Productos.fromMap(body as Map<String, dynamic>);
         prod.id = (body as Map)['id']?.toString();
-        
+
         productos.add(prod);
         filteredProductos = productos;
         cargarProductos(productos);
@@ -117,8 +120,8 @@ class ProductosServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     if (connectionId != null) {
       headers['X-Connection-Id'] = connectionId;
@@ -129,7 +132,7 @@ class ProductosServices extends ChangeNotifier{
       final resp = await http.post(
         url,
         headers: headers,
-        body: producto.toJson(),   
+        body: producto.toJson(),
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -157,13 +160,13 @@ class ProductosServices extends ChangeNotifier{
     }
   }
 
-  Future<bool> deleteProducto(String id) async{
+  Future<bool> deleteProducto(String id) async {
     bool exito = false;
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -172,24 +175,22 @@ class ProductosServices extends ChangeNotifier{
 
     try {
       final url = Uri.parse('$_baseUrl$id');
-      final resp = await http.delete(
-        url, headers: headers
-        );
-      if (resp.statusCode == 204){
-        productos.removeWhere((producto) => producto.id==id);
+      final resp = await http.delete(url, headers: headers);
+      if (resp.statusCode == 204) {
+        productos.removeWhere((producto) => producto.id == id);
         filteredProductos = productos;
         exito = true;
       }
     } catch (e) {
       exito = false;
-    } 
+    }
     cargarProductos(productos);
     notifyListeners();
     return exito;
   }
 
   void deleteAProducto(String id) {
-    productos.removeWhere((producto) => producto.id==id);
+    productos.removeWhere((producto) => producto.id == id);
     filteredProductos = productos;
     cargarProductos(productos);
     notifyListeners();
@@ -201,8 +202,8 @@ class ProductosServices extends ChangeNotifier{
 
     final connectionId = WebSocketService.connectionId;
     final headers = {
-      'Content-Type': 'application/json', 
-      'tkn': Env.tkn
+      'Content-Type': 'application/json',
+      ...AuthService.getAuthHeaders(),
     };
     //Para notificar a los demas, menos a mi mismo (websocket)
     if (connectionId != null) {
@@ -221,14 +222,19 @@ class ProductosServices extends ChangeNotifier{
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Productos.fromMap(data);
         updated.id = data['id']?.toString();
-        productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
-        
+        productos =
+            productos
+                .map((prod) => prod.id == updated.id ? updated : prod)
+                .toList();
+
         filteredProductos = productos;
         cargarProductos(productos);
         notifyListeners();
         return 'exito';
       } else {
-        debugPrint('Error al actualizar producto: ${resp.statusCode} ${resp.body}');
+        debugPrint(
+          'Error al actualizar producto: ${resp.statusCode} ${resp.body}',
+        );
         final body = jsonDecode(resp.body);
         return body['detail'];
       }
@@ -241,20 +247,24 @@ class ProductosServices extends ChangeNotifier{
     }
   }
 
-  void updateAProducto(String id)async{
+  void updateAProducto(String id) async {
     if (!isLoading) {
       isLoading = true;
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
 
         final Map<String, dynamic> data = json.decode(resp.body);
         final updated = Productos.fromMap(data);
         updated.id = data['id']?.toString();
-        productos = productos.map((prod) => prod.id == updated.id ? updated : prod).toList();
-        
+        productos =
+            productos
+                .map((prod) => prod.id == updated.id ? updated : prod)
+                .toList();
+
         filteredProductos = productos;
         cargarProductos(productos);
         isLoading = false;

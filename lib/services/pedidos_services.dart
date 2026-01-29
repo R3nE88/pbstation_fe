@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:pbstation_frontend/env.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/sucursales_services.dart';
@@ -27,52 +27,63 @@ class PedidosService extends ChangeNotifier {
   String? historialError;
   String? sucursalFiltroHistorial;
 
-
   void organizar() {
     // Combinar todas las listas antes de reorganizar
     final todosPedidos = [...pedidosReady, ...pedidosNotReady];
-    
-    if (Login.usuarioLogeado.rol == TipoUsuario.vendedor && 
-        (Login.usuarioLogeado.permisos.nivel == 1 || Login.usuarioLogeado.permisos.nivel == 2)) {
+
+    if (Login.usuarioLogeado.rol == TipoUsuario.vendedor &&
+        (Login.usuarioLogeado.permisos.nivel == 1 ||
+            Login.usuarioLogeado.permisos.nivel == 2)) {
       // Filtrar pedidos por sucursal del vendedor
       final sucursalId = SucursalesServices.sucursalActualID;
-      
+
       // Pedidos "en espera" que pertenecen a la sucursal del vendedor
-      pedidosNotReady = todosPedidos
-          .where((pedido) => 
-              pedido.estado.name == 'enEspera' && 
-              pedido.ventaId != 'esperando' &&
-              pedido.sucursalId == sucursalId &&
-              !(pedido.cancelado))
-          .toList();
-      
+      pedidosNotReady =
+          todosPedidos
+              .where(
+                (pedido) =>
+                    pedido.estado.name == 'enEspera' &&
+                    pedido.ventaId != 'esperando' &&
+                    pedido.sucursalId == sucursalId &&
+                    !(pedido.cancelado),
+              )
+              .toList();
+
       // Pedidos activos (no en espera, no cancelados, no entregados)
-      pedidosReady = todosPedidos
-          .where((pedido) => 
-              pedido.estado.name != 'enEspera' && 
-              pedido.estado.name != 'entregado' &&
-              pedido.ventaId != 'esperando' &&
-              pedido.sucursalId == sucursalId &&
-              !(pedido.cancelado))
-          .toList();
-      
+      pedidosReady =
+          todosPedidos
+              .where(
+                (pedido) =>
+                    pedido.estado.name != 'enEspera' &&
+                    pedido.estado.name != 'entregado' &&
+                    pedido.ventaId != 'esperando' &&
+                    pedido.sucursalId == sucursalId &&
+                    !(pedido.cancelado),
+              )
+              .toList();
     } else {
       // Pedidos "en espera" (no cancelados)
-      pedidosNotReady = todosPedidos
-          .where((pedido) => 
-              pedido.estado.name == 'enEspera' && 
-              pedido.ventaId != 'esperando' &&
-              !(pedido.cancelado))
-          .toList();
-      
+      pedidosNotReady =
+          todosPedidos
+              .where(
+                (pedido) =>
+                    pedido.estado.name == 'enEspera' &&
+                    pedido.ventaId != 'esperando' &&
+                    !(pedido.cancelado),
+              )
+              .toList();
+
       // Pedidos activos (no en espera, no cancelados, no entregados)
-      pedidosReady = todosPedidos
-          .where((pedido) => 
-              pedido.estado.name != 'enEspera' && 
-              pedido.estado.name != 'entregado' &&
-              pedido.ventaId != 'esperando' &&
-              !(pedido.cancelado))
-          .toList();
+      pedidosReady =
+          todosPedidos
+              .where(
+                (pedido) =>
+                    pedido.estado.name != 'enEspera' &&
+                    pedido.estado.name != 'entregado' &&
+                    pedido.ventaId != 'esperando' &&
+                    !(pedido.cancelado),
+              )
+              .toList();
     }
 
     filteredPedidosReady = pedidosReady;
@@ -83,14 +94,15 @@ class PedidosService extends ChangeNotifier {
     if (query.isEmpty) {
       filteredPedidosReady = pedidosReady;
     } else {
-      filteredPedidosReady = pedidosReady.where((pedido) {
-        return pedido.folio?.toLowerCase().contains(query)??false;
-      }).toList();
+      filteredPedidosReady =
+          pedidosReady.where((pedido) {
+            return pedido.folio?.toLowerCase().contains(query) ?? false;
+          }).toList();
     }
     notifyListeners();
   }
 
-  Future<List<Pedidos>> loadPedidos({bool force = false}) async { 
+  Future<List<Pedidos>> loadPedidos({bool force = false}) async {
     if (loaded && !force) return pedidosReady;
 
     pedidosNotReady.clear();
@@ -100,23 +112,24 @@ class PedidosService extends ChangeNotifier {
     try {
       final url = Uri.parse('${_baseUrl}all');
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       final List<dynamic> listaJson = json.decode(resp.body);
 
-      pedidosReady = listaJson.map<Pedidos>((jsonElem) {
-        final cli = Pedidos.fromMap(jsonElem as Map<String, dynamic>);
-        cli.id = (jsonElem as Map)['id']?.toString();
-        return cli;
-      }).toList();
-
+      pedidosReady =
+          listaJson.map<Pedidos>((jsonElem) {
+            final cli = Pedidos.fromMap(jsonElem as Map<String, dynamic>);
+            cli.id = (jsonElem as Map)['id']?.toString();
+            return cli;
+          }).toList();
     } catch (e) {
       isLoading = false;
       notifyListeners();
       return [];
     }
-    
+
     organizar();
     loaded = true;
     isLoading = false;
@@ -130,9 +143,10 @@ class PedidosService extends ChangeNotifier {
       try {
         final url = Uri.parse('$_baseUrl$id');
         final resp = await http.get(
-          url, headers: {'tkn': Env.tkn}
+          url,
+          headers: {...AuthService.getAuthHeaders()},
         );
-        if (resp.statusCode == 200){
+        if (resp.statusCode == 200) {
           final body = json.decode(resp.body);
           final cli = Pedidos.fromMap(body as Map<String, dynamic>);
           cli.id = (body as Map)['id']?.toString();
@@ -149,21 +163,23 @@ class PedidosService extends ChangeNotifier {
     }
   }
 
-  Future<Pedidos?> searchPedidoByVentaFolio(String ventaFolio) async{
+  Future<Pedidos?> searchPedidoByVentaFolio(String ventaFolio) async {
     // Buscar primero en historial
-    if (pedidosHistorial.any((element) => element.ventaFolio == ventaFolio)){
-      return pedidosHistorial.firstWhere((element) => element.ventaFolio == ventaFolio);
+    if (pedidosHistorial.any((element) => element.ventaFolio == ventaFolio)) {
+      return pedidosHistorial.firstWhere(
+        (element) => element.ventaFolio == ventaFolio,
+      );
     }
 
     isLoading = true;
     notifyListeners();
-    
+
     try {
       // Asumiendo que tu API tiene un endpoint para buscar por ventaFolio
       final url = Uri.parse('${_baseUrl}by-venta-folio/$ventaFolio');
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn},
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
@@ -171,12 +187,14 @@ class PedidosService extends ChangeNotifier {
         final pedido = Pedidos.fromMap(data);
         pedido.id = data['id']?.toString();
         pedidosHistorial.add(pedido);
-        
+
         isLoading = false;
         notifyListeners();
         return pedido;
       } else {
-        debugPrint('Pedido no encontrado para venta: $ventaFolio - ${resp.statusCode}');
+        debugPrint(
+          'Pedido no encontrado para venta: $ventaFolio - ${resp.statusCode}',
+        );
         isLoading = false;
         notifyListeners();
         return null;
@@ -198,15 +216,14 @@ class PedidosService extends ChangeNotifier {
     uploadProgress = 0;
     notifyListeners();
 
-    if ((archivos == null || archivos.isEmpty) && pedido.estado != Estado.enEspera) {
+    if ((archivos == null || archivos.isEmpty) &&
+        pedido.estado != Estado.enEspera) {
       isLoading = false;
       notifyListeners();
       return 'Error: Los pedidos deben tener archivos o estar en estado "en espera"';
     }
 
-    final formDataMap = <String, dynamic>{
-      'pedido': pedido.toJson(),
-    };
+    final formDataMap = <String, dynamic>{'pedido': pedido.toJson()};
 
     if (archivos != null && archivos.isNotEmpty) {
       formDataMap['archivos'] = [
@@ -214,22 +231,24 @@ class PedidosService extends ChangeNotifier {
           await MultipartFile.fromFile(
             f.path,
             filename: f.path.split(Platform.isWindows ? '\\' : '/').last,
-          )
+          ),
       ];
     }
 
     final headers = {
-      'tkn': Env.tkn,
-      if (WebSocketService.connectionId != null) 
+      ...AuthService.getAuthHeaders(),
+      if (WebSocketService.connectionId != null)
         'X-Connection-Id': WebSocketService.connectionId!,
     };
 
     try {
-      final dio = Dio(BaseOptions(
-        headers: headers,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-      ));
+      final dio = Dio(
+        BaseOptions(
+          headers: headers,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
 
       final response = await dio.post(
         _baseUrl,
@@ -242,9 +261,11 @@ class PedidosService extends ChangeNotifier {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         uploadProgress = 1;
-        final nuevoPedido = Pedidos.fromMap(response.data as Map<String, dynamic>);
-        if (nuevoPedido.ventaId!='esperando'){
-          if (nuevoPedido.estado==Estado.enEspera){
+        final nuevoPedido = Pedidos.fromMap(
+          response.data as Map<String, dynamic>,
+        );
+        if (nuevoPedido.ventaId != 'esperando') {
+          if (nuevoPedido.estado == Estado.enEspera) {
             pedidosNotReady.add(nuevoPedido);
           } else {
             pedidosReady.add(nuevoPedido);
@@ -293,22 +314,24 @@ class PedidosService extends ChangeNotifier {
           await MultipartFile.fromFile(
             f.path,
             filename: f.path.split(Platform.isWindows ? '\\' : '/').last,
-          )
+          ),
       ],
     };
 
     final headers = {
-      'tkn': Env.tkn,
+      ...AuthService.getAuthHeaders(),
       if (WebSocketService.connectionId != null)
         'X-Connection-Id': WebSocketService.connectionId!,
     };
 
     try {
-      final dio = Dio(BaseOptions(
-        headers: headers,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-      ));
+      final dio = Dio(
+        BaseOptions(
+          headers: headers,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
 
       final response = await dio.patch(
         '$_baseUrl$pedidoId/archivos',
@@ -321,7 +344,9 @@ class PedidosService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         uploadProgress = 1;
-        final pedidoActualizado = Pedidos.fromMap(response.data as Map<String, dynamic>);
+        final pedidoActualizado = Pedidos.fromMap(
+          response.data as Map<String, dynamic>,
+        );
         final index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosNotReady.removeAt(index);
@@ -363,7 +388,7 @@ class PedidosService extends ChangeNotifier {
       final connectionId = WebSocketService.connectionId;
 
       final headers = {
-        'tkn': Env.tkn,
+        ...AuthService.getAuthHeaders(),
         if (connectionId != null) 'X-Connection-Id': connectionId,
       };
 
@@ -378,7 +403,7 @@ class PedidosService extends ChangeNotifier {
       if (response.statusCode == 200) {
         // Actualizar el pedido en la lista local
         final pedidoActualizado = Pedidos.fromJson(response.body);
-        
+
         final index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosNotReady[index] = pedidoActualizado;
@@ -435,10 +460,12 @@ class PedidosService extends ChangeNotifier {
       downloadProgress = 0.0;
       notifyListeners();*/
 
-      final dio = Dio(BaseOptions(
-        headers: {'tkn': Env.tkn},
-        responseType: ResponseType.stream,
-      ));
+      final dio = Dio(
+        BaseOptions(
+          headers: {...AuthService.getAuthHeaders()},
+          responseType: ResponseType.stream,
+        ),
+      );
 
       final url = '$_baseUrl$pedidoId/archivo/$nombreArchivo';
 
@@ -450,9 +477,12 @@ class PedidosService extends ChangeNotifier {
       final filePath = '${dirDestino.path}\\$nombreArchivo';
       final file = File(filePath);
 
-      final total = response.headers.value(HttpHeaders.contentLengthHeader) != null
-          ? int.parse(response.headers.value(HttpHeaders.contentLengthHeader)!)
-          : 0;
+      final total =
+          response.headers.value(HttpHeaders.contentLengthHeader) != null
+              ? int.parse(
+                response.headers.value(HttpHeaders.contentLengthHeader)!,
+              )
+              : 0;
 
       final sink = file.openWrite();
       int received = 0;
@@ -490,16 +520,17 @@ class PedidosService extends ChangeNotifier {
     required Directory dirDestino,
     bool elegirCarpeta = true,
   }) async {
-      isDownloading = true;
-      downloadProgress = 0.0;
-      
+    isDownloading = true;
+    downloadProgress = 0.0;
 
     try {
       // 2️⃣ Descargar el ZIP
-      final dio = Dio(BaseOptions(
-        headers: {'tkn': Env.tkn},
-        responseType: ResponseType.stream,
-      ));
+      final dio = Dio(
+        BaseOptions(
+          headers: {...AuthService.getAuthHeaders()},
+          responseType: ResponseType.stream,
+        ),
+      );
 
       final url = '$_baseUrl$pedidoId/archivos';
 
@@ -510,10 +541,12 @@ class PedidosService extends ChangeNotifier {
 
       // 3️⃣ Obtener nombre del archivo ZIP
       String fileName = 'pedido_$pedidoId.zip';
-      
+
       final contentDisposition = response.headers.value('content-disposition');
       if (contentDisposition != null) {
-        final filenameMatch = RegExp(r'filename="?([^"]+)"?').firstMatch(contentDisposition);
+        final filenameMatch = RegExp(
+          r'filename="?([^"]+)"?',
+        ).firstMatch(contentDisposition);
         if (filenameMatch != null) {
           fileName = filenameMatch.group(1)!;
         }
@@ -523,9 +556,12 @@ class PedidosService extends ChangeNotifier {
       final file = File(filePath);
 
       // 4️⃣ Guardar el archivo con progreso
-      final total = response.headers.value(HttpHeaders.contentLengthHeader) != null
-          ? int.parse(response.headers.value(HttpHeaders.contentLengthHeader)!)
-          : 0;
+      final total =
+          response.headers.value(HttpHeaders.contentLengthHeader) != null
+              ? int.parse(
+                response.headers.value(HttpHeaders.contentLengthHeader)!,
+              )
+              : 0;
 
       final sink = file.openWrite();
       int received = 0;
@@ -568,7 +604,7 @@ class PedidosService extends ChangeNotifier {
       final connectionId = WebSocketService.connectionId;
 
       final headers = {
-        'tkn': Env.tkn,
+        ...AuthService.getAuthHeaders(),
         if (connectionId != null) 'X-Connection-Id': connectionId,
       };
 
@@ -576,34 +612,29 @@ class PedidosService extends ChangeNotifier {
 
       // Preparar el body
       final body = <String, String>{'estado': estado};
-      
+
       // Agregar usuario_id_entrego solo si el estado es "entregado"
       if (estado.toLowerCase() == 'entregado') {
         body['usuario_id_entrego'] = Login.usuarioLogeado.id!;
       }
 
-      final response = await http.patch(
-        url,
-        headers: headers,
-        body: body,
-      );
+      final response = await http.patch(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         // Actualizar el pedido en la lista local
         final pedidoActualizado = Pedidos.fromJson(response.body);
-        
+
         // Buscar y actualizar en todas las listas
         int index = pedidosReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosReady[index] = pedidoActualizado;
         }
-        
+
         index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosNotReady[index] = pedidoActualizado;
         }
-        
-        
+
         // Reorganizar las listas según el nuevo estado
         organizar();
         notifyListeners();
@@ -621,9 +652,7 @@ class PedidosService extends ChangeNotifier {
     }
   }
 
-  Future<bool> cancelarPedido({
-    required String pedidoId,
-  }) async {
+  Future<bool> cancelarPedido({required String pedidoId}) async {
     isLoading = true;
     notifyListeners();
 
@@ -631,32 +660,29 @@ class PedidosService extends ChangeNotifier {
       final connectionId = WebSocketService.connectionId;
 
       final headers = {
-        'tkn': Env.tkn,
+        ...AuthService.getAuthHeaders(),
         if (connectionId != null) 'X-Connection-Id': connectionId,
       };
 
       final url = Uri.parse('$_baseUrl$pedidoId/cancelar');
 
-      final response = await http.patch(
-        url,
-        headers: headers,
-      );
+      final response = await http.patch(url, headers: headers);
 
       if (response.statusCode == 200) {
         // Actualizar el pedido en la lista local
         final pedidoActualizado = Pedidos.fromJson(response.body);
-        
+
         // Buscar y actualizar en todas las listas
         int index = pedidosReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosReady[index] = pedidoActualizado;
         }
-        
+
         index = pedidosNotReady.indexWhere((p) => p.id == pedidoId);
         if (index != -1) {
           pedidosNotReady[index] = pedidoActualizado;
         }
-        
+
         // Reorganizar las listas (moverá el pedido cancelado a historial)
         organizar();
         notifyListeners();
@@ -684,11 +710,11 @@ class PedidosService extends ChangeNotifier {
 
     historialIsLoading = true;
     historialError = null;
-    
+
     if (!append) {
       pedidosHistorial = [];
     }
-    
+
     notifyListeners();
 
     try {
@@ -696,26 +722,30 @@ class PedidosService extends ChangeNotifier {
       final queryParams = {
         'page': page.toString(),
         'page_size': pageSize.toString(),
-        if (sucursalId != null && sucursalId.isNotEmpty) 'sucursal_id': sucursalId,
+        if (sucursalId != null && sucursalId.isNotEmpty)
+          'sucursal_id': sucursalId,
       };
 
-      final url = Uri.parse('${_baseUrl}historial').replace(queryParameters: queryParams);
-      
+      final url = Uri.parse(
+        '${_baseUrl}historial',
+      ).replace(queryParameters: queryParams);
+
       final resp = await http.get(
         url,
-        headers: {'tkn': Env.tkn}
+        headers: {...AuthService.getAuthHeaders()},
       );
 
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);
-             
+
         // Parsear los pedidos
         final List<dynamic> cajasJson = data['data'];
-        final List<Pedidos> nuevasCajas = cajasJson.map((json) {
-          final caja = Pedidos.fromMap(json as Map<String, dynamic>);
-          caja.id = (json as Map)['id']?.toString();
-          return caja;
-        }).toList();
+        final List<Pedidos> nuevasCajas =
+            cajasJson.map((json) {
+              final caja = Pedidos.fromMap(json as Map<String, dynamic>);
+              caja.id = (json as Map)['id']?.toString();
+              return caja;
+            }).toList();
 
         // Agregar o reemplazar
         if (append) {
@@ -758,9 +788,7 @@ class PedidosService extends ChangeNotifier {
   }
 
   /// Eliminar un pedido permanentemente
-  Future<bool> eliminarPedido({
-    required String pedidoId,
-  }) async {
+  Future<bool> eliminarPedido({required String pedidoId}) async {
     isLoading = true;
     notifyListeners();
 
@@ -768,16 +796,13 @@ class PedidosService extends ChangeNotifier {
       final connectionId = WebSocketService.connectionId;
 
       final headers = {
-        'tkn': Env.tkn,
+        ...AuthService.getAuthHeaders(),
         if (connectionId != null) 'X-Connection-Id': connectionId,
       };
 
       final url = Uri.parse('$_baseUrl$pedidoId');
 
-      final response = await http.delete(
-        url,
-        headers: headers,
-      );
+      final response = await http.delete(url, headers: headers);
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         // Eliminar el pedido de todas las listas locales
@@ -785,7 +810,7 @@ class PedidosService extends ChangeNotifier {
         pedidosNotReady.removeWhere((p) => p.id == pedidoId);
         filteredPedidosReady.removeWhere((p) => p.id == pedidoId);
         pedidosHistorial.removeWhere((p) => p.id == pedidoId);
-        
+
         notifyListeners();
         return true;
       } else {

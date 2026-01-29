@@ -21,12 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _servicesLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    
-  }
-
-  @override
   Widget build(BuildContext context) {
     final config = Provider.of<Configuracion>(context);
     final caja = Provider.of<CajasServices>(context);

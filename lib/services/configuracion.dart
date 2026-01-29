@@ -6,9 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class Configuracion extends ChangeNotifier{
+class Configuracion extends ChangeNotifier {
   final String _baseUrl = 'http:${Constantes.baseUrl}configuracion/';
   static late double dolar;
   static late int iva;
@@ -22,24 +23,24 @@ class Configuracion extends ChangeNotifier{
   bool init = false;
   bool loaded = false;
   bool configLoaded = false;
-  
-  Future<void> loadConfiguracion() async{
+
+  Future<void> loadConfiguracion() async {
     init = true;
 
     //Obtener dolar e iva.
     try {
       final url = Uri.parse(_baseUrl);
       final resp = await http.get(
-        url, headers: {'tkn': Env.tkn}
+        url,
+        headers: {...AuthService.getAuthHeaders()},
       );
       final archivo = json.decode(resp.body);
       dolar = (archivo['precio_dolar'] as num).toDouble();
       iva = (archivo['iva'] as num).toInt();
       lastVersion = archivo['last_version'];
-      
-      
+
       //Obtener Configuracion de PC
-      if (configLoaded==false){
+      if (configLoaded == false) {
         final directory = await getApplicationSupportDirectory();
         final String fileName = Env.debug ? 'config_debug' : 'config';
         final file = File('${directory.path}/$fileName.json');
@@ -56,13 +57,13 @@ class Configuracion extends ChangeNotifier{
           impresora = prefs.getString('selectedUsbDevice');
           size = prefs.getString('selectedSize') ?? '58mm';
           final String? mc = prefs.getString('memory_corte');
-          memoryCorte = mc!=null ? Cortes.fromJson(mc) : null;
+          memoryCorte = mc != null ? Cortes.fromJson(mc) : null;
           //impresora = archivo['impresora'];
         } catch (e) {
           loaded = false;
           return;
         }
-        configLoaded=true;
+        configLoaded = true;
       }
       loaded = true;
       notifyListeners();
@@ -80,12 +81,10 @@ class Configuracion extends ChangeNotifier{
       final resp = await http.put(
         url,
         headers: {
-          'tkn': Env.tkn,
+          ...AuthService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'precio_dolar': nuevoPrecio,
-        }),
+        body: json.encode({'precio_dolar': nuevoPrecio}),
       );
 
       if (resp.statusCode == 200) {
@@ -113,12 +112,10 @@ class Configuracion extends ChangeNotifier{
       final resp = await http.put(
         url,
         headers: {
-          'tkn': Env.tkn,
+          ...AuthService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'iva': nuevoIva,
-        }),
+        body: json.encode({'iva': nuevoIva}),
       );
 
       if (resp.statusCode == 200) {
@@ -146,12 +143,10 @@ class Configuracion extends ChangeNotifier{
       final resp = await http.put(
         url,
         headers: {
-          'tkn': Env.tkn,
+          ...AuthService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'last_version': nuevaVersion,
-        }),
+        body: json.encode({'last_version': nuevaVersion}),
       );
 
       if (resp.statusCode == 200) {
