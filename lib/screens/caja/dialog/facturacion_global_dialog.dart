@@ -21,7 +21,6 @@ class FacturaGlobalDialog extends StatefulWidget {
 }
 
 class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
-
   Future<String> facturar() async {
     //Loading
     final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
@@ -42,10 +41,14 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
       ventaFolios.add(widget.ventas[i].folio!);
 
       for (DetallesVenta item in widget.ventas[i].detalles) {
-        Productos? producto =  productosSvc.obtenerProductoPorId(item.productoId);
-        if (producto==null) {
+        Productos? producto = productosSvc.obtenerProductoPorId(
+          item.productoId,
+        );
+        if (producto == null) {
           loadingSvc.hide();
-          return jsonEncode({'Message':'Hubo un problema para encontrar un producto'});
+          return jsonEncode({
+            'Message': 'Hubo un problema para encontrar un producto',
+          });
         }
 
         final qty = item.cantidad.toDouble();
@@ -58,27 +61,35 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
         final iva = subtotalFiscal * 0.08;
         final totalFiscal = subtotalFiscal + iva;
 
-        items.add(CfdiItem(
-          productCode: producto.claveSat,
-          description: producto.descripcion,
-          unit: Constantes.unidadesSat[producto.unidadSat]!,
-          unitCode: producto.unidadSat,
-          quantity: qty,
-          unitPrice: unitPrice,
-          subtotal: double.parse(subtotalOriginal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
-          discount: descuento,
-          taxObject: '02',
-          taxes: [
-            CfdiTax(
-              name: 'IVA',
-              rate: (Configuracion.iva/100).toDouble(),
-              total: double.parse(iva.toStringAsFixed(6)),
-              base: double.parse(subtotalFiscal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
-              isRetention: false,
-            ),
-          ],
-          total: double.parse(totalFiscal.toStringAsFixed(6)),// item.subtotal.toDouble(),
-        ));
+        items.add(
+          CfdiItem(
+            productCode: producto.claveSat,
+            description: producto.descripcion,
+            unit: Constantes.unidadesSat[producto.unidadSat]!,
+            unitCode: producto.unidadSat,
+            quantity: qty,
+            unitPrice: unitPrice,
+            subtotal: double.parse(
+              subtotalOriginal.toStringAsFixed(6),
+            ), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+            discount: descuento,
+            taxObject: '02',
+            taxes: [
+              CfdiTax(
+                name: 'IVA',
+                rate: (Configuracion.iva / 100).toDouble(),
+                total: double.parse(iva.toStringAsFixed(6)),
+                base: double.parse(
+                  subtotalFiscal.toStringAsFixed(6),
+                ), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+                isRetention: false,
+              ),
+            ],
+            total: double.parse(
+              totalFiscal.toStringAsFixed(6),
+            ), // item.subtotal.toDouble(),
+          ),
+        );
       }
     }
 
@@ -88,37 +99,41 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
       paymentForm: '01',
       paymentMethod: 'PUE',
       receiver: Receiver(
-        rfc: 'XAXX010101000', 
+        rfc: 'XAXX010101000',
         name: 'Publico General',
         cfdiUse: 'S01',
         fiscalRegime: '616',
         taxZipCode: Constantes.datosDeFacturacion['expeditionPlace']!,
       ),
-      items: items
+      items: items,
     );
 
     //Facturar
     final facturasSvc = Provider.of<FacturasServices>(context, listen: false);
     final s = await facturasSvc.facturarVenta(cfdi);
     final Map<String, dynamic> msg = jsonDecode(s);
-    if (msg.containsKey('exito')){
+    if (msg.containsKey('exito')) {
       Facturas factura = Facturas(
-        facturaId: msg['Id'], 
-        ventaId: DateTime.now().toIso8601String(),//widget.venta.id!, 
-        uuid: msg['Complement']['TaxStamp']['Uuid'], 
-        fecha: DateTime.now(), 
-        receptorRfc:'XAXX010101000', 
-        receptorNombre: 'Publico General', 
-        subTotal: subtotal, 
-        impuestos: impuestos, 
-        total: total
+        facturaId: msg['Id'],
+        folioVenta: DateTime.now().toIso8601String(), //widget.venta.id!,
+        uuid: msg['Complement']['TaxStamp']['Uuid'],
+        fecha: DateTime.now(),
+        receptorRfc: 'XAXX010101000',
+        receptorNombre: 'Publico General',
+        subTotal: subtotal,
+        impuestos: impuestos,
+        total: total,
+        isGlobal: true,
       );
       final facturaId = await facturasSvc.createFactura(factura);
-      if (facturaId!=null){
+      if (facturaId != null) {
         if (!mounted) return 'exito';
-        await Provider.of<VentasServices>(context, listen: false).facturar(ventaFolios, facturaId);
+        await Provider.of<VentasServices>(
+          context,
+          listen: false,
+        ).facturar(ventaFolios, facturaId);
       }
-      
+
       loadingSvc.hide();
       return 'exito';
     } else {
@@ -140,54 +155,66 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              color: AppTheme.tablaColorHeader, 
+              color: AppTheme.tablaColorHeader,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 6,
+                  horizontal: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                
                     Expanded(
                       child: Row(
                         children: [
                           const Text('Se encontraron '),
-                          Text(widget.ventas.length.toString(), textScaler: const TextScaler.linear(1.3),),
-                          const Text(' ventas sin facturar')
+                          Text(
+                            widget.ventas.length.toString(),
+                            textScaler: const TextScaler.linear(1.3),
+                          ),
+                          const Text(' ventas sin facturar'),
                         ],
                       ),
                     ),
-                
-                    ElevatedButton(
-                      onPressed: () async{
-                        final msg = await facturar();
-                        if (msg!='exito'){
-                          if (!context.mounted) {return;}
 
-                            final error = jsonDecode(msg);
-                            final errores = Provider.of<FacturasServices>(context, listen: false).extraerErrores(error);
-                            final texto = errores.join('\n'); 
+                    ElevatedButton(
+                      onPressed: () async {
+                        final msg = await facturar();
+                        if (msg != 'exito') {
+                          if (!context.mounted) {
+                            return;
+                          }
+
+                          final error = jsonDecode(msg);
+                          final errores = Provider.of<FacturasServices>(
+                            context,
+                            listen: false,
+                          ).extraerErrores(error);
+                          final texto = errores.join('\n');
 
                           showDialog(
                             context: context,
-                            builder: (_) => Stack(
-                              alignment: Alignment.topRight,
-                              children: [
-                                CustomErrorDialog(
-                                  titulo: 'Hubo un problema', 
-                                  respuesta: texto,
+                            builder:
+                                (_) => Stack(
+                                  alignment: Alignment.topRight,
+                                  children: [
+                                    CustomErrorDialog(
+                                      titulo: 'Hubo un problema',
+                                      respuesta: texto,
+                                    ),
+                                    const WindowBar(overlay: true),
+                                  ],
                                 ),
-                                const WindowBar(overlay: true),
-                              ],
-                            ),
                           );
                         } else {
-                          if (!context.mounted) {return;}
+                          if (!context.mounted) {
+                            return;
+                          }
                           Navigator.pop(context);
                         }
-                      }, 
-                      child: const Text('Facturar')
+                      },
+                      child: const Text('Facturar'),
                     ),
-                
                   ],
                 ),
               ),
@@ -195,12 +222,18 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
             Container(
               width: 750,
               height: 400,
-              color: widget.ventas.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+              color:
+                  widget.ventas.length % 2 == 0
+                      ? AppTheme.tablaColor1
+                      : AppTheme.tablaColor2,
               child: ListView.builder(
-                itemCount: widget.ventas.length+1,
+                itemCount: widget.ventas.length + 1,
                 itemBuilder: (context, index) {
-                  if (index!=0){
-                    return FilaVentasSinFacturar(ventas: widget.ventas, index: index-1);
+                  if (index != 0) {
+                    return FilaVentasSinFacturar(
+                      ventas: widget.ventas,
+                      index: index - 1,
+                    );
                   }
 
                   //Header
@@ -210,20 +243,55 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
                     ),
                     child: const Row(
                       children: [
-                        Expanded(child: Center(child: Text('Folio de venta', style: AppTheme.tituloPrimario))),
-                        Expanded(child: Center(child: Text('SubTotal', style: AppTheme.tituloPrimario))),
-                        Expanded(child: Center(child: Text('Descuento', style: AppTheme.tituloPrimario))),
-                        Expanded(child: Center(child: Text('Impuestos', style: AppTheme.tituloPrimario))),
-                        Expanded(child: Center(child: Text('Total', style: AppTheme.tituloPrimario))),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Folio de venta',
+                              style: AppTheme.tituloPrimario,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'SubTotal',
+                              style: AppTheme.tituloPrimario,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Descuento',
+                              style: AppTheme.tituloPrimario,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Impuestos',
+                              style: AppTheme.tituloPrimario,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Total',
+                              style: AppTheme.tituloPrimario,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
                 },
               ),
-            ),  
+            ),
           ],
         ),
-      )
+      ),
     );
   }
 }
@@ -241,20 +309,55 @@ class FilaVentasSinFacturar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: index%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+      color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical:4),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: Center(child: Text(ventas[index].folio ?? 'na', style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].subTotal.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].descuento.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].iva.toDouble()), style: AppTheme.subtituloConstraste))),
-            Expanded(child: Center(child: Text(Formatos.pesos.format(ventas[index].total.toDouble()), style: AppTheme.subtituloConstraste))),
+            Expanded(
+              child: Center(
+                child: Text(
+                  ventas[index].folio ?? 'na',
+                  style: AppTheme.subtituloConstraste,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  Formatos.pesos.format(ventas[index].subTotal.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  Formatos.pesos.format(ventas[index].descuento.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  Formatos.pesos.format(ventas[index].iva.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  Formatos.pesos.format(ventas[index].total.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                ),
+              ),
+            ),
           ],
         ),
-      )
+      ),
     );
   }
 }

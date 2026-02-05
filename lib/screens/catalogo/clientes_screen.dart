@@ -12,6 +12,38 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
+// Constantes de menú para evitar reconstrucciones
+const _menuItemLeerCliente = PopupMenuItem(
+  value: 'leer',
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
+      Text('  Datos Completos', style: AppTheme.subtituloPrimario),
+    ],
+  ),
+);
+const _menuItemEditarCliente = PopupMenuItem(
+  value: 'editar',
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
+      Text('  Editar', style: AppTheme.subtituloPrimario),
+    ],
+  ),
+);
+const _menuItemEliminarCliente = PopupMenuItem(
+  value: 'eliminar',
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
+      Text('  Eliminar', style: AppTheme.subtituloPrimario),
+    ],
+  ),
+);
+
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({super.key});
 
@@ -26,7 +58,10 @@ class _ClientesScreenState extends State<ClientesScreen> {
   @override
   void initState() {
     super.initState();
-    final clientesServices = Provider.of<ClientesServices>(context, listen: false);
+    final clientesServices = Provider.of<ClientesServices>(
+      context,
+      listen: false,
+    );
     clientesServices.loadClientes();
 
     _searchController.addListener(() {
@@ -84,34 +119,47 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
               ),
             ),
-            SizedBox(width: Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? 15 : 0),
-            Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? ElevatedButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => const Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    ClientesFormDialog(),
-                    WindowBar(overlay: true),
-                  ],
-                ),
-              ),
-              child: Row(
-                children: [
-                  Transform.translate(
-                    offset: const Offset(-8, 1),
-                    child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
+            SizedBox(
+              width:
+                  Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)
+                      ? 15
+                      : 0,
+            ),
+            Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)
+                ? ElevatedButton(
+                  onPressed:
+                      () => showDialog(
+                        context: context,
+                        builder:
+                            (_) => const Stack(
+                              alignment: Alignment.topRight,
+                              children: [
+                                ClientesFormDialog(),
+                                WindowBar(overlay: true),
+                              ],
+                            ),
+                      ),
+                  child: Row(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(-8, 1),
+                        child: Icon(
+                          Icons.add,
+                          color: AppTheme.containerColor1,
+                          size: 26,
+                        ),
+                      ),
+                      Text(
+                        'Agregar Cliente',
+                        style: TextStyle(
+                          color: AppTheme.containerColor1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Agregar Cliente',
-                    style: TextStyle(
-                      color: AppTheme.containerColor1,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ) : const SizedBox(),
+                )
+                : const SizedBox(),
           ],
         ),
       ],
@@ -136,28 +184,46 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 children: [
                   Expanded(child: Text('Nombre', textAlign: TextAlign.center)),
                   Expanded(child: Text('Correo', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
+                  Expanded(
+                    child: Text('Telefono', textAlign: TextAlign.center),
+                  ),
                   Expanded(child: Text('RFC', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Direccion', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Razon Social', textAlign: TextAlign.center)),
+                  Expanded(
+                    child: Text('Direccion', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    child: Text('Razon Social', textAlign: TextAlign.center),
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: Container(
-                color: servicios.filteredClientes.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                color:
+                    servicios.filteredClientes.length % 2 == 0
+                        ? AppTheme.tablaColor1
+                        : AppTheme.tablaColor2,
                 child: ListView.builder(
+                  itemExtent: 32, // Altura fija para optimizar scroll
                   itemCount: servicios.filteredClientes.length,
-                  itemBuilder: (context, index) => FilaCliente(
-                    cliente: servicios.filteredClientes[index],
-                    index: index,
-                    onDelete: () async {
-                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
-                      loadingSvc.show();
-                      await servicios.deleteCliente(servicios.filteredClientes[index].id!);
-                      loadingSvc.hide();
-                    },
-                  ),
+                  itemBuilder:
+                      (context, index) => RepaintBoundary(
+                        child: FilaCliente(
+                          cliente: servicios.filteredClientes[index],
+                          index: index,
+                          onDelete: () async {
+                            final loadingSvc = Provider.of<LoadingProvider>(
+                              context,
+                              listen: false,
+                            );
+                            loadingSvc.show();
+                            await servicios.deleteCliente(
+                              servicios.filteredClientes[index].id!,
+                            );
+                            loadingSvc.hide();
+                          },
+                        ),
+                      ),
                 ),
               ),
             ),
@@ -218,38 +284,9 @@ class FilaCliente extends StatelessWidget {
           elevation: 4,
           shadowColor: Colors.black,
           items: [
-            const PopupMenuItem(
-              value: 'leer',  
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
-            if (!cliente.protegido)
-              const PopupMenuItem(
-                value: 'editar',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.edit, color: AppTheme.letraClara, size: 17),
-                    Text('  Editar', style: AppTheme.subtituloPrimario),
-                  ],
-                ),
-              ),
-            if (!cliente.protegido)
-              const PopupMenuItem(
-                value: 'eliminar',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.clear, color: AppTheme.letraClara, size: 17),
-                    Text('  Eliminar', style: AppTheme.subtituloPrimario),
-                  ],
-                ),
-              ),
+            _menuItemLeerCliente,
+            if (!cliente.protegido) _menuItemEditarCliente,
+            if (!cliente.protegido) _menuItemEliminarCliente,
           ],
         );
       } else {
@@ -264,57 +301,56 @@ class FilaCliente extends StatelessWidget {
           color: AppTheme.dropDownColor,
           elevation: 4,
           shadowColor: Colors.black,
-          items: [
-            const PopupMenuItem(
-              value: 'leer',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
-          ],
+          items: const [_menuItemLeerCliente],
         );
       }
 
       if (seleccion != null) {
         if (seleccion == 'leer') {
           // Lógica para leer
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           showDialog(
             context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                ClientesFormDialog(cliEdit: cliente, onlyRead: true),
-                const WindowBar(overlay: true),
-              ],
-            ),
+            builder:
+                (_) => Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    ClientesFormDialog(cliEdit: cliente, onlyRead: true),
+                    const WindowBar(overlay: true),
+                  ],
+                ),
           );
         } else if (seleccion == 'editar') {
           // Lógica para editar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
-          if(!context.mounted){ return; }
+          if (resp == true) {
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  ClientesFormDialog(cliEdit: cliente),
-                  const WindowBar(overlay: true),
-                ],
-              ),
+              builder:
+                  (_) => Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      ClientesFormDialog(cliEdit: cliente),
+                      const WindowBar(overlay: true),
+                    ],
+                  ),
             );
           }
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
+          if (resp == true) {
             onDelete();
           }
         }
@@ -323,7 +359,7 @@ class FilaCliente extends StatelessWidget {
 
     return FeedBackButton(
       onlyVertical: true,
-      onPressed: (){},
+      onPressed: () {},
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           mostrarMenu(context, details.globalPosition);
@@ -333,12 +369,48 @@ class FilaCliente extends StatelessWidget {
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [
-              Expanded(child: Text(mostrarCampo(cliente.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(mostrarCampo(cliente.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(mostrarCampo('${cliente.telefono ?? '-'}'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(mostrarCampo(cliente.rfc), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(mostrarCampo(cliente.direccion), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(mostrarCampo(cliente.razonSocial), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(
+                child: Text(
+                  mostrarCampo(cliente.nombre),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  mostrarCampo(cliente.correo),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  mostrarCampo('${cliente.telefono ?? '-'}'),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  mostrarCampo(cliente.rfc),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  mostrarCampo(cliente.direccion),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  mostrarCampo(cliente.razonSocial),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
         ),

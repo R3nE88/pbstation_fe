@@ -17,6 +17,7 @@ class FacturasServices extends ChangeNotifier {
   bool historialIsLoading = false;
   String? historialError;
   String? sucursalFiltroHistorial;
+  String? rfcFiltroHistorial;
 
   Future<String> facturarVenta(Cfdi cfdi) async {
     try {
@@ -102,7 +103,7 @@ class FacturasServices extends ChangeNotifier {
         final nuevo = Facturas.fromMap(data);
         nuevo.id = data['id']?.toString();
 
-        historialFacturas.add(nuevo);
+        historialFacturas.insert(0, nuevo);
 
         if (kDebugMode) {
           print('factura creada en be!');
@@ -125,12 +126,14 @@ class FacturasServices extends ChangeNotifier {
     int page = 1,
     int pageSize = 60,
     String? sucursalId,
+    String? rfc,
     bool append = false,
   }) async {
     if (historialIsLoading) return;
 
     historialIsLoading = true;
     historialError = null;
+    rfcFiltroHistorial = rfc;
 
     if (!append) {
       historialFacturas = [];
@@ -145,6 +148,7 @@ class FacturasServices extends ChangeNotifier {
         'page_size': pageSize.toString(),
         if (sucursalId != null && sucursalId.isNotEmpty)
           'sucursal_id': sucursalId,
+        if (rfc != null && rfc.isNotEmpty) 'rfc': rfc,
       };
 
       final url = Uri.parse(
@@ -198,6 +202,7 @@ class FacturasServices extends ChangeNotifier {
         page: paginacionHistorial!.page + 1,
         pageSize: paginacionHistorial!.pageSize,
         sucursalId: sucursalFiltroHistorial,
+        rfc: rfcFiltroHistorial,
         append: true,
       );
     }

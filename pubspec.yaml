@@ -25,10 +25,11 @@ dependencies:
   image: ^4.5.4
   package_info_plus: ^9.0.0
   flutter_launcher_icons: ^0.14.4
-  file_picker: ^10.3.3
+  file_picker: ^10.3.10
   dio: ^5.9.0
   calendar_date_picker2: ^2.0.1
   crypto: ^3.0.6
+  url_launcher: ^6.3.2
 
 
 flutter_launcher_icons:

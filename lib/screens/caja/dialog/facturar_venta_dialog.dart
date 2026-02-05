@@ -29,10 +29,10 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
   String? _formaPagoSeleccionado;
   bool _formaPagoEmpty = false;
   final Map<String, String> _dropdownItemsFormaPago = {
-    '01':'Efectivo',
-    '28':'Debito',
-    '04':'Credito',
-    '03':'Transferencia'
+    '01': 'Efectivo',
+    '28': 'Debito',
+    '04': 'Credito',
+    '03': 'Transferencia',
   };
 
   String? _usoCfdiSeleccionado;
@@ -47,29 +47,38 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       setState(() {
         _clienteError = true;
       });
-      return jsonEncode({'Message':'No seleccionaste un cliente'});
+      return jsonEncode({'Message': 'No seleccionaste un cliente'});
     }
 
     if (_usoCfdiSeleccionado == null) {
       setState(() {
         _usoCfdiEmpty = true;
       });
-      return jsonEncode({'Message':'No seleccionaste uso CFDI'});
+      return jsonEncode({'Message': 'No seleccionaste uso CFDI'});
     }
 
     //verificar que cliente sea apto para facturar
-    if (_clienteSelected!.rfc != null){
-      if (_clienteSelected!.rfc != 'XAXX010101000'){
-        if (
-          _clienteSelected!.regimenFiscal == null ||
-          _clienteSelected!.codigoPostal == null) {
-          setState(() {_clienteError = true;});
-          return jsonEncode({'Message':'El cliente seleccionado no cumple con los requisitos para facturar.'});
+    if (_clienteSelected!.rfc != null) {
+      if (_clienteSelected!.rfc != 'XAXX010101000') {
+        if (_clienteSelected!.regimenFiscal == null ||
+            _clienteSelected!.codigoPostal == null) {
+          setState(() {
+            _clienteError = true;
+          });
+          return jsonEncode({
+            'Message':
+                'El cliente seleccionado no cumple con los requisitos para facturar.',
+          });
         }
       }
     } else {
-      setState(() {_clienteError = true;});
-      return jsonEncode({'Message':'El cliente seleccionado no cumple con los requisitos para facturar.'});
+      setState(() {
+        _clienteError = true;
+      });
+      return jsonEncode({
+        'Message':
+            'El cliente seleccionado no cumple con los requisitos para facturar.',
+      });
     }
 
     //Loading
@@ -80,10 +89,12 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
     List<CfdiItem> items = [];
     final productosSvc = Provider.of<ProductosServices>(context, listen: false);
     for (DetallesVenta item in widget.venta.detalles) {
-      Productos? producto =  productosSvc.obtenerProductoPorId(item.productoId);
-      if (producto==null) {
+      Productos? producto = productosSvc.obtenerProductoPorId(item.productoId);
+      if (producto == null) {
         loadingSvc.hide();
-        return jsonEncode({'Message':'Hubo un problema para encontrar un producto'});
+        return jsonEncode({
+          'Message': 'Hubo un problema para encontrar un producto',
+        });
       }
 
       final qty = item.cantidad.toDouble();
@@ -96,31 +107,39 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       final iva = subtotalFiscal * 0.08;
       final totalFiscal = subtotalFiscal + iva;
 
-      items.add(CfdiItem(
-        productCode: producto.claveSat,
-        description: producto.descripcion,
-        unit: Constantes.unidadesSat[producto.unidadSat]!,
-        unitCode: producto.unidadSat,
-        quantity: qty,
-        unitPrice: unitPrice,
-        subtotal: double.parse(subtotalOriginal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
-        discount: descuento,
-        taxObject: '02',
-        taxes: [
-          CfdiTax(
-            name: 'IVA',
-            rate: (Configuracion.iva/100).toDouble(),
-            total: double.parse(iva.toStringAsFixed(6)),
-            base: double.parse(subtotalFiscal.toStringAsFixed(6)), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
-            isRetention: false,
-          ),
-        ],
-        total: double.parse(totalFiscal.toStringAsFixed(6)),// item.subtotal.toDouble(),
-      ));
+      items.add(
+        CfdiItem(
+          productCode: producto.claveSat,
+          description: producto.descripcion,
+          unit: Constantes.unidadesSat[producto.unidadSat]!,
+          unitCode: producto.unidadSat,
+          quantity: qty,
+          unitPrice: unitPrice,
+          subtotal: double.parse(
+            subtotalOriginal.toStringAsFixed(6),
+          ), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+          discount: descuento,
+          taxObject: '02',
+          taxes: [
+            CfdiTax(
+              name: 'IVA',
+              rate: (Configuracion.iva / 100).toDouble(),
+              total: double.parse(iva.toStringAsFixed(6)),
+              base: double.parse(
+                subtotalFiscal.toStringAsFixed(6),
+              ), //((item.subtotal + item.descuentoAplicado) - item.iva).toDouble(),
+              isRetention: false,
+            ),
+          ],
+          total: double.parse(
+            totalFiscal.toStringAsFixed(6),
+          ), // item.subtotal.toDouble(),
+        ),
+      );
     }
 
     //print(json.encode(items[0]));
-    
+
     //crear objeto Factura
     final cfdi = Cfdi(
       cfdiType: Constantes.datosDeFacturacion['cfdiType']!,
@@ -128,37 +147,45 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       paymentForm: _formaPagoSeleccionado!,
       paymentMethod: 'PUE',
       receiver: Receiver(
-        rfc: _clienteSelected!.rfc!, 
-        name: _clienteSelected!.razonSocial!=null ? _clienteSelected!.razonSocial! : _clienteSelected!.nombre,
+        rfc: _clienteSelected!.rfc!,
+        name:
+            _clienteSelected!.razonSocial != null
+                ? _clienteSelected!.razonSocial!
+                : _clienteSelected!.nombre,
         cfdiUse: _usoCfdiSeleccionado!,
         fiscalRegime: _clienteSelected!.regimenFiscal ?? '616',
-        taxZipCode: _clienteSelected!.codigoPostal?.toString() ?? Constantes.datosDeFacturacion['expeditionPlace']!,
+        taxZipCode:
+            _clienteSelected!.codigoPostal?.toString() ??
+            Constantes.datosDeFacturacion['expeditionPlace']!,
       ),
-      items: items
+      items: items,
     );
 
     //Facturar
     final facturasSvc = Provider.of<FacturasServices>(context, listen: false);
     final s = await facturasSvc.facturarVenta(cfdi);
     final Map<String, dynamic> msg = jsonDecode(s);
-    if (msg.containsKey('exito')){
+    if (msg.containsKey('exito')) {
       Facturas factura = Facturas(
-        facturaId: msg['Id'], 
-        ventaId: widget.venta.id!, 
-        uuid: msg['Complement']['TaxStamp']['Uuid'], 
-        fecha: DateTime.now(), 
-        receptorRfc: _clienteSelected!.rfc!, 
-        receptorNombre: _clienteSelected!.nombre, 
-        subTotal: widget.venta.subTotal, 
-        impuestos: widget.venta.iva, 
-        total: widget.venta.total
+        facturaId: msg['Id'],
+        folioVenta: widget.venta.folio!,
+        uuid: msg['Complement']['TaxStamp']['Uuid'],
+        fecha: DateTime.now(),
+        receptorRfc: _clienteSelected!.rfc!,
+        receptorNombre: _clienteSelected!.nombre,
+        subTotal: widget.venta.subTotal,
+        impuestos: widget.venta.iva,
+        total: widget.venta.total,
       );
       final facturaId = await facturasSvc.createFactura(factura);
-      if (facturaId!=null){
+      if (facturaId != null) {
         if (!mounted) return 'exito';
-        await Provider.of<VentasServices>(context, listen: false).facturar([widget.venta.folio!], facturaId);
+        await Provider.of<VentasServices>(
+          context,
+          listen: false,
+        ).facturar([widget.venta.folio!], facturaId);
       }
-      
+
       loadingSvc.hide();
       return 'exito';
     } else {
@@ -314,11 +341,11 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
                         empty: _formaPagoEmpty,
                         hint: 'Tipo de pago',
                         onChanged:
-                        (val) => setState(() {
-                          _formaPagoEmpty = false;
-                          _formaPagoSeleccionado = val!;
-                        }),
-                      )
+                            (val) => setState(() {
+                              _formaPagoEmpty = false;
+                              _formaPagoSeleccionado = val!;
+                            }),
+                      ),
                     ],
                   ),
                 ),
@@ -337,12 +364,11 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
                         empty: _usoCfdiEmpty,
                         hint: 'Uso CFDI',
                         onChanged:
-                        (val) => setState(() {
-                          _usoCfdiEmpty = false;
-                          _usoCfdiSeleccionado = val!;
-                        }),
-                      )
-
+                            (val) => setState(() {
+                              _usoCfdiEmpty = false;
+                              _usoCfdiSeleccionado = val!;
+                            }),
+                      ),
                     ],
                   ),
                 ),
@@ -459,33 +485,42 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
                   ),
                 ],
               ),
-            ), const SizedBox(height: 15),
+            ),
+            const SizedBox(height: 15),
 
             ElevatedButton(
-              onPressed: () async{
+              onPressed: () async {
                 final msg = await facturar();
-                if (msg!='exito'){
-                  if (!context.mounted) {return;}
+                if (msg != 'exito') {
+                  if (!context.mounted) {
+                    return;
+                  }
 
-                    final error = jsonDecode(msg);
-                    final errores = Provider.of<FacturasServices>(context, listen: false).extraerErrores(error);
-                    final texto = errores.join('\n'); 
+                  final error = jsonDecode(msg);
+                  final errores = Provider.of<FacturasServices>(
+                    context,
+                    listen: false,
+                  ).extraerErrores(error);
+                  final texto = errores.join('\n');
 
                   showDialog(
                     context: context,
-                    builder: (_) => Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        CustomErrorDialog(
-                          titulo: 'Hubo un problema', 
-                          respuesta: texto,
+                    builder:
+                        (_) => Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            CustomErrorDialog(
+                              titulo: 'Hubo un problema',
+                              respuesta: texto,
+                            ),
+                            const WindowBar(overlay: true),
+                          ],
                         ),
-                        const WindowBar(overlay: true),
-                      ],
-                    ),
                   );
                 } else {
-                  if (!context.mounted) {return;}
+                  if (!context.mounted) {
+                    return;
+                  }
                   Navigator.pop(context);
                 }
               },

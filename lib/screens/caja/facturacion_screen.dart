@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +15,7 @@ import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
 import 'dialog/facturacion_global_dialog.dart';
+import 'dialog/factura_detalle_dialog.dart';
 
 class FacturacionScreen extends StatefulWidget {
   const FacturacionScreen({super.key});
@@ -27,64 +27,64 @@ class FacturacionScreen extends StatefulWidget {
 class _FacturacionScreenState extends State<FacturacionScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchRfcController = TextEditingController();
-  Timer? _debounceTimer;
-  List<Facturas> _facturasFiltradasRfc = [];
+  String? _lastSearchQuery; // null = nunca se ha buscado
 
   @override
   void initState() {
     super.initState();
-    
+
     // Detectar scroll para cargar más
     _scrollController.addListener(_onScroll);
-
-    // Listener para búsqueda por RFC
-    _searchRfcController.addListener(_onSearchRfcChanged);
 
     // Cargar primera página cuando se monta el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      String? sucursalId;
-      if (Login.usuarioLogeado.permisos == Permiso.admin || Login.usuarioLogeado.rol == TipoUsuario.administrativo) {
-        sucursalId = null;
-      } else {
-        sucursalId = SucursalesServices.sucursalActualID;
-      }
-      
-      final facturasService = Provider.of<FacturasServices>(context, listen: false);
-      facturasService.cargarHistorialFacturas(sucursalId: sucursalId);
+      _ejecutarBusqueda();
     });
   }
 
-  void _onSearchRfcChanged() {
-    // Cancelar el timer anterior si existe
-    _debounceTimer?.cancel();
-    
-    // Iniciar nuevo timer con debounce de 300ms
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _filterByRfc();
-    });
-  }
+  /// Ejecuta búsqueda en servidor si la query cambió
+  void _ejecutarBusqueda() {
+    final query = _searchRfcController.text.trim();
 
-  void _filterByRfc() {
-    final query = _searchRfcController.text.toLowerCase().trim();
-    final facturasService = Provider.of<FacturasServices>(context, listen: false);
-    
-    if (query.isEmpty) {
-      _facturasFiltradasRfc = facturasService.historialFacturas;
+    // Evitar búsqueda duplicada
+    if (query == _lastSearchQuery) return;
+    _lastSearchQuery = query;
+
+    String? sucursalId;
+    if (Login.usuarioLogeado.permisos == Permiso.admin ||
+        Login.usuarioLogeado.rol == TipoUsuario.administrativo) {
+      sucursalId = null;
     } else {
-      _facturasFiltradasRfc = facturasService.historialFacturas.where((factura) {
-        return factura.receptorRfc.toLowerCase().contains(query);
-      }).toList();
+      sucursalId = SucursalesServices.sucursalActualID;
     }
-    
-    setState(() {});
+
+    final facturasService = Provider.of<FacturasServices>(
+      context,
+      listen: false,
+    );
+    facturasService.cargarHistorialFacturas(
+      sucursalId: sucursalId,
+      rfc: query.isEmpty ? null : query,
+    );
+  }
+
+  /// Limpia la búsqueda y recarga todas las facturas
+  void _limpiarBusqueda() {
+    if (_searchRfcController.text.isEmpty) return;
+    _searchRfcController.clear();
+    _lastSearchQuery = null;
+    _ejecutarBusqueda();
   }
 
   void _onScroll() {
     // Si está cerca del final, cargar más
-    if (_scrollController.position.pixels >= 
+    if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      final facturasService = Provider.of<FacturasServices>(context, listen: false);
+      final facturasService = Provider.of<FacturasServices>(
+        context,
+        listen: false,
+      );
       facturasService.cargarMasHistorialFacturas();
     }
   }
@@ -93,7 +93,6 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchRfcController.dispose();
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -102,61 +101,127 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
     return BodyPadding(
       child: Column(
         children: [
-          
           //Header
           Row(
             children: [
-              
               ElevatedButtonIcon(
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => const Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      IngresarFolioDialog(),
-                      WindowBar(overlay: true),
-                    ],
-                  ),
-                ),
-                text: 'Facturar ticket', 
-                icon: Icons.receipt_long, 
-                verticalPadding: 0
-              ), const SizedBox(width: 15),
-              
-              //Boton solo para administradores o admins
-              if (Login.usuarioLogeado.rol == TipoUsuario.administrativo || Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.admin))
-                ElevatedButtonIcon(
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (_) => const Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        FolioMensualDialog(),
-                        WindowBar(overlay: true),
-                      ],
+                onPressed:
+                    () => showDialog(
+                      context: context,
+                      builder:
+                          (_) => const Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              IngresarFolioDialog(),
+                              WindowBar(overlay: true),
+                            ],
+                          ),
                     ),
-                  ),
-                  text: 'Crear factura global', 
-                  icon: Icons.receipt_long, 
-                  verticalPadding: 0
-                ), 
-              
+                text: 'Facturar ticket',
+                icon: Icons.receipt_long,
+                verticalPadding: 0,
+              ),
+              const SizedBox(width: 15),
+
+              //Boton solo para administradores o admins
+              if (Login.usuarioLogeado.rol == TipoUsuario.administrativo ||
+                  Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.admin))
+                ElevatedButtonIcon(
+                  onPressed:
+                      () => showDialog(
+                        context: context,
+                        builder:
+                            (_) => const Stack(
+                              alignment: Alignment.topRight,
+                              children: [
+                                FolioMensualDialog(),
+                                WindowBar(overlay: true),
+                              ],
+                            ),
+                      ),
+                  text: 'Crear factura global',
+                  icon: Icons.receipt_long,
+                  verticalPadding: 0,
+                ),
+
               const Spacer(),
 
-              SizedBox(
-                height: 34,
-                width: 200,
-                child: TextFormField(
-                  controller: _searchRfcController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
-                    hintText: 'Buscar por RFC',
-                  ),
-                ),
-              ),
+              // Búsqueda con protección de carga
+              Consumer<FacturasServices>(
+                builder: (context, facturasService, _) {
+                  final isLoading = facturasService.historialIsLoading;
 
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Campo de búsqueda
+                      SizedBox(
+                        height: 34,
+                        width: 220,
+                        child: TextFormField(
+                          controller: _searchRfcController,
+                          enabled: !isLoading,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: AppTheme.letraClara,
+                            ),
+                            hintText: 'Buscar por RFC',
+                          ),
+                          onFieldSubmitted:
+                              isLoading ? null : (_) => _ejecutarBusqueda(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Botón buscar
+                      SizedBox(
+                        height: 34,
+                        width: 100,
+                        child: ElevatedButton.icon(
+                          onPressed: isLoading ? null : _ejecutarBusqueda,
+                          icon:
+                              isLoading
+                                  ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppTheme.letraClara,
+                                    ),
+                                  )
+                                  : const Icon(Icons.search, size: 18),
+                          label: const Text('Buscar'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Botón limpiar
+                      SizedBox(
+                        height: 34,
+                        width: 34,
+                        child: IconButton(
+                          onPressed:
+                              isLoading || _searchRfcController.text.isEmpty
+                                  ? null
+                                  : _limpiarBusqueda,
+                          icon: const Icon(Icons.clear, size: 18),
+                          tooltip: 'Limpiar búsqueda',
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppTheme.tablaColor2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
-          ), const SizedBox(height: 15),
+          ),
+          const SizedBox(height: 15),
 
           //Tabla Header
           Container(
@@ -165,14 +230,14 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
               color: AppTheme.tablaColorHeader,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(15),
-                topRight: Radius.circular(15)
-              )
+                topRight: Radius.circular(15),
+              ),
             ),
             child: const Row(
               children: [
                 Expanded(flex: 3, child: Center(child: Text('Fecha'))),
                 Expanded(flex: 3, child: Center(child: Text('Receptor'))),
-                Expanded(flex: 3, child: Center(child: Text('RFC'))),
+                Expanded(flex: 3, child: Center(child: Text('Folio de Venta'))),
                 Expanded(flex: 3, child: Center(child: Text('Subtotal'))),
                 Expanded(flex: 3, child: Center(child: Text('Impuestos'))),
                 Expanded(flex: 3, child: Center(child: Text('Total'))),
@@ -185,18 +250,16 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
           Expanded(
             child: Consumer<FacturasServices>(
               builder: (context, facturasService, child) {
-                // Actualizar facturas filtradas cuando cambia el servicio
-                if (_facturasFiltradasRfc.isEmpty && facturasService.historialFacturas.isNotEmpty && _searchRfcController.text.isEmpty) {
-                  _facturasFiltradasRfc = facturasService.historialFacturas;
-                }
+                final facturas = facturasService.historialFacturas;
 
                 // Estado de carga inicial
-                if (facturasService.historialIsLoading && facturasService.historialFacturas.isEmpty) {
+                if (facturasService.historialIsLoading && facturas.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 // Error sin datos
-                if (facturasService.historialError != null && facturasService.historialFacturas.isEmpty) {
+                if (facturasService.historialError != null &&
+                    facturas.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -204,7 +267,8 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                         Text(facturasService.historialError!),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () => facturasService.cargarHistorialFacturas(),
+                          onPressed:
+                              () => facturasService.cargarHistorialFacturas(),
                           child: const Text('Reintentar'),
                         ),
                       ],
@@ -212,24 +276,29 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                   );
                 }
 
-                // Sin facturas después de filtrar
-                if (_facturasFiltradasRfc.isEmpty) {
-                  return const Center(child: Text('No hay facturas que coincidan'));
+                // Sin facturas
+                if (facturas.isEmpty) {
+                  return const Center(
+                    child: Text('No hay facturas que coincidan'),
+                  );
                 }
 
                 // Tabla con facturas
                 return ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(15),
-                    bottomRight: Radius.circular(15)
+                    bottomRight: Radius.circular(15),
                   ),
                   child: Container(
-                    color: _facturasFiltradasRfc.length%2==0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                    color:
+                        facturas.length % 2 == 0
+                            ? AppTheme.tablaColor1
+                            : AppTheme.tablaColor2,
                     child: ListView.builder(
                       controller: _scrollController,
-                      itemCount: _facturasFiltradasRfc.length,
+                      itemCount: facturas.length,
                       itemBuilder: (context, index) {
-                        final factura = _facturasFiltradasRfc[index];
+                        final factura = facturas[index];
                         return FilaFactura(factura: factura, index: index);
                       },
                     ),
@@ -237,19 +306,15 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                 );
               },
             ),
-          )
+          ),
         ],
-      )
+      ),
     );
   }
 }
 
 class FilaFactura extends StatelessWidget {
-  const FilaFactura({
-    super.key,
-    required this.factura,
-    required this.index,
-  });
+  const FilaFactura({super.key, required this.factura, required this.index});
 
   final Facturas factura;
   final int index;
@@ -257,10 +322,23 @@ class FilaFactura extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fecha = DateFormat('MMMM', 'es_MX').format(factura.fecha);
-    final fechaDia = capitalizarPrimeraLetra(DateFormat('EEEE', 'es_MX').format(factura.fecha));
+    final fechaDia = capitalizarPrimeraLetra(
+      DateFormat('EEEE', 'es_MX').format(factura.fecha),
+    );
 
     return FeedBackButton(
-      onPressed: (){},
+      onPressed:
+          () => showDialog(
+            context: context,
+            builder:
+                (_) => Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    FacturaDetalleDialog(factura: factura),
+                    const WindowBar(overlay: true),
+                  ],
+                ),
+          ),
       onlyVertical: true,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -269,13 +347,76 @@ class FilaFactura extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Expanded(flex: 3, child: Center(child: Text('$fechaDia ${factura.fecha.day} de $fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, child: Center(child: Text(factura.receptorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, child: Center(child: Text(factura.receptorRfc, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, child: Center(child: Text(Formatos.moneda.format(factura.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, child: Center(child: Text(Formatos.moneda.format(factura.impuestos.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 3, child: Center(child: Text(Formatos.moneda.format(factura.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
-            Expanded(flex: 2, child: Center(child: Text('-', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center))),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  '$fechaDia ${factura.fecha.day} de $fecha',
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  '${factura.receptorNombre} - ${factura.receptorRfc}',
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  !factura.isGlobal ? factura.folioVenta : '-',
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  Formatos.moneda.format(factura.subTotal.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  Formatos.moneda.format(factura.impuestos.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
+                  Formatos.moneda.format(factura.total.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Icon(
+                  factura.isGlobal ? Icons.check_circle : Icons.cancel,
+                  color: factura.isGlobal ? Colors.green : Colors.grey,
+                  size: 18,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -291,32 +432,32 @@ class FolioMensualDialog extends StatefulWidget {
 }
 
 class _FolioMensualDialogState extends State<FolioMensualDialog> {
-
   final List<DateTime> _dates = [];
-  
-  void submited(DateTime date) async{
+
+  void submited(DateTime date) async {
     Navigator.pop(context);
-              
+
     final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
     loadingSvc.show('Obteniendo tickets');
 
     String fecha = date.toString().substring(0, 10);
     final ventaSvc = Provider.of<VentasServices>(context, listen: false);
-    List<Ventas> ventasSinFacturar = await ventaSvc.obtenerVentasSinFacturarPorDia(fecha);
+    List<Ventas> ventasSinFacturar = await ventaSvc
+        .obtenerVentasSinFacturarPorDia(fecha);
     loadingSvc.hide();
 
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (_) => Stack(
-        alignment: Alignment.topRight,
-        children: [
-          FacturaGlobalDialog(ventas: ventasSinFacturar),
-          const WindowBar(overlay: true),
-        ],
-      )
+      builder:
+          (_) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              FacturaGlobalDialog(ventas: ventasSinFacturar),
+              const WindowBar(overlay: true),
+            ],
+          ),
     );
-
   }
 
   @override
@@ -333,10 +474,14 @@ class _FolioMensualDialogState extends State<FolioMensualDialog> {
             child: Theme(
               data: Theme.of(context).copyWith(
                 textTheme: const TextTheme(
-                  bodyMedium: TextStyle(color: Colors.white), // Cambia el color del texto
+                  bodyMedium: TextStyle(
+                    color: Colors.white,
+                  ), // Cambia el color del texto
                 ),
                 colorScheme: ColorScheme.light(
-                  primary: AppTheme.tablaColor2, // Color principal (por ejemplo, para el encabezado)
+                  primary:
+                      AppTheme
+                          .tablaColor2, // Color principal (por ejemplo, para el encabezado)
                   onSurface: Colors.white, // Color del texto en general
                 ),
               ),
@@ -346,7 +491,7 @@ class _FolioMensualDialogState extends State<FolioMensualDialog> {
                 onValueChanged: (selectedDate) {
                   submited(selectedDate.first);
                 },
-              )
+              ),
             ),
           ),
         ],
@@ -369,42 +514,50 @@ class _IngresarFolioDialogState extends State<IngresarFolioDialog> {
   Color color = Colors.white;
   String hint = '';
 
-  void submited() async{
+  void submited() async {
     setState(() {
       isLoading = true;
     });
 
     //es folio de venta
-    final Ventas? venta = await Provider.of<VentasServices>(context, listen: false).searchVentaFolio(_ctrl.text);
-    if (venta!=null){
-
+    final Ventas? venta = await Provider.of<VentasServices>(
+      context,
+      listen: false,
+    ).searchVentaFolio(_ctrl.text);
+    if (venta != null) {
       //verificar que no este facturado ya
-      if (venta.facturaId!=null){
+      if (venta.facturaId != null) {
         if (!mounted) return;
         showDialog(
           context: context,
-          builder: (_) => const Stack(
-            alignment: Alignment.topRight,
-            children: [
-              CustomErrorDialog(titulo: 'No valido para facturar', respuesta: 'Esta venta ya se encuentra facturada',),
-              WindowBar(overlay: true),
-            ],
-          )
+          builder:
+              (_) => const Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  CustomErrorDialog(
+                    titulo: 'No valido para facturar',
+                    respuesta: 'Esta venta ya se encuentra facturada',
+                  ),
+                  WindowBar(overlay: true),
+                ],
+              ),
         );
-        setState(() {isLoading = false;});
-        
+        setState(() {
+          isLoading = false;
+        });
       } else {
         if (!mounted) return;
         Navigator.pop(context);
         showDialog(
           context: context,
-          builder: (_) => Stack(
-            alignment: Alignment.topRight,
-            children: [
-              FacturarVentaDialog(venta: venta),
-              const WindowBar(overlay: true),
-            ],
-          )
+          builder:
+              (_) => Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  FacturarVentaDialog(venta: venta),
+                  const WindowBar(overlay: true),
+                ],
+              ),
         );
       }
     } else {
@@ -413,85 +566,88 @@ class _IngresarFolioDialogState extends State<IngresarFolioDialog> {
         hint = 'no se encontro';
         isLoading = false;
       });
-    }   
+    }
   }
-  
 
   @override
   Widget build(BuildContext context) {
-
     return AlertDialog(
       elevation: 4,
       shadowColor: Colors.black,
       backgroundColor: AppTheme.containerColor1,
-      content: !isLoading ? Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Folio a facturar', textScaler: TextScaler.linear(1.1)),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 200,
-            height: 40,
-            child: Form(
-              key: _formKey,
-              child: TextFormField(
-                onChanged: (value) {
-                  if (color==Colors.red){
-                    setState(() { color = Colors.white; hint='';});
-                  }
-                },
-                decoration: InputDecoration(
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                    borderSide: BorderSide(
-                      width: 2,
-                      color: color,
+      content:
+          !isLoading
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Folio a facturar',
+                    textScaler: TextScaler.linear(1.1),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 200,
+                    height: 40,
+                    child: Form(
+                      key: _formKey,
+                      child: TextFormField(
+                        onChanged: (value) {
+                          if (color == Colors.red) {
+                            setState(() {
+                              color = Colors.white;
+                              hint = '';
+                            });
+                          }
+                        },
+                        decoration: InputDecoration(
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25.0),
+                            borderSide: BorderSide(width: 2, color: color),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25.0),
+                            borderSide: BorderSide(color: color),
+                          ),
+                        ),
+                        controller: _ctrl,
+                        autofocus: true,
+                        textAlign: TextAlign.center,
+                        inputFormatters: [
+                          TextInputFormatter.withFunction(
+                            (oldValue, newValue) => TextEditingValue(
+                              text: newValue.text.toUpperCase(),
+                              selection: newValue.selection,
+                            ),
+                          ),
+                        ],
+                        onFieldSubmitted: (s) => submited(),
+                      ),
                     ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                    borderSide: BorderSide(
-                      color: color,
-                    ),
-                  ),
-                ),
-                controller: _ctrl,
-                autofocus: true,
-                textAlign: TextAlign.center,
-                inputFormatters: [
-                  TextInputFormatter.withFunction(
-                    (oldValue, newValue) => TextEditingValue(
-                      text: newValue.text.toUpperCase(),
-                      selection: newValue.selection,
+                  const SizedBox(height: 12),
+                  hint.isEmpty
+                      ? ElevatedButton(
+                        child: const Text('Continuar'),
+                        onPressed: () => submited(),
+                      )
+                      : const Padding(
+                        padding: EdgeInsets.all(5.5),
+                        child: Text('No se encontraron resultados'),
+                      ),
+                ],
+              )
+              : const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Buscando...'),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 25),
+                    child: CircularProgressIndicator(
+                      color: AppTheme.letraClara,
                     ),
                   ),
                 ],
-                onFieldSubmitted: (s) => submited(),
               ),
-            ),
-          ), const SizedBox(height: 12),
-          hint.isEmpty ? 
-            ElevatedButton(
-              child: const Text('Continuar'), 
-              onPressed: () => submited()
-            )
-          :
-            const Padding(
-              padding: EdgeInsets.all(5.5),
-              child: Text('No se encontraron resultados'),
-            )
-        ],
-      ) :
-       const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Buscando...'),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 25),
-            child: CircularProgressIndicator(color: AppTheme.letraClara),
-          ),
-        ],
-      ),
     );
   }
 }
