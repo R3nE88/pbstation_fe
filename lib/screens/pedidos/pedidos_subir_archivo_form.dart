@@ -66,7 +66,10 @@ class _PedidosSubirArchivoFormState extends State<PedidosSubirArchivoForm> {
 
     if (pedidosService.isLoading){
       return AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        elevation: 6,
+        shadowColor: Colors.black54,
+        backgroundColor: AppTheme.containerColor1,
+        shape: AppTheme.borde,
         content: SizedBox(
           width: 200,
           child: Column(

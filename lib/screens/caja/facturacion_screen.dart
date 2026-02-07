@@ -239,6 +239,7 @@ class _FacturacionScreenState extends State<FacturacionScreen> {
                 Expanded(flex: 3, child: Center(child: Text('Receptor'))),
                 Expanded(flex: 3, child: Center(child: Text('Folio de Venta'))),
                 Expanded(flex: 3, child: Center(child: Text('Subtotal'))),
+                Expanded(flex: 3, child: Center(child: Text('Descuento'))),
                 Expanded(flex: 3, child: Center(child: Text('Impuestos'))),
                 Expanded(flex: 3, child: Center(child: Text('Total'))),
                 Expanded(flex: 2, child: Center(child: Text('¿Es Global?'))),
@@ -391,6 +392,16 @@ class FilaFactura extends StatelessWidget {
               flex: 3,
               child: Center(
                 child: Text(
+                  Formatos.moneda.format(factura.descuento.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text(
                   Formatos.moneda.format(factura.impuestos.toDouble()),
                   style: AppTheme.subtituloConstraste,
                   textAlign: TextAlign.center,
@@ -463,9 +474,10 @@ class _FolioMensualDialogState extends State<FolioMensualDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -572,9 +584,10 @@ class _IngresarFolioDialogState extends State<IngresarFolioDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content:
           !isLoading
               ? Column(

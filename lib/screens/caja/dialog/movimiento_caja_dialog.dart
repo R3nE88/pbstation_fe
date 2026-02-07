@@ -18,9 +18,10 @@ class MovimientoCajaDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

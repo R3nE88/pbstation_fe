@@ -12,6 +12,7 @@ class Facturas {
     required this.receptorRfc,
     required this.receptorNombre,
     required this.subTotal,
+    required this.descuento,
     required this.impuestos,
     required this.total,
     this.isGlobal = false,
@@ -25,6 +26,7 @@ class Facturas {
   String receptorRfc;
   String receptorNombre;
   Decimal subTotal;
+  Decimal descuento;
   Decimal impuestos;
   Decimal total;
   bool isGlobal;
@@ -41,6 +43,7 @@ class Facturas {
     receptorRfc: json['receptor_rfc'],
     receptorNombre: json['receptor_nombre'],
     subTotal: Decimal.parse(json['subtotal'].toString()),
+    descuento: Decimal.parse(json['descuento'].toString()),
     impuestos: Decimal.parse(json['impuestos'].toString()),
     total: Decimal.parse(json['total'].toString()),
     isGlobal: json['is_global'] ?? false,
@@ -55,6 +58,7 @@ class Facturas {
     'receptor_rfc': receptorRfc,
     'receptor_nombre': receptorNombre,
     'subtotal': subTotal,
+    'descuento': descuento,
     'impuestos': impuestos,
     'total': total,
     'is_global': isGlobal,

@@ -905,8 +905,8 @@ class _TablaHeader extends StatelessWidget {
           Expanded(flex: 4, child: Text('Vendedor', textAlign: TextAlign.center)),
           Expanded(flex: 5, child: Text('Cliente', textAlign: TextAlign.center)),
           Expanded(flex: 8, child: Text('Detalles', textAlign: TextAlign.center)),
-          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Subtotal', textAlign: TextAlign.center)),
+          Expanded(flex: 4, child: Text('Descuento', textAlign: TextAlign.center)),
           Expanded(flex: 3, child: Text('IVA', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Text('Total', textAlign: TextAlign.center)),
           Expanded(flex: 4, child: Tooltip(
@@ -940,6 +940,8 @@ class _FilaVentas extends StatelessWidget {
     final clienteNombre = clienteSvc.obtenerNombreClientePorId(venta.clienteId);
     final detalles = productosSvc.obtenerDetallesComoTexto(venta.detalles);
     final fecha = DateFormat('hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+
+    final double descuento = venta.descuento.toDouble();
     //double abonado = venta.liquidado? venta.total.toDouble() : venta.recibidoTotal.toDouble(); 
 
     TextStyle estilo;
@@ -989,8 +991,8 @@ class _FilaVentas extends StatelessWidget {
                 Expanded(flex: 4, child: Text(vendedorNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 Expanded(flex: 5, child: Text(clienteNombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 Expanded(flex: 8, child: Text(detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-                Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.descuento.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.subTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text(Formatos.pesos.format(descuento), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 Expanded(flex: 3, child: Text(Formatos.pesos.format(venta.iva.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 Expanded(flex: 4, child: Text(Formatos.pesos.format(venta.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
                 !venta.cancelado ?

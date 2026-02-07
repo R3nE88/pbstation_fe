@@ -27,6 +27,7 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
     loadingSvc.show();
 
     Decimal subtotal = Decimal.zero;
+    Decimal descuento = Decimal.zero;
     Decimal impuestos = Decimal.zero;
     Decimal total = Decimal.zero;
     List<String> ventaFolios = [];
@@ -36,6 +37,7 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
     final productosSvc = Provider.of<ProductosServices>(context, listen: false);
     for (var i = 0; i < widget.ventas.length; i++) {
       subtotal += widget.ventas[i].subTotal;
+      descuento += widget.ventas[i].descuento;
       impuestos += widget.ventas[i].iva;
       total += widget.ventas[i].total;
       ventaFolios.add(widget.ventas[i].folio!);
@@ -52,7 +54,8 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
         }
 
         final qty = item.cantidad.toDouble();
-        final unitPrice = producto.precio.toDouble();
+        final Decimal unitPriceDecimal = Decimal.parse((producto.precio.toDouble() * (item.alto??1) * (item.ancho??1)).toString()).round(scale: 6);
+        final unitPrice = unitPriceDecimal.toDouble();
         final descuento = item.descuentoAplicado.toDouble();
 
         final subtotalOriginal = qty * unitPrice;
@@ -121,9 +124,10 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
         receptorRfc: 'XAXX010101000',
         receptorNombre: 'Publico General',
         subTotal: subtotal,
+        descuento: descuento,
         impuestos: impuestos,
         total: total,
-        isGlobal: true,
+        isGlobal: true, 
       );
       final facturaId = await facturasSvc.createFactura(factura);
       if (facturaId != null) {
@@ -146,9 +150,10 @@ class _FacturaGlobalDialogState extends State<FacturaGlobalDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       contentPadding: const EdgeInsets.all(15),
-      elevation: 4,
-      shadowColor: Colors.black,
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: ClipRRect(
         borderRadius: BorderRadiusGeometry.circular(14),
         child: Column(

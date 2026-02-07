@@ -730,9 +730,10 @@ class _DescargaDialogState extends State<DescargaDialog> {
     final pedidosService = Provider.of<PedidosService>(context);
 
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: SizedBox(
         child: pedidosService.isDownloading ? 
           Column(

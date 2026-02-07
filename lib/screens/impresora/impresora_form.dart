@@ -26,9 +26,10 @@ class ImpresoraForm extends StatelessWidget {
     
     if(SucursalesServices.sucursalActualID==null){
       return AlertDialog(
-        elevation: 4,
-        shadowColor: Colors.black,
-        backgroundColor: AppTheme.containerColor2,
+        elevation: 6,
+        shadowColor: Colors.black54,
+        backgroundColor: AppTheme.containerColor1,
+        shape: AppTheme.borde,
         title: Text(
           edit==null?
           'Agregar Impresora al Sistema'
@@ -51,9 +52,10 @@ class ImpresoraForm extends StatelessWidget {
     }
 
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: Text(
         edit==null?
         'Agregar Impresora al Sistema'

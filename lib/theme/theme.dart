@@ -170,8 +170,6 @@ class AppTheme{
     fontWeight: FontWeight.bold
   );
 
-
-
   static const TextStyle labelStyle = TextStyle(
     color: Colors.white70
   );
@@ -265,10 +263,13 @@ class AppTheme{
       ? backgroundColor
       : const Color.fromARGB(255, 49, 145, 235);
 
-
-
-
-
+  static ShapeBorder borde = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16),
+    side: BorderSide(
+      color: AppTheme.letraClara.withValues(alpha: 0.1),
+      width: 1.5,
+    ),
+  );
 
   static final ThemeData customTheme = ThemeData.light().copyWith(
     progressIndicatorTheme: ProgressIndicatorThemeData(color: primario1),

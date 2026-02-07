@@ -98,16 +98,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
         '$fechaDia ${widget.factura.fecha.day} de $fecha, ${widget.factura.fecha.year}';
 
     return AlertDialog(
-      elevation: 8,
+      elevation: 6,
       shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: AppTheme.letraClara.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
+      shape: AppTheme.borde,
       titlePadding: EdgeInsets.zero,
       title: Container(
         padding: const EdgeInsets.all(20),
@@ -125,17 +119,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.primario1.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.receipt_long,
-                color: AppTheme.letraClara,
-                size: 24,
-              ),
+            const Icon(
+              Icons.receipt_long,
+              color: AppTheme.letraClara,
+              size: 24,
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -199,24 +186,21 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.tablaColor2,
+                color: AppTheme.tablaColor2.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppTheme.letraClara.withValues(alpha: 0.1),
-                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
                       Icon(
                         Icons.fingerprint,
                         size: 16,
-                        color: AppTheme.primario1,
+                        color: AppTheme.letraClara,
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
+                      SizedBox(width: 6),
+                      Text(
                         'UUID',
                         style: TextStyle(
                           color: AppTheme.letraClara,
@@ -273,6 +257,22 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
                 ),
               ],
             ),
+
+            if (!widget.factura.isGlobal) 
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoCard(
+                      Icons.receipt,
+                      'Venta',
+                      widget.factura.folioVenta,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
 
             // Montos
@@ -280,7 +280,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.tablaColor2, AppTheme.tablaColor1],
+                  colors: [AppTheme.tablaColor2.withValues(alpha: 0.8), AppTheme.tablaColor2.withValues(alpha: 0.8),],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -302,6 +302,17 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
                   ),
                   Expanded(
                     child: _buildMontoItem(
+                      'Descuento',
+                      widget.factura.descuento.toDouble(),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: AppTheme.letraClara.withValues(alpha: 0.2),
+                  ),
+                  Expanded(
+                    child: _buildMontoItem(
                       'Impuestos',
                       widget.factura.impuestos.toDouble(),
                     ),
@@ -312,7 +323,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
                     color: AppTheme.letraClara.withValues(alpha: 0.2),
                   ),
                   Expanded(
-                    child: _buildMontoTotal(
+                    child: _buildMontoItem(
                       'Total',
                       widget.factura.total.toDouble(),
                     ),
@@ -349,7 +360,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
               ),
             ),
             const SizedBox(width: 12),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
@@ -431,7 +442,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
     );
   }
 
-  Widget _buildMontoTotal(String label, double monto) {
+  /*Widget _buildMontoTotal(String label, double monto) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -460,7 +471,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildDownloadButton({
     required IconData icon,
@@ -472,7 +483,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.15),
+        backgroundColor: color.withValues(alpha: 0.8),
         foregroundColor: color,
         padding: const EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(
@@ -491,11 +502,11 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
               : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 18),
+                  Icon(icon, size: 18, color: AppTheme.letraClara),
                   const SizedBox(width: 8),
                   Text(
                     label,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.letraClara),
                   ),
                 ],
               ),

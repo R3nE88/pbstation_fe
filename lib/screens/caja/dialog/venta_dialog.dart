@@ -132,7 +132,10 @@ class _VentaDialogState extends State<VentaDialog> {
             alignment: Alignment.topCenter,
             children: [
               AlertDialog(
-                backgroundColor: AppTheme.containerColor2,
+                elevation: 6,
+                shadowColor: Colors.black54,
+                backgroundColor: AppTheme.containerColor1,
+                shape: AppTheme.borde,
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -230,9 +233,10 @@ class _VentaDialogState extends State<VentaDialog> {
 
         return AlertDialog(
           titlePadding: const EdgeInsets.only(left: 18, right:18, top: 12),
-          elevation: 4,
-          shadowColor: Colors.black,
-          backgroundColor: AppTheme.containerColor2,
+          elevation: 6,
+          shadowColor: Colors.black54,
+          backgroundColor: AppTheme.containerColor1,
+          shape: AppTheme.borde,
           title: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -672,7 +676,10 @@ class MotivoCancelacion extends StatelessWidget {
     }
 
     return AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: const Text('Motivo de cancelacion',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
       content: SizedBox(
         width: 300,

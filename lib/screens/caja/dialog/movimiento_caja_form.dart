@@ -53,7 +53,10 @@ class _MovimientoCajaFormState extends State<MovimientoCajaForm> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: Text(
         widget.isRetiro ?
         'Retirar Efectivo' : 'Agregar Efectivo'

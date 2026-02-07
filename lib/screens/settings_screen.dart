@@ -289,7 +289,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: const Column(
         children: [
           Text(
@@ -372,6 +375,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return AlertDialog(
       backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      shape: AppTheme.borde,
       title: const Column(
         children: [
           Text(

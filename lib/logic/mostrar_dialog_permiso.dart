@@ -48,7 +48,10 @@ Future<bool?> mostrarDialogoPermiso(BuildContext context) async {
         children: [
           AlertDialog(
             title: const Text('🔒 Para continuar ingrese las credenciales\nde algun usuario con permisos elevados.',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
-            backgroundColor: AppTheme.containerColor2,
+            backgroundColor: AppTheme.containerColor1,
+            elevation: 6,
+            shadowColor: Colors.black54,
+            shape: AppTheme.borde,
             content: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22),
               child: Form(

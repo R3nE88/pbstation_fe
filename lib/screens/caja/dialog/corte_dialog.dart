@@ -1100,9 +1100,10 @@ class _CorteDialogState extends State<CorteDialog> {
     }
 
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       contentPadding: const EdgeInsets.all(0),
       title: title.isNotEmpty ? 
       Text(title) 

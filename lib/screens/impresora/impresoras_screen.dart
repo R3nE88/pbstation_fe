@@ -141,7 +141,10 @@ class ImpresorasCards extends StatelessWidget {
           alignment: Alignment.topRight,
           children: [
             AlertDialog(
+              elevation: 6,
+              shadowColor: Colors.black54,
               backgroundColor: AppTheme.containerColor1,
+              shape: AppTheme.borde,
               title: const Center(child: Text('¿Desea continuar?', textScaler: TextScaler.linear(0.85))),
               content: const Column(
                 mainAxisSize: MainAxisSize.min,

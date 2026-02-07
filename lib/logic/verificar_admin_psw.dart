@@ -46,7 +46,10 @@ Future<bool?> verificarAdminPsw(BuildContext context) {
         alignment: Alignment.topRight,
         children: [
           AlertDialog(
-            backgroundColor: AppTheme.containerColor2,
+            elevation: 6,
+            shadowColor: Colors.black54,
+            backgroundColor: AppTheme.containerColor1,
+            shape: AppTheme.borde,
             title: const Text('🔒 Para continuar ingrese su contraseña.',textAlign: TextAlign.center, style: AppTheme.labelStyle, textScaler: TextScaler.linear(0.75)),
             content: SizedBox(
               width: 300,

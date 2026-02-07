@@ -51,7 +51,10 @@ class _SeleccionadorDeHoraState extends State<SeleccionadorDeHora> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

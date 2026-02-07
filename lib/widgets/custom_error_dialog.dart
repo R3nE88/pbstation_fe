@@ -13,7 +13,10 @@ class CustomErrorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: Center(child: Text(titulo, textScaler: const TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,

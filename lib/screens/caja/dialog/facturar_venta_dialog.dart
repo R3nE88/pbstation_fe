@@ -98,7 +98,8 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       }
 
       final qty = item.cantidad.toDouble();
-      final unitPrice = producto.precio.toDouble();
+      final Decimal unitPriceDecimal = Decimal.parse((producto.precio.toDouble() * (item.alto??1) * (item.ancho??1)).toString()).round(scale: 6);
+      final unitPrice = unitPriceDecimal.toDouble();
       final descuento = item.descuentoAplicado.toDouble();
 
       final subtotalOriginal = qty * unitPrice;
@@ -174,6 +175,7 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
         receptorRfc: _clienteSelected!.rfc!,
         receptorNombre: _clienteSelected!.nombre,
         subTotal: widget.venta.subTotal,
+        descuento: widget.venta.descuento,
         impuestos: widget.venta.iva,
         total: widget.venta.total,
       );
@@ -239,9 +241,10 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
     final clientesServices = Provider.of<ClientesServices>(context);
 
     return AlertDialog(
-      elevation: 4,
-      shadowColor: Colors.black,
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: SizedBox(
         width: 500,
         child: Column(

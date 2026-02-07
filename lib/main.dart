@@ -8,6 +8,7 @@ import 'package:pbstation_frontend/logic/modulos.dart';
 import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/routes/routes.dart';
+import 'package:pbstation_frontend/services/frame_preloader_service.dart';
 import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
@@ -124,13 +125,15 @@ class _MyAppState extends State<MyApp> {
         ThemePreferences.isDarkTheme;
     Ticket.preloadResources();
 
-    // Pre-cachear logos del sidebar para mejorar rendimiento
+    // Pre-cachear logos y frames de animación para mejorar rendimiento
     WidgetsBinding.instance.addPostFrameCallback((_) {
       precacheImage(const AssetImage('assets/images/logo_normal.png'), context);
       precacheImage(
         const AssetImage('assets/images/logo_darkmode.png'),
         context,
       );
+      // Precargar frames de animación para que estén listos instantáneamente
+      FramePreloaderService().preloadFrames(context);
     });
   }
 

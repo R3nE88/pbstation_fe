@@ -117,7 +117,10 @@ class _PedidosDialogState extends State<PedidosDialog> {
             alignment: Alignment.topCenter,
             children: [
               AlertDialog(
-                backgroundColor: AppTheme.containerColor2,
+                elevation: 6,
+                shadowColor: Colors.black54,
+                backgroundColor: AppTheme.containerColor1,
+                shape: AppTheme.borde,
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -192,7 +195,10 @@ class _PedidosDialogState extends State<PedidosDialog> {
     if (ventaId.isEmpty) return const SimpleLoading();
 
     return AlertDialog(
+      elevation: 6,
+      shadowColor: Colors.black54,
       backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: Selector2<PedidosService, VentasServices, _DialogData>(
         selector: (context, pedidosService, ventasServices) {
           final venta = ventasServices.ventasDePedidos.firstWhere(

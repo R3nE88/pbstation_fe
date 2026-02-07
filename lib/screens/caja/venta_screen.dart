@@ -183,7 +183,10 @@ class _VentaScreenState extends State<VentaScreen> {
                 alignment: Alignment.topRight,
                 children: [
                   AlertDialog(
+                    elevation: 6,
+                    shadowColor: Colors.black54,
                     backgroundColor: AppTheme.containerColor1,
+                    shape: AppTheme.borde,
                     title: const Center(child: Text('No se puede sobreescribir esta pestaña de venta')),
                     content: const Column(
                       mainAxisSize: MainAxisSize.min,
@@ -209,7 +212,10 @@ class _VentaScreenState extends State<VentaScreen> {
                 alignment: Alignment.topRight,
                 children: [
                   AlertDialog(
+                    elevation: 6,
+                    shadowColor: Colors.black54,
                     backgroundColor: AppTheme.containerColor1,
+                    shape: AppTheme.borde,
                     title: const Center(child: Text('Seleccione una venta'),),
                     content: SizedBox(
                       height: 250, 
@@ -292,7 +298,10 @@ class _VentaScreenState extends State<VentaScreen> {
               alignment: Alignment.topRight,
               children: [
                 AlertDialog(
+                  elevation: 6,
+                  shadowColor: Colors.black54,
                   backgroundColor: AppTheme.containerColor1,
+                  shape: AppTheme.borde,
                   content: SizedBox(
                     width: 350,
                     child: Column(

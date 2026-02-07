@@ -203,6 +203,9 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
+        elevation: 6,
+        shadowColor: Colors.black54,
+        shape: AppTheme.borde,
         backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
         title: Text(_titulo),
         content: SizedBox(

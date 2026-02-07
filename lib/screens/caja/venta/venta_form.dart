@@ -243,9 +243,12 @@ class _VentaFormState extends State<VentaForm> {
         return Stack(
           alignment: Alignment.topRight,
           children: [
-            Dialog(
+            AlertDialog(
+              elevation: 6,
+              shadowColor: Colors.black54,
               backgroundColor: AppTheme.containerColor1,
-              child: SizedBox(
+              shape: AppTheme.borde,
+              content: SizedBox(
                 //height: MediaQuery.of(context).size.height * 0.5,
                 width: MediaQuery.of(context).size.height * 0.5,
                 child: Theme(
@@ -785,7 +788,10 @@ class _VentaFormState extends State<VentaForm> {
           context: context,
           builder: (context) {
             return AlertDialog(
-              backgroundColor: AppTheme.backgroundColor,
+              elevation: 6,
+              shadowColor: Colors.black54,
+              backgroundColor: AppTheme.containerColor1,
+              shape: AppTheme.borde,
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -874,7 +880,10 @@ class _VentaFormState extends State<VentaForm> {
           alignment: Alignment.topRight,
           children: [
             AlertDialog(
-              backgroundColor: AppTheme.containerColor2,
+              elevation: 6,
+              shadowColor: Colors.black54,
+              backgroundColor: AppTheme.containerColor1,
+              shape: AppTheme.borde,
               title: const Center(child: Text('  ¡Cotizacion guardada!  ')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1204,34 +1213,31 @@ class _VentaFormState extends State<VentaForm> {
                                         bottomLeft: Radius.circular(30),
                                       ),
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(3),
-                                      child: Row(
-                                        children: [
-                                          Checkbox(
-                                            focusNode: _checkboxFocus1,
-                                            value: _entregaInmediata,
-                                            focusColor: AppTheme.focusColor,
-                                            onChanged: (value) {
-                                              if (_entregaInmediata == true) {
-                                                return;
-                                              }
-                                              setState(() {
-                                                _fechaEntrega = null;
-                                                VentasStates
-                                                    .tabs[widget.index]
-                                                    .fechaEntrega = null;
-                                                _checkboxFocus1.requestFocus();
-                                                _entregaInmediata = value!;
-                                                VentasStates
-                                                    .tabs[widget.index]
-                                                    .entregaInmediata = value;
-                                              });
-                                            },
-                                          ),
-                                          const Text('Entrega inmediata   '),
-                                        ],
-                                      ),
+                                    child: Row(
+                                      children: [
+                                        Checkbox(
+                                          focusNode: _checkboxFocus1,
+                                          value: _entregaInmediata,
+                                          focusColor: AppTheme.focusColor,
+                                          onChanged: (value) {
+                                            if (_entregaInmediata == true) {
+                                              return;
+                                            }
+                                            setState(() {
+                                              _fechaEntrega = null;
+                                              VentasStates
+                                                  .tabs[widget.index]
+                                                  .fechaEntrega = null;
+                                              _checkboxFocus1.requestFocus();
+                                              _entregaInmediata = value!;
+                                              VentasStates
+                                                  .tabs[widget.index]
+                                                  .entregaInmediata = value;
+                                            });
+                                          },
+                                        ),
+                                        const Text('Entrega inmediata   '),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -2702,7 +2708,10 @@ class _CreandoPedidoState extends State<CreandoPedido> {
       title: Center(
         child: Text(widget.files.isNotEmpty ? 'Subiendo archivo...' : ''),
       ),
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       content: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,

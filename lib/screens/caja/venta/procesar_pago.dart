@@ -243,7 +243,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           alignment: Alignment.topRight,
           children: [
             AlertDialog(
+              elevation: 6,
+              shadowColor: Colors.black54,
               backgroundColor: AppTheme.containerColor1,
+              shape: AppTheme.borde,
               title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: const TextScaler.linear(0.85))),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -498,7 +501,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       }
       if (_articuloImprimible.isNotEmpty && impresoraSvc.impresoras.isNotEmpty){
         return AlertDialog(
-          backgroundColor: AppTheme.containerColor2,
+          elevation: 6,
+          shadowColor: Colors.black54,
+          backgroundColor: AppTheme.containerColor1,
+          shape: AppTheme.borde,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -552,7 +558,10 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
     //Procesar pago 
     return AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: Text(!widget.isDeuda ? 'Procesar Pago' : 'Pagar Deuda'),
       content: AnimatedSize(
         duration: const Duration(milliseconds: milliseconds),
@@ -1067,7 +1076,10 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
     //si no es deuda
     return !widget.isDeuda ? 
       AlertDialog(
-        backgroundColor: AppTheme.containerColor2,
+        elevation: 6,
+        shadowColor: Colors.black54,
+        backgroundColor: AppTheme.containerColor1,
+        shape: AppTheme.borde,
         title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1092,7 +1104,10 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
       ) 
     : //Si si es deuda
     AlertDialog(
-      backgroundColor: AppTheme.containerColor2,
+      elevation: 6,
+      shadowColor: Colors.black54,
+      backgroundColor: AppTheme.containerColor1,
+      shape: AppTheme.borde,
       title: const Center(child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85))),
       content: Column(
         mainAxisSize: MainAxisSize.min,
