@@ -117,6 +117,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   @override
   void initState() {
     super.initState();
+    print('init');
     _selectedItem = widget.selectedItem;
     _controller = TextEditingController(
       text:
@@ -472,54 +473,59 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) {
           _selectItem(option);
           FocusScope.of(context).nextFocus();
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color:
-                isHighlighted
-                    ? AppTheme.secundario1.withOpacity(0.8)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.vertical(
-              top: isFirst ? const Radius.circular(12) : Radius.zero,
-              bottom: isLast ? const Radius.circular(12) : Radius.zero,
+        child: InkWell(
+          onTap:
+              () {}, // Necesario para mantener el efecto de tinta al mantener presionado
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color:
+                  isHighlighted
+                      ? AppTheme.secundario1.withOpacity(0.8)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.vertical(
+                top: isFirst ? const Radius.circular(12) : Radius.zero,
+                bottom: isLast ? const Radius.circular(12) : Radius.zero,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              if (secondary.isNotEmpty) ...[
-                Text(
-                  secondary,
-                  style: TextStyle(
-                    color: AppTheme.letraClara.withOpacity(0.6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '—',
+            child: Row(
+              children: [
+                if (secondary.isNotEmpty) ...[
+                  Text(
+                    secondary,
                     style: TextStyle(
-                      color: AppTheme.letraClara.withOpacity(0.3),
+                      color: AppTheme.letraClara.withOpacity(0.6),
                       fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '—',
+                      style: TextStyle(
+                        color: AppTheme.letraClara.withOpacity(0.3),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+                Expanded(
+                  child: Text(
+                    primary,
+                    style: AppTheme.subtituloPrimario.copyWith(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
-              Expanded(
-                child: Text(
-                  primary,
-                  style: AppTheme.subtituloPrimario.copyWith(fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

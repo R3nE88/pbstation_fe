@@ -39,6 +39,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
     'estado': TextEditingController(),
     'pais': TextEditingController(),
   };
+  bool canFacturar = false;
 
   @override
   void initState() {
@@ -194,12 +195,33 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         ),
         validator: validator,
         autovalidateMode: AutovalidateMode.onUserInteraction,
+        onChanged: (value) {
+          verificarFacturar();
+        },
       ),
     );
+  }
+
+  void verificarFacturar(){
+    if (_controllers['razon']!.text.isNotEmpty && _controllers['rfc']!.text.isNotEmpty && _controllers['cp']!.text.isNotEmpty  && (_regimenFiscal?.isNotEmpty ?? false)){
+      if (canFacturar==false){
+        setState(() {
+          canFacturar = true;
+        });
+      }
+    } else {
+      if (canFacturar==true){
+        setState(() {
+          canFacturar = false;
+        });
+      }
+    }
   }
   
   @override
   Widget build(BuildContext context) {
+    verificarFacturar();
+    
     return FocusScope(
       canRequestFocus: !_onlyRead,
       child: AlertDialog(
@@ -207,7 +229,31 @@ class _ClientesFormState extends State<ClientesFormDialog> {
         shadowColor: Colors.black54,
         shape: AppTheme.borde,
         backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
-        title: Text(_titulo),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(_titulo),
+            Transform.translate(
+              offset: const Offset(40, 7),
+              child: Transform.scale(
+                scale: 0.6,
+                child: Row(
+                  children: [
+
+                    const Text('¿Puede facturar?  ', style: AppTheme.labelStyle),
+
+                    canFacturar ||  _controllers['rfc']!.text=='XAXX010101000' ? Text('SI', style: AppTheme.tituloClaro.copyWith(
+                      color: Colors.green
+                    )) : Text('NO', style: AppTheme.tituloClaro.copyWith(
+                      color: Colors.red
+                    ))
+
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
         content: SizedBox(
           width: 600,
           child: Form(

@@ -61,7 +61,8 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
     if (_clienteSelected!.rfc != null) {
       if (_clienteSelected!.rfc != 'XAXX010101000') {
         if (_clienteSelected!.regimenFiscal == null ||
-            _clienteSelected!.codigoPostal == null) {
+            _clienteSelected!.codigoPostal == null ||
+            _clienteSelected!.razonSocial == null) {
           setState(() {
             _clienteError = true;
           });
@@ -149,10 +150,7 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       paymentMethod: 'PUE',
       receiver: Receiver(
         rfc: _clienteSelected!.rfc!,
-        name:
-            _clienteSelected!.razonSocial != null
-                ? _clienteSelected!.razonSocial!
-                : _clienteSelected!.nombre,
+        name: _clienteSelected!.razonSocial!,
         cfdiUse: _usoCfdiSeleccionado!,
         fiscalRegime: _clienteSelected!.regimenFiscal ?? '616',
         taxZipCode:
