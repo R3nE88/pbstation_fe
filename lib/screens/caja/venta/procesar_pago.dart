@@ -11,18 +11,19 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-
 class ProcesarPago extends StatefulWidget {
   const ProcesarPago({
-    super.key, 
+    super.key,
     required this.venta,
-    required this.afterProcesar, 
+    required this.afterProcesar,
+    this.onSuccess,
     this.isDeuda = false,
-    this.deudaMonto = 0
+    this.deudaMonto = 0,
   });
 
   final Ventas venta;
   final Function({String? ventaId, String? ventaFolio}) afterProcesar;
+  final Function({String? ventaId, String? ventaFolio})? onSuccess;
   final bool isDeuda;
   final double deudaMonto;
 
@@ -30,7 +31,8 @@ class ProcesarPago extends StatefulWidget {
   State<ProcesarPago> createState() => _ProcesarPagoState();
 }
 
-class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMixin {
+class _ProcesarPagoState extends State<ProcesarPago>
+    with TickerProviderStateMixin {
   bool _tipoEmpty = false;
   String? _tipoTarjetaSeleccionado;
   late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
@@ -49,11 +51,11 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   final List<Map<String, dynamic>> _notificarContadores = [];
   Impresoras? _opcionSeleccionada;
   final List<Impresoras> _opciones = [];
-  bool _opcionesInited=false;
+  bool _opcionesInited = false;
   //Focus
   bool _isFocused = false;
   final _focusNode = FocusNode();
-  final _focusEfectivo = FocusNode(); 
+  final _focusEfectivo = FocusNode();
   final _focusDolar = FocusNode();
   final _focusTarjetaImporte = FocusNode();
   final _focusReferenciaTarjeta = FocusNode();
@@ -83,33 +85,50 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     super.initState();
 
     //para lo de las impresoras
-    if (widget.isDeuda==false){
+    if (widget.isDeuda == false) {
       for (var detalle in widget.venta.detalles) {
-        Productos producto = Provider.of<ProductosServices>(context, listen: false).productos.firstWhere((element) => element.id == detalle.productoId);
-        if (producto.imprimible){
-          _articuloImprimible.add({'valor_impresion':producto.valorImpresion, 'cantidad':detalle.cantidad, 'producto': producto.descripcion});
+        Productos producto = Provider.of<ProductosServices>(
+          context,
+          listen: false,
+        ).productos.firstWhere((element) => element.id == detalle.productoId);
+        if (producto.imprimible) {
+          _articuloImprimible.add({
+            'valor_impresion': producto.valorImpresion,
+            'cantidad': detalle.cantidad,
+            'producto': producto.descripcion,
+          });
         }
       }
       final impSvc = Provider.of<ImpresorasServices>(context, listen: false);
-      if (_articuloImprimible.isNotEmpty){
+      if (_articuloImprimible.isNotEmpty) {
         impSvc.loadImpresoras(false);
       }
     }
 
     //constantes de dropDown
-    _dropdownItemsTipo = Constantes.tarjeta.entries
-        .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
-        .toList();
+    _dropdownItemsTipo =
+        Constantes.tarjeta.entries
+            .map(
+              (e) =>
+                  DropdownMenuItem<String>(value: e.key, child: Text(e.value)),
+            )
+            .toList();
     _tipoTarjetaSeleccionado = _dropdownItemsTipo.first.value;
 
     //Inicializaciones
     _abonarCtrl.text = 'MX\$0.00';
     _cambioCtrl.text = Formatos.pesos.format(0);
-    _adeudoCtrl.text = widget.isDeuda ? Formatos.pesos.format(widget.deudaMonto) : Formatos.pesos.format(widget.venta.total.toDouble());
-    _saldoCtrl.text = widget.isDeuda ? Formatos.pesos.format(widget.deudaMonto) : Formatos.pesos.format(widget.venta.total.toDouble());
+    _adeudoCtrl.text =
+        widget.isDeuda
+            ? Formatos.pesos.format(widget.deudaMonto)
+            : Formatos.pesos.format(widget.venta.total.toDouble());
+    _saldoCtrl.text =
+        widget.isDeuda
+            ? Formatos.pesos.format(widget.deudaMonto)
+            : Formatos.pesos.format(widget.venta.total.toDouble());
 
     //Focus
-     _focusNode.addListener(() {
+    _focusNode.addListener(() {
       setState(() {
         _isFocused = _focusNode.hasFocus;
       });
@@ -131,7 +150,7 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     _focusRealizarPago.dispose();
     _efectivoCtrl.dispose();
     _dolarCtrl.dispose();
-    _tarjetaImpCtrl.dispose(); 
+    _tarjetaImpCtrl.dispose();
     _tarjetaRefCtrl.dispose();
     _transImpCtrl.dispose();
     _transRefCtrl.dispose();
@@ -143,144 +162,195 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
   }
 
   //Metodos
-  double formatearEntrada(String entrada){
-    return double.tryParse(entrada.replaceAll('MX\$', '').replaceAll('US\$', '').replaceAll('\$', '').replaceAll(',', '')) ?? 0;
+  double formatearEntrada(String entrada) {
+    return double.tryParse(
+          entrada
+              .replaceAll('MX\$', '')
+              .replaceAll('US\$', '')
+              .replaceAll('\$', '')
+              .replaceAll(',', ''),
+        ) ??
+        0;
   }
 
-  double calcularImporte(){
+  double calcularImporte() {
     double entrada = 0;
-    if (_efectivo){
+    if (_efectivo) {
       entrada += _efectivoImporte;
-      entrada += CalculosDinero().dolarAPesos(_dolarImporte,  CajasServices.cajaActual!.tipoCambio);
+      entrada += CalculosDinero().dolarAPesos(
+        _dolarImporte,
+        CajasServices.cajaActual!.tipoCambio,
+      );
     }
-    if (_tarjeta){
+    if (_tarjeta) {
       entrada += _tarjetaImporte;
     }
-    if (_transferencia){
+    if (_transferencia) {
       entrada += _transferenciaImporte;
     }
     return entrada;
   }
 
-  void calcularAbono(){
-    double total = widget.isDeuda ? widget.deudaMonto : widget.venta.total.toDouble();
-    
-    double entrada =  calcularImporte();
+  void calcularAbono() {
+    double total =
+        widget.isDeuda ? widget.deudaMonto : widget.venta.total.toDouble();
 
-    if (entrada > total) { 
+    double entrada = calcularImporte();
+
+    if (entrada > total) {
       _abonarCtrl.text = Formatos.pesos.format(total);
     } else {
       _abonarCtrl.text = Formatos.pesos.format(entrada);
-    }   
+    }
 
     calcularCambio(entrada);
   }
 
-  void calcularCambio(double entrada){
+  void calcularCambio(double entrada) {
     Decimal entradaFormat = Decimal.parse(entrada.toString());
-    Decimal total = widget.isDeuda ? Decimal.parse(widget.deudaMonto.toString()) : Decimal.parse(widget.venta.total.toString());
+    Decimal total =
+        widget.isDeuda
+            ? Decimal.parse(widget.deudaMonto.toString())
+            : Decimal.parse(widget.venta.total.toString());
 
     //Si lo abonado supera el total
-    if (entradaFormat >= total){
-      setState(() { _hayCambio = true; });
-      _cambioCtrl.text = Formatos.pesos.format((entradaFormat - total).toDouble());
+    if (entradaFormat >= total) {
+      setState(() {
+        _hayCambio = true;
+      });
+      _cambioCtrl.text = Formatos.pesos.format(
+        (entradaFormat - total).toDouble(),
+      );
     } else {
-      setState(() { _hayCambio = false; });
+      setState(() {
+        _hayCambio = false;
+      });
       _cambioCtrl.text = Formatos.pesos.format(0);
     }
 
     calcularTotal();
   }
 
-  void desdeAbonarCalcular(double entrada){
-    Decimal total = widget.isDeuda ? Decimal.parse(widget.deudaMonto.toString()) : Decimal.parse(widget.venta.total.toString());
-    double totalImportes =  calcularImporte();
+  void desdeAbonarCalcular(double entrada) {
+    Decimal total =
+        widget.isDeuda
+            ? Decimal.parse(widget.deudaMonto.toString())
+            : Decimal.parse(widget.venta.total.toString());
+    double totalImportes = calcularImporte();
 
     //Si se supera la entrada al total limitar a total
-    if (entrada > total.toDouble()){
+    if (entrada > total.toDouble()) {
       _abonarCtrl.text = Formatos.pesos.format(total.toDouble());
       entrada = total.toDouble();
     }
 
     //Si se supera la entrada al importe limitar a importe
-    if (entrada > totalImportes){
+    if (entrada > totalImportes) {
       _abonarCtrl.text = Formatos.pesos.format(totalImportes.toDouble());
       entrada = totalImportes.toDouble();
     }
 
-    if (totalImportes-entrada != 0){
-      setState(() { _hayCambio = true; });
-    } else { setState(() { _hayCambio = false; }); }
+    if (totalImportes - entrada != 0) {
+      setState(() {
+        _hayCambio = true;
+      });
+    } else {
+      setState(() {
+        _hayCambio = false;
+      });
+    }
 
     _cambioCtrl.text = Formatos.pesos.format(totalImportes - entrada);
 
     calcularTotal();
   }
-  
-  void calcularTotal(){
-    double abonado = formatearEntrada(_abonarCtrl.text);
-    double total = widget.isDeuda ? widget.deudaMonto : widget.venta.total.toDouble();
 
-    if (total - abonado == 0){
-      setState(() { _porPagar = false; });
-    } else { setState(() { _porPagar = true; });}
+  void calcularTotal() {
+    double abonado = formatearEntrada(_abonarCtrl.text);
+    double total =
+        widget.isDeuda ? widget.deudaMonto : widget.venta.total.toDouble();
+
+    if (total - abonado == 0) {
+      setState(() {
+        _porPagar = false;
+      });
+    } else {
+      setState(() {
+        _porPagar = true;
+      });
+    }
 
     _saldoCtrl.text = Formatos.pesos.format(total - abonado);
   }
 
-  Future<void> procesarPago(impresoraSvc) async{
-    if (!_formKey.currentState!.validate()){ return; }
+  Future<void> procesarPago(impresoraSvc) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     bool continuar = true; //Adevertencia de adeudo
-    Decimal quedaPorPagar = Decimal.parse(formatearEntrada(_saldoCtrl.text).toString());
-    if (_porPagar==true){
-      await showDialog(context: context, builder: (context) { 
-        continuar = false;
-        String format = Formatos.pesos.format(quedaPorPagar.toDouble());
-        FocusNode boton = FocusNode();
-        boton.requestFocus();
-        return Stack(
-          alignment: Alignment.topRight,
-          children: [
-            AlertDialog(
-              elevation: 6,
-              shadowColor: Colors.black54,
-              backgroundColor: AppTheme.containerColor1,
-              shape: AppTheme.borde,
-              title: Center(child: Text('Queda un saldo de $format por pagar.', textScaler: const TextScaler.linear(0.85))),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Si continúa, este importe se agregará al adeudo del cliente.', textAlign: TextAlign.center),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        focusNode: boton,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Regresar')
-                      ),
-                      ElevatedButton(
-                        //focusNode: boton, 
-                        onPressed: () async {
-                          _endeudar = true;
-                          continuar = true;
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Continuar')
-                      ),
-                    ],
-                  )
-                ],
+    Decimal quedaPorPagar = Decimal.parse(
+      formatearEntrada(_saldoCtrl.text).toString(),
+    );
+    if (_porPagar == true) {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          continuar = false;
+          String format = Formatos.pesos.format(quedaPorPagar.toDouble());
+          FocusNode boton = FocusNode();
+          boton.requestFocus();
+          return Stack(
+            alignment: Alignment.topRight,
+            children: [
+              AlertDialog(
+                elevation: 6,
+                shadowColor: Colors.black54,
+                backgroundColor: AppTheme.containerColor1,
+                shape: AppTheme.borde,
+                title: Center(
+                  child: Text(
+                    'Queda un saldo de $format por pagar.',
+                    textScaler: const TextScaler.linear(0.85),
+                  ),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Si continúa, este importe se agregará al adeudo del cliente.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          focusNode: boton,
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Regresar'),
+                        ),
+                        ElevatedButton(
+                          //focusNode: boton,
+                          onPressed: () async {
+                            _endeudar = true;
+                            continuar = true;
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Continuar'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const WindowBar(overlay: true),
-          ],
-        );
-      });
+              const WindowBar(overlay: true),
+            ],
+          );
+        },
+      );
     } //Termina la advertencia
 
     if (!continuar) return;
@@ -288,26 +358,53 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte, CajasServices.cajaActual!.tipoCambio);
-    
+    double dolaresEnPesos = calculosDinero.dolarAPesos(
+      _dolarImporte,
+      CajasServices.cajaActual!.tipoCambio,
+    );
+
     Decimal? abonadoMx;
     Decimal? abonadoUs;
     Decimal? abonadoTarj;
     Decimal? abonadoTrans;
-    if (_endeudar == true){
+    if (_endeudar == true) {
       //Si no liquido, significa que queda debiendo, asi que el importe = abonado
-      abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-      abonadoUs = dolaresEnPesos!= 0 ?  Decimal.parse(dolaresEnPesos.toString()) : null;
-      abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
-      abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
+      abonadoMx =
+          _efectivoImporte != 0
+              ? Decimal.parse(_efectivoImporte.toString())
+              : null;
+      abonadoUs =
+          dolaresEnPesos != 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
+      abonadoTarj =
+          _tarjetaImporte != 0
+              ? Decimal.parse(_tarjetaImporte.toString())
+              : null;
+      abonadoTrans =
+          _transferenciaImporte != 0
+              ? Decimal.parse(_transferenciaImporte.toString())
+              : null;
     } else {
       //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
-      abonadoUs = dolaresEnPesos!= 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
-      abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
-      abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
-      abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-      abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''));
-      abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
+      abonadoUs =
+          dolaresEnPesos != 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
+      abonadoTarj =
+          _tarjetaImporte != 0
+              ? Decimal.parse(_tarjetaImporte.toString())
+              : null;
+      abonadoTrans =
+          _transferenciaImporte != 0
+              ? Decimal.parse(_transferenciaImporte.toString())
+              : null;
+      abonadoMx =
+          _efectivoImporte != 0
+              ? Decimal.parse(_efectivoImporte.toString())
+              : null;
+      abonadoMx =
+          (abonadoMx ?? Decimal.zero) -
+          Decimal.parse(
+            _cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''),
+          );
+      abonadoMx == Decimal.zero ? abonadoMx = null : abonadoMx;
     }
 
     Ventas nuevaVenta = Ventas(
@@ -326,88 +423,138 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       tipoTarjeta: _tarjeta ? _tipoTarjetaSeleccionado : null,
       referenciaTarj: _tarjetaRefCtrl.text,
       referenciaTrans: _transRefCtrl.text,
-      recibidoMxn:_efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null,
-      recibidoUs:dolaresEnPesos!=0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
-      recibidoTarj:_tarjetaImporte!=0 ? Decimal.parse(_tarjetaImporte.toString()) : null,
-      recibidoTrans:_transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null,
+      recibidoMxn:
+          _efectivoImporte != 0
+              ? Decimal.parse(_efectivoImporte.toString())
+              : null,
+      recibidoUs:
+          dolaresEnPesos != 0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
+      recibidoTarj:
+          _tarjetaImporte != 0
+              ? Decimal.parse(_tarjetaImporte.toString())
+              : null,
+      recibidoTrans:
+          _transferenciaImporte != 0
+              ? Decimal.parse(_transferenciaImporte.toString())
+              : null,
       recibidoTotal: widget.venta.recibidoTotal,
       abonadoMxn: abonadoMx,
       abonadoUs: abonadoUs,
       abonadoTarj: abonadoTarj,
       abonadoTrans: abonadoTrans,
-      abonadoTotal: (abonadoMx??Decimal.zero) + (abonadoUs??Decimal.zero) + (abonadoTarj??Decimal.zero) + (abonadoTrans??Decimal.zero),
-      cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),    
+      abonadoTotal:
+          (abonadoMx ?? Decimal.zero) +
+          (abonadoUs ?? Decimal.zero) +
+          (abonadoTarj ?? Decimal.zero) +
+          (abonadoTrans ?? Decimal.zero),
+      cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),
       liquidado: !_endeudar,
-      wasDeuda: _endeudar
+      wasDeuda: _endeudar,
     );
-    nuevaVenta.recibidoTotal = (nuevaVenta.recibidoMxn??Decimal.zero) + (nuevaVenta.recibidoTarj??Decimal.zero) + (nuevaVenta.recibidoTrans??Decimal.zero) + (nuevaVenta.recibidoUs??Decimal.zero);
+    nuevaVenta.recibidoTotal =
+        (nuevaVenta.recibidoMxn ?? Decimal.zero) +
+        (nuevaVenta.recibidoTarj ?? Decimal.zero) +
+        (nuevaVenta.recibidoTrans ?? Decimal.zero) +
+        (nuevaVenta.recibidoUs ?? Decimal.zero);
 
     //Realizar venta
     Ventas? venta = await ventasServices.createVenta(nuevaVenta);
-    if (venta==null) return;
+    if (venta == null) return;
+
+    if (widget.onSuccess != null) {
+      widget.onSuccess!(ventaId: venta.id, ventaFolio: venta.folio);
+    }
 
     //Guardar venta a corte
     if (!mounted) return;
-    var corte = Provider.of<CajasServices>(context, listen: false)
-    .cortesDeCaja
-    .firstWhere((element) => element.id == CajasServices.corteActual!.id);
-    if (!corte.ventasIds.contains(venta.id!)) { corte.ventasIds.add(venta.id!); }
+    var corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja
+        .firstWhere((element) => element.id == CajasServices.corteActual!.id);
+    if (!corte.ventasIds.contains(venta.id!)) {
+      corte.ventasIds.add(venta.id!);
+    }
 
     //Enduedar cliente
-    if (_endeudar){
+    if (_endeudar) {
       Adeudos adeudo = Adeudos(
-        ventaId: venta.id!, 
-        montoPendiente: quedaPorPagar
+        ventaId: venta.id!,
+        montoPendiente: quedaPorPagar,
       );
       if (!mounted) return;
-      await Provider.of<ClientesServices>(context, listen: false).adeudarCliente(widget.venta.clienteId, adeudo);
+      await Provider.of<ClientesServices>(
+        context,
+        listen: false,
+      ).adeudarCliente(widget.venta.clienteId, adeudo);
     }
-    
+
     //Sumar contadores de Impresora
-    if (_notificarContadores.isNotEmpty){
+    if (_notificarContadores.isNotEmpty) {
       await impresoraSvc.sumarContadores(_notificarContadores);
-    } 
+    }
 
     //Ventana  de venta realizada
-    if (!mounted) return;    
+    if (!mounted) return;
     String folio = venta.folio!;
     await showDialog(
       context: context,
-      builder: (context) => Stack(
-        alignment: Alignment.topRight,
-        children: [
-          VentaRealizadaDialog(venta: nuevaVenta, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), afterProcesar: widget.afterProcesar, ventaId: venta.id!),
-          const WindowBar(overlay: true),
-        ],
-      )
+      builder:
+          (context) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              VentaRealizadaDialog(
+                venta: nuevaVenta,
+                folio: folio,
+                adeudo: formatearEntrada(_saldoCtrl.text).toDouble(),
+                afterProcesar: widget.afterProcesar,
+                ventaId: venta.id!,
+              ),
+              const WindowBar(overlay: true),
+            ],
+          ),
     );
-    
+
     if (!mounted) return;
     Navigator.pop(context, venta.id);
   }
 
-  Future<void> procesarDeuda() async{
-    if (!_formKey.currentState!.validate() || _porPagar){ return; }
+  Future<void> procesarDeuda() async {
+    if (!_formKey.currentState!.validate() || _porPagar) {
+      return;
+    }
 
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
 
     CalculosDinero calculosDinero = CalculosDinero();
-    double dolaresEnPesos = calculosDinero.dolarAPesos(_dolarImporte, CajasServices.cajaActual!.tipoCambio); //TODO: puedo pagar deudas si no tengo caja? si no tengo caja esto va a fallar!!
-    
+    double dolaresEnPesos = calculosDinero.dolarAPesos(
+      _dolarImporte,
+      CajasServices.cajaActual!.tipoCambio,
+    ); //TODO: puedo pagar deudas si no tengo caja? si no tengo caja esto va a fallar!!
+
     Decimal? abonadoMx;
     Decimal? abonadoUs;
     Decimal? abonadoTarj;
     Decimal? abonadoTrans;
 
     //Si liquido, restar todo el sobrante a abonadoMX (si abonadoMX se vuelve negativo, significa que el empleado le dio efectivo por diferencia)
-    abonadoUs = dolaresEnPesos!= 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
-    abonadoTarj = _tarjetaImporte!= 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
-    abonadoTrans = _transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null;
-    abonadoMx = _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null;
-    abonadoMx = (abonadoMx??Decimal.zero) - Decimal.parse(_cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''));
-    abonadoMx==Decimal.zero ? abonadoMx=null : abonadoMx;
-    
+    abonadoUs =
+        dolaresEnPesos != 0 ? Decimal.parse(dolaresEnPesos.toString()) : null;
+    abonadoTarj =
+        _tarjetaImporte != 0 ? Decimal.parse(_tarjetaImporte.toString()) : null;
+    abonadoTrans =
+        _transferenciaImporte != 0
+            ? Decimal.parse(_transferenciaImporte.toString())
+            : null;
+    abonadoMx =
+        _efectivoImporte != 0
+            ? Decimal.parse(_efectivoImporte.toString())
+            : null;
+    abonadoMx =
+        (abonadoMx ?? Decimal.zero) -
+        Decimal.parse(
+          _cambioCtrl.text.replaceAll('MX\$', '').replaceAll(',', ''),
+        );
+    abonadoMx == Decimal.zero ? abonadoMx = null : abonadoMx;
+
     Ventas deudaPagada = Ventas(
       clienteId: widget.venta.clienteId,
       usuarioId: widget.venta.usuarioId,
@@ -425,81 +572,126 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
       tipoTarjeta: _tarjeta ? _tipoTarjetaSeleccionado : null,
       referenciaTarj: _tarjetaRefCtrl.text,
       referenciaTrans: _transRefCtrl.text,
-      recibidoMxn: _efectivoImporte!=0 ? Decimal.parse(_efectivoImporte.toString()) : null,
-      recibidoUs:dolaresEnPesos!=0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
-      recibidoTarj:_tarjetaImporte!=0 ? Decimal.parse(_tarjetaImporte.toString()) : null,
-      recibidoTrans:_transferenciaImporte!=0 ? Decimal.parse(_transferenciaImporte.toString()) : null,
+      recibidoMxn:
+          _efectivoImporte != 0
+              ? Decimal.parse(_efectivoImporte.toString())
+              : null,
+      recibidoUs:
+          dolaresEnPesos != 0 ? Decimal.parse(dolaresEnPesos.toString()) : null,
+      recibidoTarj:
+          _tarjetaImporte != 0
+              ? Decimal.parse(_tarjetaImporte.toString())
+              : null,
+      recibidoTrans:
+          _transferenciaImporte != 0
+              ? Decimal.parse(_transferenciaImporte.toString())
+              : null,
       recibidoTotal: widget.venta.recibidoTotal,
       abonadoMxn: abonadoMx,
       abonadoUs: abonadoUs,
       abonadoTarj: abonadoTarj,
       abonadoTrans: abonadoTrans,
       abonadoTotal: widget.venta.abonadoTotal,
-      cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),    
+      cambio: Decimal.parse(formatearEntrada(_cambioCtrl.text).toString()),
       liquidado: true,
-      wasDeuda: true
+      wasDeuda: true,
     );
-    deudaPagada.recibidoTotal = (deudaPagada.recibidoMxn??Decimal.zero) + (deudaPagada.recibidoUs??Decimal.zero) + (deudaPagada.recibidoTarj??Decimal.zero) + (deudaPagada.recibidoTrans??Decimal.zero);
-    deudaPagada.abonadoTotal = (deudaPagada.abonadoMxn??Decimal.zero) + (deudaPagada.abonadoUs??Decimal.zero) + (deudaPagada.abonadoTarj??Decimal.zero) + (deudaPagada.abonadoTrans??Decimal.zero);
-    
+    deudaPagada.recibidoTotal =
+        (deudaPagada.recibidoMxn ?? Decimal.zero) +
+        (deudaPagada.recibidoUs ?? Decimal.zero) +
+        (deudaPagada.recibidoTarj ?? Decimal.zero) +
+        (deudaPagada.recibidoTrans ?? Decimal.zero);
+    deudaPagada.abonadoTotal =
+        (deudaPagada.abonadoMxn ?? Decimal.zero) +
+        (deudaPagada.abonadoUs ?? Decimal.zero) +
+        (deudaPagada.abonadoTarj ?? Decimal.zero) +
+        (deudaPagada.abonadoTrans ?? Decimal.zero);
+
     Map<String, double> datosDeuda = {
       'deuda_recibido': deudaPagada.recibidoTotal.toDouble(),
       'deuda_total': widget.deudaMonto,
       'deuda_cambio': formatearEntrada(_cambioCtrl.text),
-      'anterior_recibido': widget.venta.recibidoTotal.toDouble()
+      'anterior_recibido': widget.venta.recibidoTotal.toDouble(),
     };
-    
+
     //Realizar venta
-    Ventas? venta = await ventasServices.pagarDeuda(deudaPagada, widget.venta.id!);
-    if (venta==null) return;
+    Ventas? venta = await ventasServices.pagarDeuda(
+      deudaPagada,
+      widget.venta.id!,
+    );
+    if (venta == null) return;
+
+    if (widget.onSuccess != null) {
+      widget.onSuccess!(ventaId: venta.id, ventaFolio: venta.folio);
+    }
 
     //Guardar venta en corte
     if (!mounted) return;
-    var corte = Provider.of<CajasServices>(context, listen: false)
-    .cortesDeCaja
-    .firstWhere((element) => element.id == CajasServices.corteActual!.id);
-    if (!corte.ventasIds.contains(venta.id!)) { corte.ventasIds.add(venta.id!); }
-    
-    await Provider.of<ClientesServices>(context, listen: false).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
+    var corte = Provider.of<CajasServices>(context, listen: false).cortesDeCaja
+        .firstWhere((element) => element.id == CajasServices.corteActual!.id);
+    if (!corte.ventasIds.contains(venta.id!)) {
+      corte.ventasIds.add(venta.id!);
+    }
 
-    if (!mounted) return;    
+    await Provider.of<ClientesServices>(
+      context,
+      listen: false,
+    ).quitarDeuda(widget.venta.id!, widget.venta.clienteId);
+
+    if (!mounted) return;
     String folio = venta.folio!;
     await showDialog(
       context: context,
-      builder: (context) => Stack(
-        alignment: Alignment.topRight,
-        children: [
-          VentaRealizadaDialog(venta: deudaPagada, folio: folio, adeudo: formatearEntrada(_saldoCtrl.text).toDouble(), isDeuda:true, datosDeuda: datosDeuda, afterProcesar: widget.afterProcesar, ventaId: venta.id!),
-          const WindowBar(overlay: true),
-        ],
-      )
+      builder:
+          (context) => Stack(
+            alignment: Alignment.topRight,
+            children: [
+              VentaRealizadaDialog(
+                venta: deudaPagada,
+                folio: folio,
+                adeudo: formatearEntrada(_saldoCtrl.text).toDouble(),
+                isDeuda: true,
+                datosDeuda: datosDeuda,
+                afterProcesar: widget.afterProcesar,
+                ventaId: venta.id!,
+              ),
+              const WindowBar(overlay: true),
+            ],
+          ),
     );
 
-   if (!mounted) return;
+    if (!mounted) return;
     Navigator.pop(context, true);
   }
+
   @override
   Widget build(BuildContext context) {
     const int milliseconds = 300;
-    final impresoraSvc = Provider.of<ImpresorasServices>(context, listen: !widget.isDeuda);
+    final impresoraSvc = Provider.of<ImpresorasServices>(
+      context,
+      listen: !widget.isDeuda,
+    );
 
     //Para notificar contadores
-    if (!widget.isDeuda){
-      if (impresoraSvc.isLoading){
+    if (!widget.isDeuda) {
+      if (impresoraSvc.isLoading) {
         return const SimpleLoading();
       } else if (!_opcionesInited && impresoraSvc.impresoras.isNotEmpty) {
         _opciones
           ..clear()
           //..add('Seleccionar impresora')
-          ..addAll(Provider.of<ImpresorasServices>(context, listen: false)
-            .impresoras
-            .map((impresora) => impresora) 
+          ..addAll(
+            Provider.of<ImpresorasServices>(
+              context,
+              listen: false,
+            ).impresoras.map((impresora) => impresora),
           );
-          _opcionSeleccionada = _opciones.first;
-          _opcionesInited=true;
+        _opcionSeleccionada = _opciones.first;
+        _opcionesInited = true;
         setState(() {});
       }
-      if (_articuloImprimible.isNotEmpty && impresoraSvc.impresoras.isNotEmpty){
+      if (_articuloImprimible.isNotEmpty &&
+          impresoraSvc.impresoras.isNotEmpty) {
         return AlertDialog(
           elevation: 6,
           shadowColor: Colors.black54,
@@ -508,14 +700,22 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('¿Con qué impresora se imprimió el siguiente articulo?', style: AppTheme.tituloPrimario),
+              const Text(
+                '¿Con qué impresora se imprimió el siguiente articulo?',
+                style: AppTheme.tituloPrimario,
+              ),
               const SizedBox(height: 10),
-              Text("${_articuloImprimible[0]["cantidad"]} x ${_articuloImprimible[0]["producto"]}"),
+              Text(
+                "${_articuloImprimible[0]["cantidad"]} x ${_articuloImprimible[0]["producto"]}",
+              ),
               const SizedBox(height: 10),
               Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _isFocused ? AppTheme.containerColor1 : AppTheme.tablaColorHeader,
+                  color:
+                      _isFocused
+                          ? AppTheme.containerColor1
+                          : AppTheme.tablaColorHeader,
                   borderRadius: BorderRadius.circular(25),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -524,39 +724,51 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                     autofocus: true,
                     focusNode: _focusNode,
                     value: _opcionSeleccionada,
-                    items: _opciones.map((impresora) {
-                      return DropdownMenuItem<Impresoras>(
-                        value: impresora,
-                        child: Text('#${impresora.numero} ${impresora.modelo}'),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => _opcionSeleccionada = val),
+                    items:
+                        _opciones.map((impresora) {
+                          return DropdownMenuItem<Impresoras>(
+                            value: impresora,
+                            child: Text(
+                              '#${impresora.numero} ${impresora.modelo}',
+                            ),
+                          );
+                        }).toList(),
+                    onChanged:
+                        (val) => setState(() => _opcionSeleccionada = val),
                     dropdownColor: AppTheme.containerColor1,
-                    style: const TextStyle(color: AppTheme.letraClara, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      color: AppTheme.letraClara,
+                      fontWeight: FontWeight.w500,
+                    ),
                     iconEnabledColor: Colors.white,
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               ElevatedButton(
-                onPressed: (){
-                  if (_opcionSeleccionada==null) return;
-                  int cantidad = _articuloImprimible[0]['cantidad'] * _articuloImprimible[0]['valor_impresion'];
+                onPressed: () {
+                  if (_opcionSeleccionada == null) return;
+                  int cantidad =
+                      _articuloImprimible[0]['cantidad'] *
+                      _articuloImprimible[0]['valor_impresion'];
                   setState(() {
                     _notificarContadores.add(_articuloImprimible.first);
-                    _notificarContadores.last.addAll({'impresora':_opcionSeleccionada!.id, 'cantidad': cantidad});
+                    _notificarContadores.last.addAll({
+                      'impresora': _opcionSeleccionada!.id,
+                      'cantidad': cantidad,
+                    });
                     _articuloImprimible.removeAt(0);
                   });
-                }, 
-                child: const Text('Siguiente')
-              )
+                },
+                child: const Text('Siguiente'),
+              ),
             ],
           ),
         );
       }
     }
 
-    //Procesar pago 
+    //Procesar pago
     return AlertDialog(
       elevation: 6,
       shadowColor: Colors.black54,
@@ -578,19 +790,27 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                     flex: 6,
                     child: Form(
                       key: _formKey,
-                      child: Column( 
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const SizedBox(width: 350),
-                                  
+
                           ExpandableCard(
-                            onChanged: (value) async{
-                              setState(() {_efectivo = value;});
-                              if (value) { 
-                                await Future.delayed(const Duration(milliseconds: milliseconds));
-                                _focusEfectivo.requestFocus(); 
-                                if ( _efectivoCtrl.text.isNotEmpty ){ calcularAbono(); }
-                                if ( _dolarCtrl.text.isNotEmpty ){ calcularAbono(); }
+                            onChanged: (value) async {
+                              setState(() {
+                                _efectivo = value;
+                              });
+                              if (value) {
+                                await Future.delayed(
+                                  const Duration(milliseconds: milliseconds),
+                                );
+                                _focusEfectivo.requestFocus();
+                                if (_efectivoCtrl.text.isNotEmpty) {
+                                  calcularAbono();
+                                }
+                                if (_dolarCtrl.text.isNotEmpty) {
+                                  calcularAbono();
+                                }
                               } else {
                                 calcularAbono();
                               }
@@ -599,15 +819,24 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             initiallyExpanded: true,
                             expandedContent: Padding(
                               padding: const EdgeInsets.only(
-                                top: 3, bottom: 15, left: 12, right: 12
+                                top: 3,
+                                bottom: 15,
+                                left: 12,
+                                right: 12,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   TextFormField(
                                     controller: _efectivoCtrl,
-                                    inputFormatters: [ PesosInputFormatter() ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [PesosInputFormatter()],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 10,
                                     autofocus: true,
                                     focusNode: _focusEfectivo,
@@ -617,23 +846,33 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                       labelStyle: AppTheme.labelStyle,
                                     ),
                                     onChanged: (value) {
-                                      _efectivoImporte = formatearEntrada(value);
+                                      _efectivoImporte = formatearEntrada(
+                                        value,
+                                      );
                                       calcularAbono();
                                     },
                                     onTap: () {
                                       Future.delayed(Duration.zero, () {
                                         _efectivoCtrl.selection = TextSelection(
                                           baseOffset: 0,
-                                          extentOffset: _efectivoCtrl.text.length,
+                                          extentOffset:
+                                              _efectivoCtrl.text.length,
                                         );
                                       });
                                     },
-                                  ), const SizedBox(height: 10),
-                      
+                                  ),
+                                  const SizedBox(height: 10),
+
                                   TextFormField(
                                     controller: _dolarCtrl,
-                                    inputFormatters: [ DolaresInputFormatter()],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [DolaresInputFormatter()],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 10,
                                     autofocus: true,
                                     focusNode: _focusDolar,
@@ -655,21 +894,25 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                       });
                                     },
                                   ),
-                      
-                                  
                                 ],
                               ),
                             ),
                           ),
                           const SizedBox(height: 10),
-                      
+
                           ExpandableCard(
-                            onChanged: (value) async{
-                              setState(() {_tarjeta = value;});
-                              if (value) { 
-                                await Future.delayed(const Duration(milliseconds: milliseconds));
-                                _focusTarjetaImporte.requestFocus(); 
-                                if ( _tarjetaImpCtrl.text.isNotEmpty ){ calcularAbono(); }
+                            onChanged: (value) async {
+                              setState(() {
+                                _tarjeta = value;
+                              });
+                              if (value) {
+                                await Future.delayed(
+                                  const Duration(milliseconds: milliseconds),
+                                );
+                                _focusTarjetaImporte.requestFocus();
+                                if (_tarjetaImpCtrl.text.isNotEmpty) {
+                                  calcularAbono();
+                                }
                               } else {
                                 calcularAbono();
                                 _dropMenuFocusTarjeta = false;
@@ -677,7 +920,12 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             },
                             title: 'Tarjeta',
                             expandedContent: Padding(
-                              padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
+                              padding: const EdgeInsets.only(
+                                top: 3,
+                                bottom: 15,
+                                left: 12,
+                                right: 12,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -685,8 +933,14 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: _tarjetaImpCtrl,
                                     focusNode: _focusTarjetaImporte,
                                     canRequestFocus: _tarjeta,
-                                    inputFormatters: [ PesosInputFormatter() ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [PesosInputFormatter()],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 10,
                                     decoration: const InputDecoration(
                                       labelText: 'Importe',
@@ -698,9 +952,11 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     },
                                     onTap: () {
                                       Future.delayed(Duration.zero, () {
-                                        _tarjetaImpCtrl.selection = TextSelection(
+                                        _tarjetaImpCtrl
+                                            .selection = TextSelection(
                                           baseOffset: 0,
-                                          extentOffset: _tarjetaImpCtrl.text.length,
+                                          extentOffset:
+                                              _tarjetaImpCtrl.text.length,
                                         );
                                       });
                                     },
@@ -713,8 +969,17 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                           controller: _tarjetaRefCtrl,
                                           focusNode: _focusReferenciaTarjeta,
                                           canRequestFocus: _tarjeta,
-                                          inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
-                                          buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly,
+                                          ],
+                                          buildCounter:
+                                              (
+                                                _, {
+                                                required int currentLength,
+                                                required bool isFocused,
+                                                required int? maxLength,
+                                              }) => null,
                                           maxLength: 30,
                                           decoration: const InputDecoration(
                                             labelText: 'Referencia',
@@ -722,25 +987,30 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                           ),
                                           onTap: () {
                                             Future.delayed(Duration.zero, () {
-                                              _tarjetaRefCtrl.selection = TextSelection(
+                                              _tarjetaRefCtrl
+                                                  .selection = TextSelection(
                                                 baseOffset: 0,
-                                                extentOffset: _tarjetaRefCtrl.text.length,
+                                                extentOffset:
+                                                    _tarjetaRefCtrl.text.length,
                                               );
                                             });
                                           },
                                           validator: (value) {
-                                            if (_tarjeta){
-                                              if (value == null || value.isEmpty) {
+                                            if (_tarjeta) {
+                                              if (value == null ||
+                                                  value.isEmpty) {
                                                 return 'Por favor ingrese la referencia';
                                               }
                                             }
                                             return null;
                                           },
-                                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                                          autovalidateMode:
+                                              AutovalidateMode
+                                                  .onUserInteraction,
                                         ),
                                       ),
                                       const SizedBox(width: 10),
-                                      
+
                                       Focus(
                                         focusNode: _focusDropDownMenuTarjeta,
                                         canRequestFocus: false,
@@ -752,28 +1022,43 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                         child: Stack(
                                           children: [
                                             Container(
-                                              height: 50, width: 160,
+                                              height: 50,
+                                              width: 160,
                                               decoration: BoxDecoration(
-                                                color: _tarjeta ? Colors.transparent : Colors.white10,
-                                                borderRadius: BorderRadius.circular(30),
-                                                border: Border.all(color: Colors.white, width: _dropMenuFocusTarjeta ? 2 : 1)
+                                                color:
+                                                    _tarjeta
+                                                        ? Colors.transparent
+                                                        : Colors.white10,
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width:
+                                                      _dropMenuFocusTarjeta
+                                                          ? 2
+                                                          : 1,
+                                                ),
                                               ),
                                             ),
-                                            _tarjeta ? CustomDropDown<String>(
-                                              isReadOnly: !_tarjeta,
-                                              value: _tipoTarjetaSeleccionado,
-                                              hintText: 'Tipo de Tarjeta',
-                                              empty: _tipoEmpty,
-                                              items: _dropdownItemsTipo,
-                                              onChanged: (val) => setState(() {
-                                                _tipoEmpty = false;
-                                                _tipoTarjetaSeleccionado = val!;
-                                              }),
-                                            ) : const SizedBox(),
+                                            _tarjeta
+                                                ? CustomDropDown<String>(
+                                                  isReadOnly: !_tarjeta,
+                                                  value:
+                                                      _tipoTarjetaSeleccionado,
+                                                  hintText: 'Tipo de Tarjeta',
+                                                  empty: _tipoEmpty,
+                                                  items: _dropdownItemsTipo,
+                                                  onChanged:
+                                                      (val) => setState(() {
+                                                        _tipoEmpty = false;
+                                                        _tipoTarjetaSeleccionado =
+                                                            val!;
+                                                      }),
+                                                )
+                                                : const SizedBox(),
                                           ],
                                         ),
                                       ),
-                                  
                                     ],
                                   ),
                                 ],
@@ -781,21 +1066,32 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             ),
                           ),
                           const SizedBox(height: 10),
-                      
+
                           ExpandableCard(
                             onChanged: (value) async {
-                              setState(() {_transferencia = value;});
-                              if (value) { 
-                                await Future.delayed(const Duration(milliseconds: milliseconds));
-                                _focusTransferenciaImporte.requestFocus(); 
-                                if ( _transImpCtrl.text.isNotEmpty ){ calcularAbono(); }
+                              setState(() {
+                                _transferencia = value;
+                              });
+                              if (value) {
+                                await Future.delayed(
+                                  const Duration(milliseconds: milliseconds),
+                                );
+                                _focusTransferenciaImporte.requestFocus();
+                                if (_transImpCtrl.text.isNotEmpty) {
+                                  calcularAbono();
+                                }
                               } else {
                                 calcularAbono();
                               }
                             },
                             title: 'Transferencia',
                             expandedContent: Padding(
-                              padding: const EdgeInsets.only(top:3, bottom: 15, left: 12, right: 12),
+                              padding: const EdgeInsets.only(
+                                top: 3,
+                                bottom: 15,
+                                left: 12,
+                                right: 12,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -803,22 +1099,31 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: _transImpCtrl,
                                     focusNode: _focusTransferenciaImporte,
                                     canRequestFocus: _transferencia,
-                                    inputFormatters: [ PesosInputFormatter() ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [PesosInputFormatter()],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 30,
                                     decoration: const InputDecoration(
                                       labelText: 'Importe',
                                       labelStyle: AppTheme.labelStyle,
                                     ),
                                     onChanged: (value) {
-                                      _transferenciaImporte = formatearEntrada(value);
+                                      _transferenciaImporte = formatearEntrada(
+                                        value,
+                                      );
                                       calcularAbono();
                                     },
                                     onTap: () {
                                       Future.delayed(Duration.zero, () {
                                         _transImpCtrl.selection = TextSelection(
                                           baseOffset: 0,
-                                          extentOffset: _transImpCtrl.text.length,
+                                          extentOffset:
+                                              _transImpCtrl.text.length,
                                         );
                                       });
                                     },
@@ -828,8 +1133,16 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: _transRefCtrl,
                                     focusNode: _focusReferenciaTransferencia,
                                     canRequestFocus: _transferencia,
-                                    inputFormatters: [ FilteringTextInputFormatter.digitsOnly ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     //maxLength: 10,
                                     decoration: const InputDecoration(
                                       labelText: 'Referencia',
@@ -839,33 +1152,35 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                       Future.delayed(Duration.zero, () {
                                         _transRefCtrl.selection = TextSelection(
                                           baseOffset: 0,
-                                          extentOffset: _transRefCtrl.text.length,
+                                          extentOffset:
+                                              _transRefCtrl.text.length,
                                         );
                                       });
                                     },
                                     validator: (value) {
-                                      if (_transferencia){
+                                      if (_transferencia) {
                                         if (value == null || value.isEmpty) {
                                           return 'Por favor ingrese la referencia';
                                         }
                                       }
                                       return null;
                                     },
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    autovalidateMode:
+                                        AutovalidateMode.onUserInteraction,
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                                  
+
                           const SizedBox(height: 56),
                         ],
                       ),
                     ),
-                  ), 
-            
+                  ),
+
                   const SizedBox(width: 10),
-            
+
                   Expanded(
                     flex: 4,
                     child: Column(
@@ -880,60 +1195,84 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Abonar:  ', style: AppTheme.subtituloPrimario),
+                                const Text(
+                                  'Abonar:  ',
+                                  style: AppTheme.subtituloPrimario,
+                                ),
                                 SizedBox(
                                   height: 30,
                                   width: 150,
                                   child: TextFormField(
                                     controller: _abonarCtrl,
-                                    inputFormatters: [ PesosInputFormatter() ],
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    inputFormatters: [PesosInputFormatter()],
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 10,
                                     focusNode: _focusAbono,
                                     decoration: AppTheme.inputDecorationCustom,
                                     onChanged: (value) {
-                                      desdeAbonarCalcular(formatearEntrada(value));
+                                      desdeAbonarCalcular(
+                                        formatearEntrada(value),
+                                      );
                                     },
                                     onTap: () {
-                                       Future.delayed(Duration.zero, () {
+                                      Future.delayed(Duration.zero, () {
                                         _abonarCtrl.selection = TextSelection(
                                           baseOffset: 0,
                                           extentOffset: _abonarCtrl.text.length,
                                         );
                                       });
                                     },
-                                  )
-                                )
+                                  ),
+                                ),
                               ],
-                            ), 
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Cambio:  ', style: AppTheme.subtituloPrimario),
+                                const Text(
+                                  'Cambio:  ',
+                                  style: AppTheme.subtituloPrimario,
+                                ),
                                 SizedBox(
                                   height: 30,
                                   width: 150,
                                   child: TextFormField(
                                     controller: _cambioCtrl,
                                     canRequestFocus: false,
-                                    inputFormatters: [ MoneyInputFormatter() ],
+                                    inputFormatters: [MoneyInputFormatter()],
                                     readOnly: true,
-                                    buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+                                    buildCounter:
+                                        (
+                                          _, {
+                                          required int currentLength,
+                                          required bool isFocused,
+                                          required int? maxLength,
+                                        }) => null,
                                     maxLength: 10,
                                     focusNode: _focusCambio,
-                                    decoration: _hayCambio
-                                    ? AppTheme.inputDecorationWaring
-                                    : AppTheme.inputDecorationCustom
-                                  )
-                                )
+                                    decoration:
+                                        _hayCambio
+                                            ? AppTheme.inputDecorationWaring
+                                            : AppTheme.inputDecorationCustom,
+                                  ),
+                                ),
                               ],
-                            ), 
+                            ),
                             const SizedBox(height: 50),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Por pagar: ', style: AppTheme.tituloPrimario),
+                                const Text(
+                                  'Por pagar: ',
+                                  style: AppTheme.tituloPrimario,
+                                ),
                                 SizedBox(
                                   height: 30,
                                   width: 140,
@@ -941,19 +1280,24 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     controller: _saldoCtrl,
                                     canRequestFocus: false,
                                     readOnly: true,
-                                    decoration: _porPagar 
-                                    ? AppTheme.inputDecorationWaringGrave
-                                    : AppTheme.inputDecorationSeccess,
+                                    decoration:
+                                        _porPagar
+                                            ? AppTheme
+                                                .inputDecorationWaringGrave
+                                            : AppTheme.inputDecorationSeccess,
                                     style: const TextStyle(fontSize: 17),
-                                  )
-                                )
+                                  ),
+                                ),
                               ],
-                            ), 
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Total: ', style: AppTheme.tituloPrimario),
+                                const Text(
+                                  'Total: ',
+                                  style: AppTheme.tituloPrimario,
+                                ),
                                 SizedBox(
                                   height: 30,
                                   width: 140,
@@ -963,28 +1307,28 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
                                     readOnly: true,
                                     decoration: AppTheme.inputDecorationCustom,
                                     style: const TextStyle(fontSize: 17),
-                                  )
-                                )
+                                  ),
+                                ),
                               ],
-                            ), 
+                            ),
                             const SizedBox(height: 26),
                           ],
                         ),
-                        
+
                         ElevatedButton(
                           focusNode: _focusRealizarPago,
                           onPressed: () {
-                            if (!widget.isDeuda){
+                            if (!widget.isDeuda) {
                               procesarPago(impresoraSvc);
                             } else {
                               procesarDeuda();
                             }
-                          }, 
-                          child: const Text('Realizar Pago')
-                        )
+                          },
+                          child: const Text('Realizar Pago'),
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -997,7 +1341,14 @@ class _ProcesarPagoState extends State<ProcesarPago> with TickerProviderStateMix
 
 class VentaRealizadaDialog extends StatefulWidget {
   const VentaRealizadaDialog({
-    super.key, required this.venta, required this.folio, required this.adeudo, this.isDeuda = false, this.datosDeuda, required this.afterProcesar, required this.ventaId
+    super.key,
+    required this.venta,
+    required this.folio,
+    required this.adeudo,
+    this.isDeuda = false,
+    this.datosDeuda,
+    required this.afterProcesar,
+    required this.ventaId,
   });
 
   final Ventas venta;
@@ -1025,23 +1376,36 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
           height: 30,
           width: 150,
           child: TextFormField(
-            controller: TextEditingController(text: Formatos.pesos.format(value)),
+            controller: TextEditingController(
+              text: Formatos.pesos.format(value),
+            ),
             canRequestFocus: false,
-            inputFormatters: [ MoneyInputFormatter() ],
+            inputFormatters: [MoneyInputFormatter()],
             readOnly: true,
-            buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+            buildCounter:
+                (
+                  _, {
+                  required int currentLength,
+                  required bool isFocused,
+                  required int? maxLength,
+                }) => null,
             maxLength: 10,
-            decoration: decoration
-          )
-        )
+            decoration: decoration,
+          ),
+        ),
       ],
     );
   }
 
-  void submited()async{
-    setState(() {finish = true;});
+  void submited() async {
+    setState(() {
+      finish = true;
+    });
     await Future.delayed(const Duration(milliseconds: 50));
-    await widget.afterProcesar(ventaId: widget.ventaId, ventaFolio: widget.folio);
+    await widget.afterProcesar(
+      ventaId: widget.ventaId,
+      ventaFolio: widget.folio,
+    );
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -1049,14 +1413,19 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   @override
   void initState() {
     super.initState();
-    
+
     // Iniciar impresión de manera asíncrona
     Future.microtask(() async {
       if (!mounted) return;
       if (!widget.isDeuda) {
         Ticket.imprimirTicketVenta(context, widget.venta, widget.folio);
       } else {
-        Ticket.imprimirTicketDeudaPagada(context, widget.venta, widget.folio, widget.datosDeuda);
+        Ticket.imprimirTicketDeudaPagada(
+          context,
+          widget.venta,
+          widget.folio,
+          widget.datosDeuda,
+        );
       }
     });
   }
@@ -1068,65 +1437,106 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
   }
 
   @override
-  Widget build(BuildContext context) { 
-    if (finish){
+  Widget build(BuildContext context) {
+    if (finish) {
       return const Center(child: CircularProgressIndicator());
     }
 
     //si no es deuda
-    return !widget.isDeuda ? 
-      AlertDialog(
-        elevation: 6,
-        shadowColor: Colors.black54,
-        backgroundColor: AppTheme.containerColor1,
-        shape: AppTheme.borde,
-        title: const Center(child: Text('¡Venta Realizada!', textScaler: TextScaler.linear(0.85))),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            formField('Recibido:', widget.venta.recibidoTotal.toDouble(), AppTheme.inputDecorationSeccess),
-            const SizedBox(height: 15),
-            formField('Total:', widget.venta.total.toDouble(), AppTheme.inputDecorationCustom), 
-            const SizedBox(height: 15),
-            widget.venta.cambio.toDouble() == 0 
-            ? formField('Adeudo:',  widget.adeudo, AppTheme.inputDecorationWaringGrave)
-            : formField('Cambio:', widget.venta.cambio.toDouble(), AppTheme.inputDecorationWaring),           
+    return !widget.isDeuda
+        ? AlertDialog(
+          elevation: 6,
+          shadowColor: Colors.black54,
+          backgroundColor: AppTheme.containerColor1,
+          shape: AppTheme.borde,
+          title: const Center(
+            child: Text(
+              '¡Venta Realizada!',
+              textScaler: TextScaler.linear(0.85),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              formField(
+                'Recibido:',
+                widget.venta.recibidoTotal.toDouble(),
+                AppTheme.inputDecorationSeccess,
+              ),
+              const SizedBox(height: 15),
+              formField(
+                'Total:',
+                widget.venta.total.toDouble(),
+                AppTheme.inputDecorationCustom,
+              ),
+              const SizedBox(height: 15),
+              widget.venta.cambio.toDouble() == 0
+                  ? formField(
+                    'Adeudo:',
+                    widget.adeudo,
+                    AppTheme.inputDecorationWaringGrave,
+                  )
+                  : formField(
+                    'Cambio:',
+                    widget.venta.cambio.toDouble(),
+                    AppTheme.inputDecorationWaring,
+                  ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              autofocus: true,
+              focusNode: boton,
+              onPressed: () => submited(),
+              child: const Text(
+                'Continuar',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ],
-        ),
-        actions: [
-          ElevatedButton(
-            autofocus: true,
-            focusNode: boton,
-            onPressed: () => submited(),
-            child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
-          )
-        ],
-      ) 
-    : //Si si es deuda
-    AlertDialog(
-      elevation: 6,
-      shadowColor: Colors.black54,
-      backgroundColor: AppTheme.containerColor1,
-      shape: AppTheme.borde,
-      title: const Center(child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85))),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          formField('Recibido:', widget.datosDeuda!['deuda_recibido']!, AppTheme.inputDecorationSeccess),
-          const SizedBox(height: 15),
-          formField('Total:', widget.datosDeuda!['deuda_total']!, AppTheme.inputDecorationCustom), 
-          const SizedBox(height: 15),
-          formField('Cambio:', widget.datosDeuda!['deuda_cambio']!, AppTheme.inputDecorationWaring),           
-        ],
-      ),
-      actions: [
-        ElevatedButton(
-          autofocus: true,
-          focusNode: boton,
-          onPressed: () => submited(),
-          child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w700))
         )
-      ],
-    );
+        : //Si si es deuda
+        AlertDialog(
+          elevation: 6,
+          shadowColor: Colors.black54,
+          backgroundColor: AppTheme.containerColor1,
+          shape: AppTheme.borde,
+          title: const Center(
+            child: Text('¡Deuda Pagada!', textScaler: TextScaler.linear(0.85)),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              formField(
+                'Recibido:',
+                widget.datosDeuda!['deuda_recibido']!,
+                AppTheme.inputDecorationSeccess,
+              ),
+              const SizedBox(height: 15),
+              formField(
+                'Total:',
+                widget.datosDeuda!['deuda_total']!,
+                AppTheme.inputDecorationCustom,
+              ),
+              const SizedBox(height: 15),
+              formField(
+                'Cambio:',
+                widget.datosDeuda!['deuda_cambio']!,
+                AppTheme.inputDecorationWaring,
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              autofocus: true,
+              focusNode: boton,
+              onPressed: () => submited(),
+              child: const Text(
+                'Continuar',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
   }
 }

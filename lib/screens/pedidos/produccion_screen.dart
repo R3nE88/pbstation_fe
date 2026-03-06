@@ -462,6 +462,8 @@ class _FilaPedidosState extends State<FilaPedidos> {
     final bool esMultiple = cantidadSeleccionados > 1;
     
     final String? seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,
@@ -470,7 +472,7 @@ class _FilaPedidosState extends State<FilaPedidos> {
         offset.dy,
       ),
       color: AppTheme.dropDownColor,
-      elevation: 4,
+      elevation: 0,
       shadowColor: Colors.black,
       items: [
         PopupMenuItem(

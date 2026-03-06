@@ -115,6 +115,13 @@ class CotizacionesServices extends ChangeNotifier {
         headers: {...AuthService.getAuthHeaders()},
       );
 
+      if (resp.statusCode != 200) {
+        debugPrint('Error al cargar cotizaciones: ${resp.statusCode}');
+        isLoading = false;
+        notifyListeners();
+        return [];
+      }
+
       final List<dynamic> listaJson = json.decode(resp.body);
 
       // Reiniciar listas antes de agregar nuevas
@@ -140,6 +147,7 @@ class CotizacionesServices extends ChangeNotifier {
       notifyListeners();
       return [...cotizaciones, ...vencidas];
     } catch (e) {
+      debugPrint('Exception en loadCotizaciones: $e');
       isLoading = false;
       notifyListeners();
       return [];
@@ -147,34 +155,86 @@ class CotizacionesServices extends ChangeNotifier {
   }
 
   void loadACotizacion(id) async {
-    if (!isLoading) {
-      isLoading = true;
-      try {
-        final url = Uri.parse('$_baseUrl$id');
-        final resp = await http.get(
-          url,
-          headers: {...AuthService.getAuthHeaders()},
-        );
+    if (isLoading) return;
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$id');
+      final resp = await http.get(
+        url,
+        headers: {...AuthService.getAuthHeaders()},
+      );
 
-        final body = json.decode(resp.body);
-        final prod = Cotizaciones.fromMap(body as Map<String, dynamic>);
-        prod.id = (body as Map)['id']?.toString();
-
-        if (prod.vigente == false) {
-          vencidas.add(prod);
-        } else {
-          cotizaciones.add(prod);
-        }
-        filteredCotizaciones = obtenerFilter(false);
-        filteredVencidas = obtenerFilter(true);
-
-        notifyListeners();
+      if (resp.statusCode != 200) {
+        debugPrint('Error al cargar cotizacion: ${resp.statusCode}');
         isLoading = false;
-      } catch (e) {
-        if (kDebugMode) {
-          print('hubo un problema al cargar a cotizacion!');
-        }
+        notifyListeners();
+        return;
       }
+
+      final body = json.decode(resp.body);
+      final cot = Cotizaciones.fromMap(body as Map<String, dynamic>);
+      cot.id = (body as Map)['id']?.toString();
+
+      // Prevenir duplicados
+      if (cotizaciones.any((c) => c.id == cot.id) ||
+          vencidas.any((c) => c.id == cot.id)) {
+        isLoading = false;
+        return;
+      }
+
+      if (cot.vigente == false) {
+        vencidas.add(cot);
+      } else {
+        cotizaciones.add(cot);
+      }
+      filteredCotizaciones = obtenerFilter(false);
+      filteredVencidas = obtenerFilter(true);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Exception en loadACotizacion: $e');
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  void deleteACotizacion(String id) {
+    cotizaciones.removeWhere((c) => c.id == id);
+    vencidas.removeWhere((c) => c.id == id);
+    filteredCotizaciones = obtenerFilter(false);
+    filteredVencidas = obtenerFilter(true);
+    notifyListeners();
+  }
+
+  void updateACotizacion(String id) async {
+    try {
+      final url = Uri.parse('$_baseUrl$id');
+      final resp = await http.get(
+        url,
+        headers: {...AuthService.getAuthHeaders()},
+      );
+
+      if (resp.statusCode != 200) return;
+
+      final body = json.decode(resp.body);
+      final cot = Cotizaciones.fromMap(body as Map<String, dynamic>);
+      cot.id = (body as Map)['id']?.toString();
+
+      // Eliminar la versión anterior
+      cotizaciones.removeWhere((c) => c.id == cot.id);
+      vencidas.removeWhere((c) => c.id == cot.id);
+
+      // Agregar la versión actualizada
+      if (cot.vigente == false) {
+        vencidas.add(cot);
+      } else {
+        cotizaciones.add(cot);
+      }
+      filteredCotizaciones = obtenerFilter(false);
+      filteredVencidas = obtenerFilter(true);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Exception en updateACotizacion: $e');
     }
   }
 
@@ -218,7 +278,11 @@ class CotizacionesServices extends ChangeNotifier {
           'Error al crear cotizacion: ${resp.statusCode} ${resp.body}',
         );
         final body = jsonDecode(resp.body);
-        return body['detail'];
+        final detail = body['detail'];
+        if (detail is List) {
+          return detail.map((e) => e['msg'] ?? e.toString()).join(', ');
+        }
+        return detail?.toString() ?? 'Error desconocido';
       }
     } catch (e) {
       debugPrint('Exception en createCotizacion: $e');
@@ -226,6 +290,68 @@ class CotizacionesServices extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> deleteCotizacion(String id) async {
+    final connectionId = WebSocketService.connectionId;
+    final headers = {...AuthService.getAuthHeaders()};
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
+    try {
+      final url = Uri.parse('$_baseUrl$id');
+      final resp = await http.delete(url, headers: headers);
+
+      if (resp.statusCode == 204 || resp.statusCode == 200) {
+        deleteACotizacion(id);
+        return true;
+      } else {
+        debugPrint(
+          'Error al eliminar cotizacion: ${resp.statusCode} ${resp.body}',
+        );
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception en deleteCotizacion: $e');
+      return false;
+    }
+  }
+
+  Future<bool> renovarCotizacion(String id) async {
+    final connectionId = WebSocketService.connectionId;
+    final headers = {...AuthService.getAuthHeaders()};
+    if (connectionId != null) {
+      headers['X-Connection-Id'] = connectionId;
+    }
+
+    try {
+      final url = Uri.parse('$_baseUrl$id/renovar');
+      final resp = await http.patch(url, headers: headers);
+
+      if (resp.statusCode == 200) {
+        final body = json.decode(resp.body);
+        final cot = Cotizaciones.fromMap(body as Map<String, dynamic>);
+        cot.id = (body as Map)['id']?.toString();
+
+        // Mover de vencidas a vigentes
+        vencidas.removeWhere((c) => c.id == cot.id);
+        cotizaciones.removeWhere((c) => c.id == cot.id);
+        cotizaciones.add(cot);
+        filteredCotizaciones = obtenerFilter(false);
+        filteredVencidas = obtenerFilter(true);
+        notifyListeners();
+        return true;
+      } else {
+        debugPrint(
+          'Error al renovar cotizacion: ${resp.statusCode} ${resp.body}',
+        );
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception en renovarCotizacion: $e');
+      return false;
     }
   }
 }

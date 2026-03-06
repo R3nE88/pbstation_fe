@@ -18,11 +18,13 @@ class SucursalesScreen extends StatefulWidget {
 }
 
 class _SucursalesScreenState extends State<SucursalesScreen> {
-
-@override
+  @override
   void initState() {
     super.initState();
-    final sucursalesServices = Provider.of<SucursalesServices>(context, listen: false);
+    final sucursalesServices = Provider.of<SucursalesServices>(
+      context,
+      listen: false,
+    );
     sucursalesServices.loadSucursales();
   }
 
@@ -32,7 +34,7 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
       child: Column(
         children: [
           _buildHeader(context),
-          const SizedBox(height: 10),      
+          const SizedBox(height: 10),
           Expanded(child: _buildTable()),
         ],
       ),
@@ -55,7 +57,7 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
         Transform.translate(
           offset: const Offset(37, 0),
           child: Container(
-            height: 35, 
+            height: 35,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: AppTheme.tablaColorHeader,
@@ -66,21 +68,26 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    sucursalesServices.sucursalActual != null ? 'Sucursal Asignada  '
-                    :'Aún no asignas una sucursal a esta terminal', 
+                    sucursalesServices.sucursalActual != null
+                        ? 'Sucursal Asignada  '
+                        : 'Aún no asignas una sucursal a esta terminal',
                     style: AppTheme.subtituloPrimario.copyWith(
-                      fontWeight: FontWeight.w700
+                      fontWeight: FontWeight.w700,
                     ),
                     textScaler: const TextScaler.linear(0.9),
                   ),
                   Transform.translate(
                     offset: const Offset(0, -1),
                     child: Text(
-                      sucursalesServices.sucursalActual != null ? sucursalesServices.sucursalActual!.nombre
-                      :'', 
-                      style: AppTheme.tituloClaro.copyWith(letterSpacing: 1.7, fontSize: 18)
+                      sucursalesServices.sucursalActual != null
+                          ? sucursalesServices.sucursalActual!.nombre
+                          : '',
+                      style: AppTheme.tituloClaro.copyWith(
+                        letterSpacing: 1.7,
+                        fontSize: 18,
+                      ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -88,21 +95,27 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
         ),
 
         ElevatedButton(
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => const Stack(
-              alignment: Alignment.topRight,
-              children: [
-                SucursalesFormDialog(),
-                WindowBar(overlay: true),
-              ],
-            ),
-          ),
+          onPressed:
+              () => showDialog(
+                context: context,
+                builder:
+                    (_) => const Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        SucursalesFormDialog(),
+                        WindowBar(overlay: true),
+                      ],
+                    ),
+              ),
           child: Row(
             children: [
               Transform.translate(
                 offset: const Offset(-8, 1),
-                child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
+                child: Icon(
+                  Icons.add,
+                  color: AppTheme.containerColor1,
+                  size: 26,
+                ),
               ),
               Text(
                 'Agregar Sucursal',
@@ -113,7 +126,7 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
               ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
@@ -134,31 +147,49 @@ class _SucursalesScreenState extends State<SucursalesScreen> {
               ),
               child: const Row(
                 children: [
-                  Expanded(child: Text('Sucursal', textAlign: TextAlign.center)),
+                  Expanded(
+                    child: Text('Sucursal', textAlign: TextAlign.center),
+                  ),
                   Expanded(child: Text('Correo', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Telefono', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Direccion', textAlign: TextAlign.center)),
+                  Expanded(
+                    child: Text('Telefono', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    child: Text('Direccion', textAlign: TextAlign.center),
+                  ),
                   Expanded(child: Text('Ciudad', textAlign: TextAlign.center)),
                 ],
               ),
             ),
             Expanded(
               child: Container(
-                color: servicios.sucursales.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                color:
+                    servicios.sucursales.length % 2 == 0
+                        ? AppTheme.tablaColor1
+                        : AppTheme.tablaColor2,
                 child: ListView.builder(
                   itemCount: servicios.sucursales.length,
-                  itemBuilder: (context, index) => FilaSucursales(
-                    sucursal: servicios.sucursales[index],
-                    index: index,
-                    onDelete: () async {
-                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
-                      loadingSvc.show();
-                      await servicios.deleteSucursal(servicios.sucursales[index].id!);
-                      if(!context.mounted) return;
-                      Provider.of<ImpresorasServices>(context, listen:false).clear();
-                      loadingSvc.hide();
-                    },
-                  ),
+                  itemBuilder:
+                      (context, index) => FilaSucursales(
+                        sucursal: servicios.sucursales[index],
+                        index: index,
+                        onDelete: () async {
+                          final loadingSvc = Provider.of<LoadingProvider>(
+                            context,
+                            listen: false,
+                          );
+                          loadingSvc.show();
+                          await servicios.deleteSucursal(
+                            servicios.sucursales[index].id!,
+                          );
+                          if (!context.mounted) return;
+                          Provider.of<ImpresorasServices>(
+                            context,
+                            listen: false,
+                          ).clear();
+                          loadingSvc.hide();
+                        },
+                      ),
                 ),
               ),
             ),
@@ -193,7 +224,7 @@ class FilaSucursales extends StatelessWidget {
     super.key,
     required this.sucursal,
     required this.index,
-    required this.onDelete
+    required this.onDelete,
   });
 
   final Sucursales sucursal;
@@ -206,12 +237,15 @@ class FilaSucursales extends StatelessWidget {
     String ciudad = partes[0].trim();
     String estado = partes[1].trim();
     String pais = partes[2].trim();
-    String localidad = '$ciudad, ${estado.substring(0, 3)}, ${pais.substring(0, 3)}';
+    String localidad =
+        '$ciudad, ${estado.substring(0, 3)}, ${pais.substring(0, 3)}';
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
       if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)) {
         seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
           context: context,
           position: RelativeRect.fromLTRB(
             offset.dx,
@@ -220,40 +254,36 @@ class FilaSucursales extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 4,
+          elevation: 0,
           shadowColor: Colors.black,
           items: [
-            sucursal.id != SucursalesServices.sucursalActualID ? const PopupMenuItem(
-              value: 'vincular',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add, color: AppTheme.letraClara, size: 17),
-                  Text('  Vincular a esta Terminal', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            )
-            :
-            const PopupMenuItem(
-              value: 'desvincular',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.remove, color: AppTheme.letraClara, size: 17),
-                  Text('  Desvincular de esta terminal', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'leer',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
+            sucursal.id != SucursalesServices.sucursalActualID
+                ? const PopupMenuItem(
+                  value: 'vincular',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, color: AppTheme.letraClara, size: 17),
+                      Text(
+                        '  Vincular a esta Terminal',
+                        style: AppTheme.subtituloPrimario,
+                      ),
+                    ],
+                  ),
+                )
+                : const PopupMenuItem(
+                  value: 'desvincular',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.remove, color: AppTheme.letraClara, size: 17),
+                      Text(
+                        '  Desvincular de esta terminal',
+                        style: AppTheme.subtituloPrimario,
+                      ),
+                    ],
+                  ),
+                ),
             const PopupMenuItem(
               value: 'editar',
               child: Row(
@@ -276,118 +306,134 @@ class FilaSucursales extends StatelessWidget {
             ),
           ],
         );
-        } else {
-          seleccion = await showMenu(
-          context: context,
-          position: RelativeRect.fromLTRB(
-            offset.dx,
-            offset.dy,
-            offset.dx,
-            offset.dy,
-          ),
-          color: AppTheme.dropDownColor,
-          elevation: 4,
-          shadowColor: Colors.black,
-          items: [
-            const PopupMenuItem(
-              value: 'leer',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
-          ],
-        );
+      } else {
+        return;
       }
 
       if (seleccion != null) {
         if (seleccion == 'vincular') {
           // Lógica para asignar
-          if (CajasServices.cajaActual== null) { //Si no hay caja abierta
-          if(!context.mounted){ return; }
-            await  Provider.of<SucursalesServices>(context, listen: false).establecerSucursal(sucursal);
-            if(!context.mounted) return;
-            await  Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
+          if (CajasServices.cajaActual == null) {
+            //Si no hay caja abierta
+            if (!context.mounted) {
+              return;
+            }
+            await Provider.of<SucursalesServices>(
+              context,
+              listen: false,
+            ).establecerSucursal(sucursal);
+            if (!context.mounted) return;
+            await Provider.of<ImpresorasServices>(
+              context,
+              listen: false,
+            ).loadImpresoras(true, overLoad: true);
           } else {
-            if(!context.mounted){ return; }
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => const Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
-                  WindowBar(overlay: true),
-                ],
-              ),
+              builder:
+                  (_) => const Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      CustomErrorDialog(
+                        titulo: 'No puedes cambiar de sucursal.',
+                        respuesta:
+                            'Debe cerrar la caja abierta antes de cambiar de sucursal.',
+                      ),
+                      WindowBar(overlay: true),
+                    ],
+                  ),
             );
           }
         } else if (seleccion == 'desvincular') {
           // Lógica para desasingar
-          if (CajasServices.cajaActual== null) { //Si no hay caja abierta
-            if(!context.mounted){ return; }
-            await  Provider.of<SucursalesServices>(context, listen: false).desvincularSucursal(true);
-            if(!context.mounted) return;
-            await  Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
+          if (CajasServices.cajaActual == null) {
+            //Si no hay caja abierta
+            if (!context.mounted) {
+              return;
+            }
+            await Provider.of<SucursalesServices>(
+              context,
+              listen: false,
+            ).desvincularSucursal(true);
+            if (!context.mounted) return;
+            await Provider.of<ImpresorasServices>(
+              context,
+              listen: false,
+            ).loadImpresoras(true, overLoad: true);
           } else {
-            if(!context.mounted){ return; }
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => const Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  CustomErrorDialog(titulo: 'No puedes cambiar de sucursal.', respuesta: 'Debe cerrar la caja abierta antes de cambiar de sucursal.',),
-                  WindowBar(overlay: true),
-                ],
-              ),
+              builder:
+                  (_) => const Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      CustomErrorDialog(
+                        titulo: 'No puedes cambiar de sucursal.',
+                        respuesta:
+                            'Debe cerrar la caja abierta antes de cambiar de sucursal.',
+                      ),
+                      WindowBar(overlay: true),
+                    ],
+                  ),
             );
           }
-        } else if (seleccion == 'leer') {
-          // Lógica para leer
-          if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                SucursalesFormDialog(sucEdit: sucursal, onlyRead: true),
-                const WindowBar(overlay: true),
-              ],
-            ),
-          );
-        } else if (seleccion == 'editar') {
           // Lógica para editar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
-            if(!context.mounted){ return; }
+          if (resp == true) {
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  SucursalesFormDialog(sucEdit: sucursal),
-                  const WindowBar(overlay: true),
-                ],
-              ),
+              builder:
+                  (_) => Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      SucursalesFormDialog(sucEdit: sucursal),
+                      const WindowBar(overlay: true),
+                    ],
+                  ),
             );
           }
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
+          if (resp == true) {
             onDelete();
           }
         }
       }
     }
 
+    void mostrarDetalles(BuildContext context) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                SucursalesFormDialog(sucEdit: sucursal, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
+      );
+    }
+
     return FeedBackButton(
       onlyVertical: true,
-      onPressed: (){},
+      onPressed: () => mostrarDetalles(context),
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           mostrarMenu(context, details.globalPosition);
@@ -397,11 +443,41 @@ class FilaSucursales extends StatelessWidget {
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [
-              Expanded(child: Text(sucursal.nombre, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(sucursal.correo, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(sucursal.telefono, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(sucursal.direccion, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(child: Text(localidad, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(
+                child: Text(
+                  sucursal.nombre,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  sucursal.correo,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  sucursal.telefono,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  sucursal.direccion,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  localidad,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
         ),

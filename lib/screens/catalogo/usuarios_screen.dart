@@ -69,12 +69,12 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
             Text(
               'Equipo',
               style: AppTheme.tituloClaro,
-              textScaler: TextScaler.linear(1.7), 
+              textScaler: TextScaler.linear(1.7),
             ),
             Text(
               '  (Colaboradores)',
               style: AppTheme.labelStyle,
-              textScaler: TextScaler.linear(1.1), 
+              textScaler: TextScaler.linear(1.1),
             ),
           ],
         ),
@@ -95,34 +95,47 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                 ),
               ),
             ),
-            SizedBox(width: Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? 15 : 0),
-            Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado) ? ElevatedButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => const Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    UsuariosFormDialog(),
-                    WindowBar(overlay: true),
-                  ],
-                ),
-              ),
-              child: Row(
-                children: [
-                  Transform.translate(
-                    offset: const Offset(-8, 1),
-                    child: Icon(Icons.add, color: AppTheme.containerColor1, size: 26),
+            SizedBox(
+              width:
+                  Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)
+                      ? 15
+                      : 0,
+            ),
+            Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)
+                ? ElevatedButton(
+                  onPressed:
+                      () => showDialog(
+                        context: context,
+                        builder:
+                            (_) => const Stack(
+                              alignment: Alignment.topRight,
+                              children: [
+                                UsuariosFormDialog(),
+                                WindowBar(overlay: true),
+                              ],
+                            ),
+                      ),
+                  child: Row(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(-8, 1),
+                        child: Icon(
+                          Icons.add,
+                          color: AppTheme.containerColor1,
+                          size: 26,
+                        ),
+                      ),
+                      Text(
+                        'Agregar al Equipo',
+                        style: TextStyle(
+                          color: AppTheme.containerColor1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Agregar al Equipo',
-                    style: TextStyle(
-                      color: AppTheme.containerColor1,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ) : const SizedBox(),
+                )
+                : const SizedBox(),
           ],
         ),
       ],
@@ -145,29 +158,53 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
               ),
               child: const Row(
                 children: [
-                  Expanded(flex: 3, child: Text('Nombre', textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: Text('Permisos', textAlign: TextAlign.center)),
-                  Expanded(flex: 2, child: Text('Rol', textAlign: TextAlign.center)),
-                  Expanded(flex: 3, child: Text('Correo', textAlign: TextAlign.center)),
-                  Expanded(flex: 3, child: Text('Telefono', textAlign: TextAlign.center)),
+                  Expanded(
+                    flex: 3,
+                    child: Text('Nombre', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text('Permisos', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text('Rol', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text('Correo', textAlign: TextAlign.center),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text('Telefono', textAlign: TextAlign.center),
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: Container(
-                color: servicios.filteredUsuarios.length % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+                color:
+                    servicios.filteredUsuarios.length % 2 == 0
+                        ? AppTheme.tablaColor1
+                        : AppTheme.tablaColor2,
                 child: ListView.builder(
                   itemCount: servicios.filteredUsuarios.length,
-                  itemBuilder: (context, index) => FilaUsuario(
-                    usuario: servicios.filteredUsuarios[index],
-                    index: index,
-                    onDelete: () async {
-                      final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
-                      loadingSvc.show();
-                      await servicios.deleteUsuario(servicios.filteredUsuarios[index].id!);
-                      loadingSvc.hide();
-                    },
-                  ),
+                  itemBuilder:
+                      (context, index) => FilaUsuario(
+                        usuario: servicios.filteredUsuarios[index],
+                        index: index,
+                        onDelete: () async {
+                          final loadingSvc = Provider.of<LoadingProvider>(
+                            context,
+                            listen: false,
+                          );
+                          loadingSvc.show();
+                          await servicios.deleteUsuario(
+                            servicios.filteredUsuarios[index].id!,
+                          );
+                          loadingSvc.hide();
+                        },
+                      ),
                 ),
               ),
             ),
@@ -217,6 +254,8 @@ class FilaUsuario extends StatelessWidget {
       final String? seleccion;
       if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)) {
         seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
           context: context,
           position: RelativeRect.fromLTRB(
             offset.dx,
@@ -225,26 +264,19 @@ class FilaUsuario extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 4,
+          elevation: 0,
           shadowColor: Colors.black,
           items: [
-            const PopupMenuItem(
-              value: 'leer',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
             const PopupMenuItem(
               value: 'cambiar_psw',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.password, color: AppTheme.letraClara, size: 17),
-                  Text('  Cambiar Contraseña', style: AppTheme.subtituloPrimario),
+                  Text(
+                    '  Cambiar Contraseña',
+                    style: AppTheme.subtituloPrimario,
+                  ),
                 ],
               ),
             ),
@@ -271,93 +303,83 @@ class FilaUsuario extends StatelessWidget {
           ],
         );
       } else {
-        seleccion = await showMenu(
-          context: context,
-          position: RelativeRect.fromLTRB(
-            offset.dx,
-            offset.dy,
-            offset.dx,
-            offset.dy,
-          ),
-          color: AppTheme.dropDownColor,
-          elevation: 4,
-          shadowColor: Colors.black,
-          items: [
-            const PopupMenuItem(
-              value: 'leer',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-                  Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-                ],
-              ),
-            ),
-          ],
-        );
+        return;
       }
       if (seleccion != null) {
-        if (seleccion == 'leer') {
-          // Lógica para leer
-          if(!context.mounted){ return; }
-          showDialog(
-            context: context,
-            builder: (_) => Stack(
-              alignment: Alignment.topRight,
-              children: [
-                UsuariosFormDialog(usuEdit: usuario, onlyRead: true),
-                const WindowBar(overlay: true),
-              ],
-            ),
-          );
-        } else if (seleccion == 'cambiar_psw') {
+        if (seleccion == 'cambiar_psw') {
           // Lógica para restablecer psw
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
-            if(!context.mounted){ return; }
+          if (resp == true) {
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  UsuariosPswForm(usuarioId: usuario.id!),
-                  const WindowBar(overlay: true),
-                ],
-              ),
+              builder:
+                  (_) => Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      UsuariosPswForm(usuarioId: usuario.id!),
+                      const WindowBar(overlay: true),
+                    ],
+                  ),
             );
           }
         } else if (seleccion == 'editar') {
           // Lógica para editar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
-            if(!context.mounted){ return; }
+          if (resp == true) {
+            if (!context.mounted) {
+              return;
+            }
             showDialog(
               context: context,
-              builder: (_) => Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  UsuariosFormDialog(usuEdit: usuario),
-                  const WindowBar(overlay: true),
-                ],
-              ),
-            ); 
+              builder:
+                  (_) => Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      UsuariosFormDialog(usuEdit: usuario),
+                      const WindowBar(overlay: true),
+                    ],
+                  ),
+            );
           }
-        }else if (seleccion == 'eliminar') {
+        } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          if(!context.mounted){ return; }
+          if (!context.mounted) {
+            return;
+          }
           final resp = await verificarAdminPsw(context);
-          if (resp==true){
+          if (resp == true) {
             onDelete();
           }
         }
       }
     }
 
+    void mostrarDetalles(BuildContext context) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                UsuariosFormDialog(usuEdit: usuario, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
+      );
+    }
+
     return FeedBackButton(
       onlyVertical: true,
-      onPressed: (){},
+      onPressed: () => mostrarDetalles(context),
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           mostrarMenu(context, details.globalPosition);
@@ -367,18 +389,54 @@ class FilaUsuario extends StatelessWidget {
           color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
           child: Row(
             children: [
-              Expanded(flex: 3, child: Text(mostrarCampo(usuario.nombre), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 2, child:Text(mostrarCampo(usuario.permisos.name), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 2, child:Text(mostrarCampo(usuario.rol.name), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 3, child: Text(mostrarCampo(usuario.correo), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-              Expanded(flex: 3, child: Text(mostrarCampo(usuario.telefono!=null ? usuario.telefono.toString() : '-'), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  mostrarCampo(usuario.nombre),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  mostrarCampo(usuario.permisos.name),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  mostrarCampo(usuario.rol.name),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  mostrarCampo(usuario.correo),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  mostrarCampo(
+                    usuario.telefono != null
+                        ? usuario.telefono.toString()
+                        : '-',
+                  ),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
-
-
 }

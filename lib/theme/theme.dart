@@ -77,8 +77,8 @@ class AppTheme{
       : AppTheme.letraClara;
 
   static Color get _botonSecundarioFocus => changeThemeInstance?.isDarkTheme == true
-      ? const Color.fromARGB(255, 165, 165, 165)
-      : const Color.fromARGB(255, 220, 238, 255);
+      ? const Color.fromARGB(255, 207, 208, 209)
+      : const Color.fromARGB(255, 243, 244, 245);
 
   static Color get tablaColorHeader => changeThemeInstance?.isDarkTheme == true
       ? const Color.fromARGB(255, 78, 78, 78)

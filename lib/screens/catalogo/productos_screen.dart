@@ -13,17 +13,6 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-// Constantes de menú para evitar reconstrucciones
-const _menuItemLeer = PopupMenuItem(
-  value: 'leer',
-  child: Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-      Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-    ],
-  ),
-);
 const _menuItemEditar = PopupMenuItem(
   value: 'editar',
   child: Row(
@@ -275,10 +264,26 @@ class FilaProducto extends StatelessWidget {
     // Usa método existente para calcular precio con IVA
     final precioConIva = _calculos.calcularConIva(producto.precio);
 
+    void mostrarDetalles(BuildContext context) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ProductoFormDialog(prodEdit: producto, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
+      );
+    }
+
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
       if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)) {
         seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
           context: context,
           position: RelativeRect.fromLTRB(
             offset.dx,
@@ -287,44 +292,16 @@ class FilaProducto extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 4,
+          elevation: 0,
           shadowColor: Colors.black,
-          items: const [_menuItemLeer, _menuItemEditar, _menuItemEliminar],
+          items: const [_menuItemEditar, _menuItemEliminar],
         );
       } else {
-        seleccion = await showMenu(
-          context: context,
-          position: RelativeRect.fromLTRB(
-            offset.dx,
-            offset.dy,
-            offset.dx,
-            offset.dy,
-          ),
-          color: AppTheme.dropDownColor,
-          elevation: 4,
-          shadowColor: Colors.black,
-          items: const [_menuItemLeer],
-        );
+        return;
       }
 
       if (seleccion != null) {
-        if (seleccion == 'leer') {
-          // Lógica para leer
-          if (!context.mounted) {
-            return;
-          }
-          showDialog(
-            context: context,
-            builder:
-                (_) => Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    ProductoFormDialog(prodEdit: producto, onlyRead: true),
-                    const WindowBar(overlay: true),
-                  ],
-                ),
-          );
-        } else if (seleccion == 'editar') {
+        if (seleccion == 'editar') {
           // Lógica para editar
           if (!context.mounted) {
             return;
@@ -361,7 +338,7 @@ class FilaProducto extends StatelessWidget {
 
     return FeedBackButton(
       onlyVertical: true,
-      onPressed: () {},
+      onPressed: () => mostrarDetalles(context),
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           mostrarMenu(context, details.globalPosition);

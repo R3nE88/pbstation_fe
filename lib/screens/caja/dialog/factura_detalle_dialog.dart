@@ -56,7 +56,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${tipo.toUpperCase()} guardado exitosamente'),
+                content: Text(
+                  '${tipo.toUpperCase()} guardado exitosamente',
+                  textAlign: TextAlign.center,
+                ),
                 backgroundColor: Colors.green,
               ),
             );
@@ -66,7 +69,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al descargar: ${response.statusCode}'),
+              content: Text(
+                'Error al descargar: ${response.statusCode}',
+                textAlign: TextAlign.center,
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -75,7 +81,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error: $e', textAlign: TextAlign.center),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -253,26 +262,28 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
                     Icons.badge,
                     'RFC',
                     widget.factura.receptorRfc,
+                    true,
                   ),
                 ),
               ],
             ),
 
-            if (!widget.factura.isGlobal) 
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoCard(
-                      Icons.receipt,
-                      'Venta',
-                      widget.factura.folioVenta,
+            if (!widget.factura.isGlobal)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoCard(
+                        Icons.receipt,
+                        'Venta',
+                        widget.factura.folioVenta,
+                        true,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 20),
 
             // Montos
@@ -280,7 +291,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppTheme.tablaColor2.withValues(alpha: 0.8), AppTheme.tablaColor2.withValues(alpha: 0.8),],
+                  colors: [
+                    AppTheme.tablaColor2.withValues(alpha: 0.8),
+                    AppTheme.tablaColor2.withValues(alpha: 0.8),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -376,7 +390,12 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
     );
   }
 
-  Widget _buildInfoCard(IconData icon, String label, String value) {
+  Widget _buildInfoCard(
+    IconData icon,
+    String label,
+    String value, [
+    bool selectable = false,
+  ]) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -404,16 +423,26 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          !selectable
+              ? Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+              : SelectableText(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+              ),
         ],
       ),
     );
@@ -506,7 +535,10 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
                   const SizedBox(width: 8),
                   Text(
                     label,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.letraClara),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.letraClara,
+                    ),
                   ),
                 ],
               ),

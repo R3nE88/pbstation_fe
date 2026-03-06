@@ -174,6 +174,8 @@ class ImpresorasCards extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
         context: context,
         position: RelativeRect.fromLTRB(
           offset.dx,
@@ -182,7 +184,7 @@ class ImpresorasCards extends StatelessWidget {
           offset.dy,
         ),
         color: AppTheme.dropDownColor,
-        elevation: 4,
+        elevation: 0,
         shadowColor: Colors.black,
         items: [
           const PopupMenuItem(

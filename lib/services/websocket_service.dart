@@ -23,17 +23,17 @@ class WebSocketService with ChangeNotifier {
     PedidosService pedidosServices,
     FacturasServices facturasServices,
   ) {
-    _instance._productoSvc     = productosService;
-    _instance._clienteSvc      = clientesService;
-    _instance._usuariosSvc     = usuariosServices;
-    _instance._ventaSvc        = ventasServices;
-    _instance._ventaEnviadasSvc= ventasEnviadasServices;
-    _instance._sucursalSvc     = sucursalesServices;
+    _instance._productoSvc = productosService;
+    _instance._clienteSvc = clientesService;
+    _instance._usuariosSvc = usuariosServices;
+    _instance._ventaSvc = ventasServices;
+    _instance._ventaEnviadasSvc = ventasEnviadasServices;
+    _instance._sucursalSvc = sucursalesServices;
     _instance._cotizacionesSvc = cotizacionesServices;
-    _instance._config          = configuracion;
-    _instance._impresoraSvc    = impresoraService;
-    _instance._pedidosSvc      = pedidosServices;
-    //_instance._facturasSvc     = facturasServices;
+    _instance._config = configuracion;
+    _instance._impresoraSvc = impresoraService;
+    _instance._pedidosSvc = pedidosServices;
+    _instance._facturasSvc = facturasServices;
 
     _instance._setupHandlers();
     return _instance;
@@ -61,7 +61,7 @@ class WebSocketService with ChangeNotifier {
   late Configuracion _config;
   late ImpresorasServices _impresoraSvc;
   late PedidosService _pedidosSvc;
-  //late FacturasServices _facturasSvc;
+  late FacturasServices _facturasSvc;
 
   final Map<String, void Function(String)> _handlers = {};
 
@@ -70,16 +70,16 @@ class WebSocketService with ChangeNotifier {
   /// Construye la URL del WebSocket con o sin sucursal
   String _buildSocketUrl() {
     String baseUrl = 'ws:${Constantes.baseUrl}ws';
-    
+
     String? sucursalId = SucursalesServices.sucursalActualID;
-    
+
     if (sucursalId != null && sucursalId.isNotEmpty) {
       baseUrl = '$baseUrl?sucursal_id=$sucursalId';
       if (kDebugMode) print('WebSocket conectando con sucursal: $sucursalId');
     } else {
       if (kDebugMode) print('WebSocket conectando sin sucursal específica');
     }
-    
+
     return baseUrl;
   }
 
@@ -94,37 +94,39 @@ class WebSocketService with ChangeNotifier {
           if (kDebugMode) print('Connection ID asignado: $connectionId');
           notifyListeners();
         },
-        'put-configuracion': (_ ) => _config.loadConfiguracion(),
-        'post-product':      (id) => _productoSvc.loadAProducto(id),
-        'put-product':       (id) => _productoSvc.updateAProducto(id),
-        'delete-product':    (id) => _productoSvc.deleteAProducto(id),
-        'post-cliente':      (id) => _clienteSvc.loadACliente(id),
-        'put-cliente':       (id) => _clienteSvc.updateACliente(id),
-        'delete-cliente':    (id) => _clienteSvc.deleteACliente(id),
-        'post-usuario':      (id) => _usuariosSvc.loadAUsuario(id),
-        'put-usuario':       (id) => _usuariosSvc.updateAUsuario(id),
-        'delete-usuario':    (id) => _usuariosSvc.deleteAUsuario(id),
-        'post-sucursal':     (id) => _sucursalSvc.loadASucursal(id),
-        'put-sucursal':      (id) => _sucursalSvc.updateASucursal(id),
-        'delete-sucursal':   (id) => _sucursalSvc.deleteASucursal(id),
-        'post-cotizacion':   (id) => _cotizacionesSvc.loadACotizacion(id),
-        'post-impresora':    (id) => _impresoraSvc.loadAImpresora(id),
-        'put-impresora':     (id) => _impresoraSvc.updateAImpresora(id),
-        'delete-impresora':  (id) => _impresoraSvc.deleteAImpresora(id),
-        'post-contadores':   (id) => _impresoraSvc.loadContador(id),
-        'put-contadores':    (id) => _impresoraSvc.loadContador(id),
+        'put-configuracion': (_) => _config.loadConfiguracion(),
+        'post-product': (id) => _productoSvc.loadAProducto(id),
+        'put-product': (id) => _productoSvc.updateAProducto(id),
+        'delete-product': (id) => _productoSvc.deleteAProducto(id),
+        'post-cliente': (id) => _clienteSvc.loadACliente(id),
+        'put-cliente': (id) => _clienteSvc.updateACliente(id),
+        'delete-cliente': (id) => _clienteSvc.deleteACliente(id),
+        'post-usuario': (id) => _usuariosSvc.loadAUsuario(id),
+        'put-usuario': (id) => _usuariosSvc.updateAUsuario(id),
+        'delete-usuario': (id) => _usuariosSvc.deleteAUsuario(id),
+        'post-sucursal': (id) => _sucursalSvc.loadASucursal(id),
+        'put-sucursal': (id) => _sucursalSvc.updateASucursal(id),
+        'delete-sucursal': (id) => _sucursalSvc.deleteASucursal(id),
+        'post-cotizacion': (id) => _cotizacionesSvc.loadACotizacion(id),
+        'put-cotizacion': (id) => _cotizacionesSvc.updateACotizacion(id),
+        'delete-cotizacion': (id) => _cotizacionesSvc.deleteACotizacion(id),
+        'post-impresora': (id) => _impresoraSvc.loadAImpresora(id),
+        'put-impresora': (id) => _impresoraSvc.updateAImpresora(id),
+        'delete-impresora': (id) => _impresoraSvc.deleteAImpresora(id),
+        'post-contadores': (id) => _impresoraSvc.loadContador(id),
+        'put-contadores': (id) => _impresoraSvc.loadContador(id),
         'delete-contadores': (id) => _impresoraSvc.deleteAContador(id),
-        'update-venta':      (id) => _ventaSvc.updateAVenta(id),
-        'delete-venta-deuda':(id) => _ventaSvc.removeAVentaDeuda(id), 
-        'post-pedido':       (id) => _pedidosSvc.loadAPedido(id),
-        'update-pedido':     (id) => _pedidosSvc.loadPedidos(force: true),
-        'post_factura':      (id) => print('post_factura'),
-        'ventaenviada':      (id) {
-          if (id == SucursalesServices.sucursalActualID){
+        'update-venta': (id) => _ventaSvc.updateAVenta(id),
+        'delete-venta-deuda': (id) => _ventaSvc.removeAVentaDeuda(id),
+        'post-pedido': (id) => _pedidosSvc.loadAPedido(id),
+        'update-pedido': (id) => _pedidosSvc.loadPedidos(force: true),
+        'post-factura': (id) => _facturasSvc.loadAFactura(id),
+        'ventaenviada': (id) {
+          if (id == SucursalesServices.sucursalActualID) {
             _ventaEnviadasSvc.recibirVenta();
           }
-        },//TODO: movimientos necesita? o corte? o caja?
-/*
+        }, //TODO: movimientos necesita? o corte? o caja?
+        /*
 
         'put-configuracion': (_ ) => _config.loadConfiguracion(),
         'post-product':      (id) => _productoSvc.loadAProducto(id),
@@ -174,11 +176,11 @@ class WebSocketService with ChangeNotifier {
 
       _channel = null;
       isConnected = false;
-      connectionId = null;  // Limpiar el connection ID anterior
+      connectionId = null; // Limpiar el connection ID anterior
       notifyListeners();
 
       final socketUrl = _buildSocketUrl();
-      
+
       if (kDebugMode) print('Intentando conectar WebSocket a $socketUrl ...');
 
       final socket = await WebSocket.connect(socketUrl).timeout(timeout);
@@ -233,7 +235,7 @@ class WebSocketService with ChangeNotifier {
   static Future<void> reconectarConSucursal() async {
     return _instance._reconectarConSucursal();
   }
-  
+
   static Future<void> reconectarSinSucursal() async {
     return _instance._reconectarSinSucursal();
   }
@@ -271,7 +273,7 @@ class WebSocketService with ChangeNotifier {
     _channel = null;
 
     isConnected = false;
-    connectionId = null;  // Limpiar el connection ID
+    connectionId = null; // Limpiar el connection ID
     notifyListeners();
 
     _scheduleReconnect();
@@ -288,7 +290,7 @@ class WebSocketService with ChangeNotifier {
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     isConnected = false;
-    connectionId = null;  // Limpiar el connection ID
+    connectionId = null; // Limpiar el connection ID
     notifyListeners();
   }
 

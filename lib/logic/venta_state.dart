@@ -57,36 +57,50 @@ class VentaTab {
   Map<String, String> fromVentaEnviadaData = {};
   List<String> pedidosIds;
   bool modificando;
+  bool fromCotizacion;
+  String? cotizacionFolio;
+  String? cotizacionId;
 
   VentaTab()
-      : clienteSelected = null,
-        usuarioQueEnvioId = null,
-        usuarioQueEnvioNombre = null,
-        entregaInmediata = true,
-        fechaEntrega = null,
-        productos = [],
-        detallesVenta = [],
-        precioController = TextEditingController(text: Formatos.pesos.format(0)),
-        cantidadController = TextEditingController(text: '1'),
-        anchoController = TextEditingController(text: '1'),
-        altoController = TextEditingController(text: '1'),
-        comentarioController = TextEditingController(),
-        descuentoController = TextEditingController(text: '0%'),
-        descuentoAplicado = Decimal.parse('0'),
-        ivaController = TextEditingController(text: Formatos.pesos.format(0)),
-        productoTotalController = TextEditingController(text: Formatos.pesos.format(0)),
-        comentariosController = TextEditingController(),
-        subtotalController = TextEditingController(text: Formatos.pesos.format(0)),
-        totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0)),
-        totalIvaController = TextEditingController(text: Formatos.pesos.format(0)),
-        totalController = TextEditingController(text: Formatos.pesos.format(0)),
-        permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado),
-        fileSeleccionado = [],
-        fromVentaEnviada = false,
-        fromVentaEnviadaData = {},
-        pedidosIds = [],
-        modificando = false;
-  
+    : clienteSelected = null,
+      usuarioQueEnvioId = null,
+      usuarioQueEnvioNombre = null,
+      entregaInmediata = true,
+      fechaEntrega = null,
+      productos = [],
+      detallesVenta = [],
+      precioController = TextEditingController(text: Formatos.pesos.format(0)),
+      cantidadController = TextEditingController(text: '1'),
+      anchoController = TextEditingController(text: '1'),
+      altoController = TextEditingController(text: '1'),
+      comentarioController = TextEditingController(),
+      descuentoController = TextEditingController(text: '0%'),
+      descuentoAplicado = Decimal.parse('0'),
+      ivaController = TextEditingController(text: Formatos.pesos.format(0)),
+      productoTotalController = TextEditingController(
+        text: Formatos.pesos.format(0),
+      ),
+      comentariosController = TextEditingController(),
+      subtotalController = TextEditingController(
+        text: Formatos.pesos.format(0),
+      ),
+      totalDescuentoController = TextEditingController(
+        text: Formatos.pesos.format(0),
+      ),
+      totalIvaController = TextEditingController(
+        text: Formatos.pesos.format(0),
+      ),
+      totalController = TextEditingController(text: Formatos.pesos.format(0)),
+      permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(
+        Permiso.elevado,
+      ),
+      fileSeleccionado = [],
+      fromVentaEnviada = false,
+      fromVentaEnviadaData = {},
+      pedidosIds = [],
+      modificando = false,
+      fromCotizacion = false,
+      cotizacionFolio = null;
 
   void dispose() {
     precioController.dispose();
@@ -104,7 +118,7 @@ class VentaTab {
     totalController.dispose();
   }
 
-  void clear(){
+  void clear() {
     clienteSelected = null;
     usuarioQueEnvioId = null;
     usuarioQueEnvioNombre = null;
@@ -121,17 +135,26 @@ class VentaTab {
     descuentoController = TextEditingController(text: '0%');
     descuentoAplicado = Decimal.parse('0');
     ivaController = TextEditingController(text: Formatos.pesos.format(0));
-    productoTotalController = TextEditingController(text: Formatos.pesos.format(0));
+    productoTotalController = TextEditingController(
+      text: Formatos.pesos.format(0),
+    );
     comentariosController = TextEditingController();
     subtotalController = TextEditingController(text: Formatos.pesos.format(0));
-    totalDescuentoController = TextEditingController(text: Formatos.pesos.format(0));
+    totalDescuentoController = TextEditingController(
+      text: Formatos.pesos.format(0),
+    );
     totalIvaController = TextEditingController(text: Formatos.pesos.format(0));
     totalController = TextEditingController(text: Formatos.pesos.format(0));
-    permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado);
+    permisoDeAdmin = Login.usuarioLogeado.permisos.tieneAlMenos(
+      Permiso.elevado,
+    );
     fileSeleccionado = [];
     fromVentaEnviada = false;
     fromVentaEnviadaData = {};
     pedidosIds = [];
     modificando = false;
+    fromCotizacion = false;
+    cotizacionFolio = null;
+    cotizacionId = null;
   }
 }

@@ -50,6 +50,13 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       return jsonEncode({'Message': 'No seleccionaste un cliente'});
     }
 
+    if (_formaPagoSeleccionado == null) {
+      setState(() {
+        _formaPagoEmpty = true;
+      });
+      return jsonEncode({'Message': 'No seleccionaste una forma de pago'});
+    }
+
     if (_usoCfdiSeleccionado == null) {
       setState(() {
         _usoCfdiEmpty = true;
@@ -99,7 +106,10 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       }
 
       final qty = item.cantidad.toDouble();
-      final Decimal unitPriceDecimal = Decimal.parse((producto.precio.toDouble() * (item.alto??1) * (item.ancho??1)).toString()).round(scale: 6);
+      final Decimal unitPriceDecimal = Decimal.parse(
+        (producto.precio.toDouble() * (item.alto ?? 1) * (item.ancho ?? 1))
+            .toString(),
+      ).round(scale: 6);
       final unitPrice = unitPriceDecimal.toDouble();
       final descuento = item.descuentoAplicado.toDouble();
 
@@ -150,7 +160,7 @@ class _FacturarVentaDialogState extends State<FacturarVentaDialog> {
       paymentMethod: 'PUE',
       receiver: Receiver(
         rfc: _clienteSelected!.rfc!,
-        name: _clienteSelected!.razonSocial!,
+        name: _clienteSelected!.razonSocial ?? _clienteSelected!.nombre,
         cfdiUse: _usoCfdiSeleccionado!,
         fiscalRegime: _clienteSelected!.regimenFiscal ?? '616',
         taxZipCode:

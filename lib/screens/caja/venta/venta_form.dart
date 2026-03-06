@@ -84,6 +84,11 @@ class _VentaFormState extends State<VentaForm> {
   late Map<String, String> _fromVentaEnviadaData;
   late List<String> _pedidosIds;
 
+  //cotizacion
+  late bool _fromCotizacion;
+  late String? _cotizacionFolio;
+  late String? _cotizacionId;
+
   final List<DateTime> _dates = [];
 
   @override
@@ -118,6 +123,10 @@ class _VentaFormState extends State<VentaForm> {
     _fromVentaEnviada = VentasStates.tabs[widget.index].fromVentaEnviada;
     _fromVentaEnviadaData =
         VentasStates.tabs[widget.index].fromVentaEnviadaData;
+
+    _fromCotizacion = VentasStates.tabs[widget.index].fromCotizacion;
+    _cotizacionFolio = VentasStates.tabs[widget.index].cotizacionFolio;
+    _cotizacionId = VentasStates.tabs[widget.index].cotizacionId;
 
     _subtotalController = VentasStates.tabs[widget.index].subtotalController;
     _totalDescuentoController =
@@ -456,7 +465,7 @@ class _VentaFormState extends State<VentaForm> {
         content: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 15),
-            child: Text(texto),
+            child: Text(texto, textAlign: TextAlign.center,),
           ),
         ),
         backgroundColor: Colors.red.withAlpha(100),
@@ -592,6 +601,15 @@ class _VentaFormState extends State<VentaForm> {
               afterProcesar:
                   ({String? ventaId, String? ventaFolio}) =>
                       afterProcesar(ventaId: ventaId, ventaFolio: ventaFolio),
+              onSuccess: ({String? ventaId, String? ventaFolio}) {
+                if (_fromCotizacion && _cotizacionId != null) {
+                  if (!mounted) return;
+                  Provider.of<CotizacionesServices>(
+                    context,
+                    listen: false,
+                  ).deleteCotizacion(_cotizacionId!);
+                }
+              },
             ),
             const WindowBar(overlay: true),
           ],
@@ -670,6 +688,14 @@ class _VentaFormState extends State<VentaForm> {
         listen: false,
       );
       await ventaEnviada.enviarVenta(venta);
+
+      if (_fromCotizacion && _cotizacionId != null) {
+        if (!mounted) return;
+        Provider.of<CotizacionesServices>(
+          context,
+          listen: false,
+        ).deleteCotizacion(_cotizacionId!);
+      }
 
       loadingSvc.hide();
       widget.rebuild(widget.index);
@@ -1059,14 +1085,55 @@ class _VentaFormState extends State<VentaForm> {
 
             child: Column(
               children: [
+                if (_fromCotizacion)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 16,
+                    ),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade900.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade700),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.description,
+                          color: Colors.amber.shade300,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Cotización: ${_cotizacionFolio ?? ""}',
+                          style: TextStyle(
+                            color: Colors.amber.shade300,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '— Los datos de esta venta están bloqueados',
+                          style: TextStyle(
+                            color: Colors.amber.shade200,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Flexible(
                   child: FocusScope(
-                    canRequestFocus: !_fromVentaEnviada,
+                    canRequestFocus: !_fromVentaEnviada && !_fromCotizacion,
                     child: Column(
                       children: [
                         //primera fila
                         IgnorePointer(
-                          ignoring: _fromVentaEnviada,
+                          ignoring: _fromVentaEnviada || _fromCotizacion,
                           child: Row(
                             children: [
                               Expanded(
@@ -1076,7 +1143,8 @@ class _VentaFormState extends State<VentaForm> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Tooltip(
-                                      message: "Presiona Enter con el campo vacío para asignar 'Público General'.",
+                                      message:
+                                          "Presiona Enter con el campo vacío para asignar 'Público General'.",
                                       child: Text(
                                         '   Cliente *',
                                         style: AppTheme.subtituloPrimario,
@@ -1246,7 +1314,7 @@ class _VentaFormState extends State<VentaForm> {
                               Stack(
                                 alignment: Alignment.topRight,
                                 children: [
-                                  _fromVentaEnviada
+                                  _fromVentaEnviada || _fromCotizacion
                                       ? Transform.translate(
                                         offset: const Offset(7, -8),
                                         child: const Icon(
@@ -1411,7 +1479,7 @@ class _VentaFormState extends State<VentaForm> {
 
                         //segunda fila
                         IgnorePointer(
-                          ignoring: _fromVentaEnviada,
+                          ignoring: _fromVentaEnviada || _fromCotizacion,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
@@ -1808,7 +1876,7 @@ class _VentaFormState extends State<VentaForm> {
 
                         //tercer fila
                         IgnorePointer(
-                          ignoring: _fromVentaEnviada,
+                          ignoring: _fromVentaEnviada || _fromCotizacion,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
@@ -2360,15 +2428,22 @@ class _VentaFormState extends State<VentaForm> {
                                       ),
                                     ),
                                 const SizedBox(height: 10),
-                                /*Tooltip(  //TODO: en desarrollo
-                                  message: 'Funcion en desarrollo', //TODO: quitar tooltip cuando lo habilite
-                                  child: ElevatedButton(
-                                    onPressed: (){
-                                      //procesarCotizacion(); TODO: deshabilitado
+
+                                if (_entregaInmediata &&
+                                    !_fromCotizacion &&
+                                    !_fromVentaEnviada)
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      procesarCotizacion();
                                     },
-                                    child: Text('Guardar como cotizacion', style: TextStyle(color: AppTheme.containerColor1, fontWeight: FontWeight.w700)),
+                                    child: Text(
+                                      'Guardar como cotizacion',
+                                      style: TextStyle(
+                                        color: AppTheme.containerColor1,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
-                                ),*/
                               ],
                             ),
                           ),
@@ -2526,6 +2601,8 @@ class FilaDetalles extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
         context: context,
         position: RelativeRect.fromLTRB(
           offset.dx,
@@ -2534,7 +2611,7 @@ class FilaDetalles extends StatelessWidget {
           offset.dy,
         ),
         color: AppTheme.dropDownColor,
-        elevation: 4,
+        elevation: 0,
         shadowColor: Colors.black,
         items: [
           const PopupMenuItem(

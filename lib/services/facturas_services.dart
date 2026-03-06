@@ -208,6 +208,42 @@ class FacturasServices extends ChangeNotifier {
     }
   }
 
+  void loadAFactura(String id) async {
+    if (isLoading) return;
+    isLoading = true;
+    try {
+      final url = Uri.parse('$_baseUrl$id');
+      final resp = await http.get(
+        url,
+        headers: {...AuthService.getAuthHeaders()},
+      );
+
+      if (resp.statusCode != 200) {
+        debugPrint('Error al cargar factura: ${resp.statusCode}');
+        isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final body = json.decode(resp.body);
+      final factura = Facturas.fromMap(body as Map<String, dynamic>);
+      factura.id = (body as Map)['id']?.toString();
+
+      // Prevenir duplicados
+      if (historialFacturas.any((f) => f.id == factura.id)) {
+        isLoading = false;
+        return;
+      }
+
+      historialFacturas.insert(0, factura);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Exception en loadAFactura: $e');
+    } finally {
+      isLoading = false;
+    }
+  }
+
   void cambiarFiltroSucursalHistorial(String? sucursalId) {
     sucursalFiltroHistorial = sucursalId;
     cargarHistorialFacturas(sucursalId: sucursalId);

@@ -193,7 +193,7 @@ class ConfiguracionModulos {
         SubModulo(
           nombre: 'cotizaciones',
           icono: Icons.request_quote,
-          pantalla: PantallaEnDesarrollo(),
+          pantalla: CotizacionesScreen(),
         ),
       ],
     ),

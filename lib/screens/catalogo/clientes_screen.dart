@@ -12,17 +12,6 @@ import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
-// Constantes de menú para evitar reconstrucciones
-const _menuItemLeerCliente = PopupMenuItem(
-  value: 'leer',
-  child: Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(Icons.info_outline, color: AppTheme.letraClara, size: 17),
-      Text('  Datos Completos', style: AppTheme.subtituloPrimario),
-    ],
-  ),
-);
 const _menuItemEditarCliente = PopupMenuItem(
   value: 'editar',
   child: Row(
@@ -269,10 +258,27 @@ class FilaCliente extends StatelessWidget {
   Widget build(BuildContext context) {
     String mostrarCampo(String? valor) => capitalizarPrimeraLetra(valor ?? '-');
 
+    void mostrarDetalles(BuildContext context) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ClientesFormDialog(cliEdit: cliente, onlyRead: true),
+                const WindowBar(overlay: true),
+              ],
+            ),
+      );
+    }
+
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
       if (Login.usuarioLogeado.permisos.tieneAlMenos(Permiso.elevado)) {
+        if (cliente.protegido) return;
         seleccion = await showMenu(
+          useRootNavigator: true,
+          surfaceTintColor: Colors.transparent,
           context: context,
           position: RelativeRect.fromLTRB(
             offset.dx,
@@ -281,48 +287,16 @@ class FilaCliente extends StatelessWidget {
             offset.dy,
           ),
           color: AppTheme.dropDownColor,
-          elevation: 4,
+          elevation: 0,
           shadowColor: Colors.black,
-          items: [
-            _menuItemLeerCliente,
-            if (!cliente.protegido) _menuItemEditarCliente,
-            if (!cliente.protegido) _menuItemEliminarCliente,
-          ],
+          items: [_menuItemEditarCliente, _menuItemEliminarCliente],
         );
       } else {
-        seleccion = await showMenu(
-          context: context,
-          position: RelativeRect.fromLTRB(
-            offset.dx,
-            offset.dy,
-            offset.dx,
-            offset.dy,
-          ),
-          color: AppTheme.dropDownColor,
-          elevation: 4,
-          shadowColor: Colors.black,
-          items: const [_menuItemLeerCliente],
-        );
+        return;
       }
 
       if (seleccion != null) {
-        if (seleccion == 'leer') {
-          // Lógica para leer
-          if (!context.mounted) {
-            return;
-          }
-          showDialog(
-            context: context,
-            builder:
-                (_) => Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    ClientesFormDialog(cliEdit: cliente, onlyRead: true),
-                    const WindowBar(overlay: true),
-                  ],
-                ),
-          );
-        } else if (seleccion == 'editar') {
+        if (seleccion == 'editar') {
           // Lógica para editar
           if (!context.mounted) {
             return;
@@ -359,7 +333,7 @@ class FilaCliente extends StatelessWidget {
 
     return FeedBackButton(
       onlyVertical: true,
-      onPressed: () {},
+      onPressed: () => mostrarDetalles(context),
       child: GestureDetector(
         onSecondaryTapDown: (details) {
           mostrarMenu(context, details.globalPosition);

@@ -16,7 +16,7 @@ class DetallesVenta {
     required this.subtotal,
     required this.total,
     this.cotizacionPrecio,
-    this.archivos
+    this.archivos,
   });
 
   //String? id;
@@ -30,10 +30,11 @@ class DetallesVenta {
   Decimal iva;
   Decimal subtotal;
   Decimal total;
-  Decimal? cotizacionPrecio; 
+  Decimal? cotizacionPrecio;
   List<File>? archivos;
 
-  factory DetallesVenta.fromJson(String str) => DetallesVenta.fromMap(json.decode(str));
+  factory DetallesVenta.fromJson(String str) =>
+      DetallesVenta.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
   factory DetallesVenta.fromMap(Map<String, dynamic> json) => DetallesVenta(
@@ -48,7 +49,10 @@ class DetallesVenta {
     iva: Decimal.parse(json['iva'].toString()),
     subtotal: Decimal.parse(json['subtotal'].toString()),
     total: Decimal.parse(json['total'].toString()),
-    cotizacionPrecio: json['cotizacion_precio']!=null ? Decimal.tryParse(json['cotizacion_precio'].toString()) : null,
+    cotizacionPrecio:
+        json['cotizacion_precio'] != null
+            ? Decimal.tryParse(json['cotizacion_precio'].toString())
+            : null,
   );
 
   Map<String, dynamic> toMap() => {
@@ -59,10 +63,10 @@ class DetallesVenta {
     'alto': alto,
     'comentarios': comentarios,
     'descuento': descuento,
-    'descuento_aplicado': descuentoAplicado,
-    'iva': iva,
-    'subtotal': subtotal,
-    'total': total,
-    'cotizacion_precio': cotizacionPrecio
+    'descuento_aplicado': descuentoAplicado.toString(),
+    'iva': iva.toString(),
+    'subtotal': subtotal.toString(),
+    'total': total.toString(),
+    'cotizacion_precio': cotizacionPrecio?.toString(),
   };
 }

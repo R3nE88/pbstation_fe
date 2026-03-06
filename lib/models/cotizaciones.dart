@@ -34,7 +34,8 @@ class Cotizaciones {
   bool vigente;
   //TODO: etablecer bien cuales variables pueden ser null
 
-  factory Cotizaciones.fromJson(String str) => Cotizaciones.fromMap(json.decode(str));
+  factory Cotizaciones.fromJson(String str) =>
+      Cotizaciones.fromMap(json.decode(str));
   String toJson() => json.encode(toMap());
 
   factory Cotizaciones.fromMap(Map<String, dynamic> json) => Cotizaciones(
@@ -44,14 +45,16 @@ class Cotizaciones {
     usuarioId: json['usuario_id'],
     sucursalId: json['sucursal_id'],
     detalles: List<DetallesVenta>.from(
-      json['detalles'].map((x) => DetallesVenta.fromMap(x as Map<String, dynamic>)),
+      json['detalles'].map(
+        (x) => DetallesVenta.fromMap(x as Map<String, dynamic>),
+      ),
     ),
     fechaCotizacion: json['fecha_cotizacion'],
     comentariosVenta: json['comentarios_venta'],
-    subTotal: Decimal.parse(json['subtotal']),
-    descuento: Decimal.parse(json['descuento']),
-    iva: Decimal.parse(json['iva']),
-    total: Decimal.parse(json['total']), 
+    subTotal: Decimal.parse(json['subtotal'].toString()),
+    descuento: Decimal.parse(json['descuento'].toString()),
+    iva: Decimal.parse(json['iva'].toString()),
+    total: Decimal.parse(json['total'].toString()),
     vigente: json['vigente'],
   );
 
@@ -64,10 +67,10 @@ class Cotizaciones {
     'detalles': detalles.map((d) => d.toMap()).toList(),
     'fecha_cotizacion': fechaCotizacion,
     'comentarios_venta': comentariosVenta,
-    'subtotal': subTotal,
-    'descuento': descuento,
-    'iva': iva,
-    'total': total,
-    'vigente':vigente
+    'subtotal': subTotal.toString(),
+    'descuento': descuento.toString(),
+    'iva': iva.toString(),
+    'total': total.toString(),
+    'vigente': vigente,
   };
 }
