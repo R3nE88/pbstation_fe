@@ -172,3 +172,6 @@ class _MyAppState extends State<MyApp> {
 class ThemePreferences {
   static bool isDarkTheme = false;
 }
+
+
+//flutter build windows --release --split-debug-info=build/debug-info --tree-shake-icons

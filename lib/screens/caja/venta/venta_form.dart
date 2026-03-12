@@ -465,7 +465,7 @@ class _VentaFormState extends State<VentaForm> {
         content: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 15),
-            child: Text(texto, textAlign: TextAlign.center,),
+            child: Text(texto, textAlign: TextAlign.center),
           ),
         ),
         backgroundColor: Colors.red.withAlpha(100),
@@ -935,48 +935,63 @@ class _VentaFormState extends State<VentaForm> {
                   const SizedBox(height: 25),
                   Column(
                     children: [
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Icon(Icons.print, color: Colors.transparent),
-                            Transform.translate(
-                              offset: const Offset(0, -1.5),
-                              child: const Text('  Imprimir'),
-                            ),
-                            const Icon(Icons.print),
-                          ],
+                      Tooltip(
+                        message: 'En desarrollo...',
+                        child: ElevatedButton(
+                          onPressed: null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(
+                                Icons.print,
+                                color: Colors.transparent,
+                              ),
+                              Transform.translate(
+                                offset: const Offset(0, -1.5),
+                                child: const Text('  Imprimir'),
+                              ),
+                              const Icon(Icons.print),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Icon(Icons.send, color: Colors.transparent),
-                            Transform.translate(
-                              offset: const Offset(0, -1.5),
-                              child: const Text('  Enviar por WhatsApp'),
-                            ),
-                            const Icon(Icons.send),
-                          ],
+                      Tooltip(
+                        message: 'En desarrollo...',
+                        child: ElevatedButton(
+                          onPressed: null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(Icons.send, color: Colors.transparent),
+                              Transform.translate(
+                                offset: const Offset(0, -1.5),
+                                child: const Text('  Enviar por WhatsApp'),
+                              ),
+                              const Icon(Icons.send),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Icon(Icons.email, color: Colors.transparent),
-                            Transform.translate(
-                              offset: const Offset(0, -1.5),
-                              child: const Text('  Enviar por Correo'),
-                            ),
-                            const Icon(Icons.email),
-                          ],
+                      Tooltip(
+                        message: 'En desarrollo...',
+                        child: ElevatedButton(
+                          onPressed: null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(
+                                Icons.email,
+                                color: Colors.transparent,
+                              ),
+                              Transform.translate(
+                                offset: const Offset(0, -1.5),
+                                child: const Text('  Enviar por Correo'),
+                              ),
+                              const Icon(Icons.email),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -2601,8 +2616,8 @@ class FilaDetalles extends StatelessWidget {
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final seleccion = await showMenu(
-          useRootNavigator: true,
-          surfaceTintColor: Colors.transparent,
+        useRootNavigator: true,
+        surfaceTintColor: Colors.transparent,
         context: context,
         position: RelativeRect.fromLTRB(
           offset.dx,

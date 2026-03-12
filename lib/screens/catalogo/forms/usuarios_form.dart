@@ -12,14 +12,15 @@ import 'package:provider/provider.dart';
 
 class UsuariosFormDialog extends StatefulWidget {
   const UsuariosFormDialog({super.key, this.usuEdit, this.onlyRead});
-  final Usuarios? usuEdit; 
+  final Usuarios? usuEdit;
   final bool? onlyRead;
 
   @override
   State<UsuariosFormDialog> createState() => _UsuariosFormState();
 }
 
-class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: si es edit, no introducir la contraseña, en backend no pedir el parametro psw y no retornar psw al crear post
+class _UsuariosFormState extends State<UsuariosFormDialog> {
+  //TODO: si es edit, no introducir la contraseña, en backend no pedir el parametro psw y no retornar psw al crear post
 
   //Varaibles
   bool _onlyRead = false;
@@ -45,6 +46,21 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
   void initState() {
     super.initState();
 
+    //opciones para DropDownButtons
+    _dropdownItemsPermisos = {
+      for (var permiso in Permiso.values)
+        permiso.nivel.toString(): capitalizarPrimeraLetra(permiso.name),
+    };
+    if (Login.usuarioLogeado.permisos.nivel == 2) {
+      _dropdownItemsPermisos.remove(Permiso.admin.nivel.toString());
+    }
+
+    _dropdownItemsTipo = {
+      for (var tipo in TipoUsuario.values)
+        '${tipo.index}': capitalizarPrimeraLetra(tipo.name),
+    };
+
+    //Si ya existe un usuario, cargar los datos
     if (widget.usuEdit != null) {
       _onlyRead = widget.onlyRead ?? false;
       _titulo = _onlyRead ? 'Datos del Usuario' : 'Editar Usuario';
@@ -53,21 +69,9 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
       _controllers['nombre']!.text = usuario.nombre;
       _controllers['correo']!.text = usuario.correo;
       _controllers['telefono']!.text = '${usuario.telefono ?? ''}';
+      _permisoSeleccionado = usuario.permisos.nivel.toString();
+      _tipoSeleccionado = usuario.rol.index.toString();
     }
-
-    //opciones para DropDownButtons
-    _dropdownItemsPermisos = {
-      for (var permiso in Permiso.values)
-        'Nivel ${permiso.nivel}': capitalizarPrimeraLetra(permiso.name)
-    };
-    if (Login.usuarioLogeado.permisos.nivel == 2) {
-      _dropdownItemsPermisos.remove('Nivel ${Permiso.admin.nivel}');
-    }
-
-    _dropdownItemsTipo = {
-      for (var tipo in TipoUsuario.values)
-        '${tipo.index}': capitalizarPrimeraLetra(tipo.name)
-    };
   }
 
   @override
@@ -82,15 +86,25 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
 
   //METODOS
   Future<void> guardarUsuario() async {
-    if (!_formKey.currentState!.validate() || _permisoSeleccionado==null || _tipoSeleccionado==null){
-      if (_permisoSeleccionado==null){setState(() {_permisoEmpty = true;});}
-      if (_tipoSeleccionado==null){setState(() {_tipoEmpty = true;});}
+    if (!_formKey.currentState!.validate() ||
+        _permisoSeleccionado == null ||
+        _tipoSeleccionado == null) {
+      if (_permisoSeleccionado == null) {
+        setState(() {
+          _permisoEmpty = true;
+        });
+      }
+      if (_tipoSeleccionado == null) {
+        setState(() {
+          _tipoEmpty = true;
+        });
+      }
       return;
-    } 
+    }
 
-    if (widget.usuEdit==null){
-      if(_controllers['psw']!.text !=_controllers['psw2']!.text){
-        _pswIncorrecto=true;
+    if (widget.usuEdit == null) {
+      if (_controllers['psw']!.text != _controllers['psw2']!.text) {
+        _pswIncorrecto = true;
         _controllers['psw']!.clear();
         _controllers['psw2']!.clear();
         return;
@@ -99,21 +113,29 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
 
     final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
     final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
-    loadingSvc.show();   
+    loadingSvc.show();
 
     final usuario = Usuarios(
       nombre: _controllers['nombre']!.text,
       correo: _controllers['correo']!.text.toLowerCase(),
-      telefono: _controllers['telefono']!.text.isEmpty ? null : int.tryParse(_controllers['telefono']!.text),
-      psw: widget.usuEdit==null ? _controllers['psw']!.text : null,
-      rol: TipoUsuario.values.firstWhere((element) => element.name == _tipoSeleccionado),
-      permisos: Permiso.values.firstWhere((element) => element.name == _permisoSeleccionado),
-      activo: true
+      telefono:
+          _controllers['telefono']!.text.isEmpty
+              ? null
+              : int.tryParse(_controllers['telefono']!.text),
+      psw: widget.usuEdit == null ? _controllers['psw']!.text : null,
+      rol: TipoUsuario.values.firstWhere(
+        (element) => element.index.toString() == _tipoSeleccionado,
+      ),
+      permisos: Permiso.values.firstWhere(
+        (element) => element.nivel.toString() == _permisoSeleccionado,
+      ),
+      activo: true,
     );
 
-    final respuesta = widget.usuEdit == null
-        ? await usuarioSvc.createUsuario(usuario)
-        : await usuarioSvc.updateUsuario(usuario, widget.usuEdit!.id!);
+    final respuesta =
+        widget.usuEdit == null
+            ? await usuarioSvc.createUsuario(usuario)
+            : await usuarioSvc.updateUsuario(usuario, widget.usuEdit!.id!);
 
     loadingSvc.hide();
 
@@ -123,20 +145,26 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
     } else {
       showDialog(
         context: context,
-        builder: (context) => Stack(
-          alignment: Alignment.topRight,
-          children: [
-            CustomErrorDialog(titulo:'Hubo un problema al crear', respuesta: respuesta),
-            const WindowBar(overlay: true),
-          ],
-        ),
+        builder:
+            (context) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                CustomErrorDialog(
+                  titulo: 'Hubo un problema al crear',
+                  respuesta: respuesta,
+                ),
+                const WindowBar(overlay: true),
+              ],
+            ),
       );
     }
   }
 
   String? validateRequiredField(String? value, String fieldName) {
     if (value == null || value.isEmpty) {
-      return !_pswIncorrecto ? 'Por favor ingrese $fieldName' : 'Las contraseñas no coinciden';
+      return !_pswIncorrecto
+          ? 'Por favor ingrese $fieldName'
+          : 'Las contraseñas no coinciden';
     }
     return null;
   }
@@ -157,7 +185,13 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
         autofocus: autoFocus,
         canRequestFocus: !_onlyRead,
         controller: controller,
-        buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
+        buildCounter:
+            (
+              _, {
+              required int currentLength,
+              required bool isFocused,
+              required int? maxLength,
+            }) => null,
         readOnly: readOnly,
         maxLength: maxLength,
         inputFormatters: inputFormatters,
@@ -172,7 +206,6 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
     );
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return FocusScope(
@@ -181,7 +214,10 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
         elevation: 6,
         shadowColor: Colors.black54,
         shape: AppTheme.borde,
-        backgroundColor: AppTheme.isDarkTheme ? AppTheme.containerColor1 : AppTheme.containerColor2,
+        backgroundColor:
+            AppTheme.isDarkTheme
+                ? AppTheme.containerColor1
+                : AppTheme.containerColor2,
         title: Text(_titulo),
         content: SizedBox(
           width: 600,
@@ -190,32 +226,39 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Separador(), const SizedBox(height: 15),
-                
+                const Separador(),
+                const SizedBox(height: 15),
+
                 Row(
                   children: [
                     Expanded(
                       child: buildTextFormField(
-                        controller: _controllers['nombre']!, 
+                        controller: _controllers['nombre']!,
                         labelText: 'Nombre',
                         autoFocus: !_onlyRead && widget.usuEdit == null,
-                        readOnly:  _onlyRead,
+                        readOnly: _onlyRead,
                         maxLength: 40,
-                        validator: (value) => validateRequiredField(value, 'el nombre'),
-                      )
-                    ), const SizedBox(width: 10),
+                        validator:
+                            (value) =>
+                                validateRequiredField(value, 'el nombre'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['telefono']!,
                         labelText: 'Telefono 10 digitos',
                         readOnly: _onlyRead,
                         maxLength: 10,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         //validator: (value) => validateRequiredField(value, 'el telefono'),
                       ),
                     ),
                   ],
-                ), const SizedBox(height: 15),
+                ),
+                const SizedBox(height: 15),
                 Row(
                   children: [
                     Flexible(
@@ -224,9 +267,14 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
                         labelText: 'Correo Electronico',
                         readOnly: _onlyRead,
                         maxLength: 40,
-                        validator: (value) => validateRequiredField(value, 'el correo electronico'),
+                        validator:
+                            (value) => validateRequiredField(
+                              value,
+                              'el correo electronico',
+                            ),
                       ),
-                    ), const SizedBox(width: 15),
+                    ),
+                    const SizedBox(width: 15),
 
                     Expanded(
                       child: SearchableDropdown(
@@ -243,7 +291,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
                         },
                         searchMoreInfo: false,
                       ),
-                    ), const SizedBox(width: 15),
+                    ),
+                    const SizedBox(width: 15),
 
                     Expanded(
                       child: SearchableDropdown(
@@ -261,51 +310,61 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {           //TODO: s
                         searchMoreInfo: false,
                       ),
                     ),
-                    
                   ],
-                ), const SizedBox(height: 15),
-                
-                widget.usuEdit == null ?
-                Row(
-                  children: [
-                    Expanded(
-                      child: buildTextFormField(
-                        controller: _controllers['psw']!, 
-                        labelText: 'Contraseña',
-                        autoFocus: !_onlyRead && widget.usuEdit == null,
-                        readOnly:  _onlyRead,
-                        maxLength: 30,
-                        obscureText: true,
-                        validator: (value) => validateRequiredField(value, 'la contraseña'),
-                      )
-                    ), const SizedBox(width: 10),
-                    Expanded(
-                      child: buildTextFormField(
-                        controller: _controllers['psw2']!, 
-                        labelText: 'Vuelva a introducir la contraseña',
-                        autoFocus: !_onlyRead && widget.usuEdit == null,
-                        readOnly:  _onlyRead,
-                        maxLength: 30,
-                        obscureText: true,
-                        validator: (value) => validateRequiredField(value, 'la contraseña'),
-                      ),
-                    ),
-                  ],
-                ) : const SizedBox(),
-                
-    
+                ),
+                const SizedBox(height: 15),
+
+                widget.usuEdit == null
+                    ? Row(
+                      children: [
+                        Expanded(
+                          child: buildTextFormField(
+                            controller: _controllers['psw']!,
+                            labelText: 'Contraseña',
+                            autoFocus: !_onlyRead && widget.usuEdit == null,
+                            readOnly: _onlyRead,
+                            maxLength: 30,
+                            obscureText: true,
+                            validator:
+                                (value) => validateRequiredField(
+                                  value,
+                                  'la contraseña',
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: buildTextFormField(
+                            controller: _controllers['psw2']!,
+                            labelText: 'Vuelva a introducir la contraseña',
+                            autoFocus: !_onlyRead && widget.usuEdit == null,
+                            readOnly: _onlyRead,
+                            maxLength: 30,
+                            obscureText: true,
+                            validator:
+                                (value) => validateRequiredField(
+                                  value,
+                                  'la contraseña',
+                                ),
+                          ),
+                        ),
+                      ],
+                    )
+                    : const SizedBox(),
               ],
             ),
-          )
+          ),
         ),
         actions: [
-          !_onlyRead ? ElevatedButton(
-            onPressed: () async{
-              await guardarUsuario();
-            }, 
-            style: AppTheme.botonGuardar,
-            child: const Text('Guardar Usuario')
-          ) : const SizedBox()
+          !_onlyRead
+              ? ElevatedButton(
+                onPressed: () async {
+                  await guardarUsuario();
+                },
+                style: AppTheme.botonGuardar,
+                child: const Text('Guardar Usuario'),
+              )
+              : const SizedBox(),
         ],
       ),
     );
