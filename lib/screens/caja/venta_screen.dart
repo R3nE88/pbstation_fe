@@ -112,105 +112,109 @@ class _VentaScreenState extends State<VentaScreen> {
   ) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 5, left: 54, right: 52),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child:
+          suc.sucursalActual != null
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    //Pestañas
-                    height: 36,
-                    width: 500,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: VentasStates.pestanias,
-                      itemBuilder: (context, index) {
-                        if (index == VentasStates.pestanias - 1) {
-                          return Pestania(
-                            last: true,
-                            selected: false,
-                            agregarPestania: agregarPestania,
-                            index: index,
-                          );
-                        }
-                        return Pestania(
-                          last: false,
-                          selected: index == VentasStates.indexSelected,
-                          selectedPestania: selectedPestania,
-                          rebuild: rebuildAndClean,
-                          index: index,
-                        );
-                      },
-                    ),
-                  ),
+                  Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(
+                            //Pestañas
+                            height: 36,
+                            width: 500,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: VentasStates.pestanias,
+                              itemBuilder: (context, index) {
+                                if (index == VentasStates.pestanias - 1) {
+                                  return Pestania(
+                                    last: true,
+                                    selected: false,
+                                    agregarPestania: agregarPestania,
+                                    index: index,
+                                  );
+                                }
+                                return Pestania(
+                                  last: false,
+                                  selected: index == VentasStates.indexSelected,
+                                  selectedPestania: selectedPestania,
+                                  rebuild: rebuildAndClean,
+                                  index: index,
+                                );
+                              },
+                            ),
+                          ),
 
-                  Configuracion.esCaja
-                      ? ventaRecibida(context, rebuild)
-                      : const SizedBox(),
-                ],
-              ),
-
-              //Nombre del usuario que envio la venta
-              VentasStates
-                          .tabs[VentasStates.indexSelected]
-                          .usuarioQueEnvioNombre !=
-                      null
-                  ? Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.containerColor1,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(10),
-                          topRight: Radius.circular(10),
-                        ),
+                          Configuracion.esCaja
+                              ? ventaRecibida(context, rebuild)
+                              : const SizedBox(),
+                        ],
                       ),
-                      height: 26,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: 12,
-                          right: 12,
-                          top: 6,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('venta de ', style: AppTheme.labelStyle),
-                            Text(
-                              VentasStates
+
+                      //Nombre del usuario que envio la venta
+                      VentasStates
                                   .tabs[VentasStates.indexSelected]
-                                  .usuarioQueEnvioNombre!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                                  .usuarioQueEnvioNombre !=
+                              null
+                          ? Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.containerColor1,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                ),
+                              ),
+                              height: 26,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 12,
+                                  right: 12,
+                                  top: 6,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'venta de ',
+                                      style: AppTheme.labelStyle,
+                                    ),
+                                    Text(
+                                      VentasStates
+                                          .tabs[VentasStates.indexSelected]
+                                          .usuarioQueEnvioNombre!,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                  : const SizedBox(),
-            ],
-          ),
-          suc.sucursalActual != null
-              ? KeyedSubtree(
-                key: ValueKey<int>(VentasStates.indexSelected),
-                child: VentaForm(
-                  key: ValueKey(
-                    'venta-${VentasStates.indexSelected - _indexResta}-${VentasStates.count}',
+                          )
+                          : const SizedBox(),
+                    ],
                   ),
-                  index: VentasStates.indexSelected,
-                  rebuild: rebuildAndClean,
-                ),
+                  KeyedSubtree(
+                    key: ValueKey<int>(VentasStates.indexSelected),
+                    child: VentaForm(
+                      key: ValueKey(
+                        'venta-${VentasStates.indexSelected - _indexResta}-${VentasStates.count}',
+                      ),
+                      index: VentasStates.indexSelected,
+                      rebuild: rebuildAndClean,
+                    ),
+                  ),
+                ],
               )
               : const AdvertenciaSucursal(),
-        ],
-      ),
     );
   }
 
@@ -513,8 +517,8 @@ class Pestania extends StatelessWidget {
 
   void _mostrarMenu(BuildContext context, Offset offset) async {
     final seleccion = await showMenu(
-          useRootNavigator: true,
-          surfaceTintColor: Colors.transparent,
+      useRootNavigator: true,
+      surfaceTintColor: Colors.transparent,
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,

@@ -6,7 +6,7 @@ import 'package:pbstation_frontend/models/usuarios.dart';
 import 'package:pbstation_frontend/services/auth_service.dart';
 
 class Login {
-  final String _baseUrl = 'http:${Constantes.baseUrl}login';
+  final String _baseUrl = '${Constantes.baseUrl}login';
   static late Usuarios usuarioLogeado;
   bool isLoading = false;
 

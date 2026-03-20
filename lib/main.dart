@@ -18,7 +18,21 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'dart:io';
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // Solo aceptamos si es nuestro host conocido (útil para PC vieja sin CAs de Let's Encrypt actualizadas)
+        return host == 'api.theprinterboy.com';
+      };
+  }
+}
+
 void main() async {
+  HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializa en paralelo (OPTIMIZACIÓN SEGURA)

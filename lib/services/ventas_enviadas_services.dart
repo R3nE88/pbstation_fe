@@ -8,7 +8,7 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class VentasEnviadasServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}ventas_enviadas/';
+  final String _baseUrl = '${Constantes.baseUrl}ventas_enviadas/';
   List<VentasEnviadas> ventas = [];
   bool isLoading = false;
   bool loaded = false;

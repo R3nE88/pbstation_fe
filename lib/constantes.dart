@@ -31,7 +31,9 @@ enum Estado {
 
 class Constantes {
   static final String baseUrl =
-      Env.debug ? '//127.0.0.1:8000/' : '//api.theprinterboy.com/';
+      Env.debug ? 'http://127.0.0.1:8000/' : 'https://api.theprinterboy.com/';
+  static final String wsUrl =
+      Env.debug ? 'ws://127.0.0.1:8000/ws' : 'wss://api.theprinterboy.com/ws';
   static const double anchoMaximo =
       25; //TODO: Agregar esto a ajustes y mover a configuracion
   static const double altoMaximo =

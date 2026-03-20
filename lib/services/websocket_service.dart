@@ -69,7 +69,7 @@ class WebSocketService with ChangeNotifier {
 
   /// Construye la URL del WebSocket con o sin sucursal
   String _buildSocketUrl() {
-    String baseUrl = 'ws:${Constantes.baseUrl}ws';
+    String baseUrl = Constantes.wsUrl;
 
     String? sucursalId = SucursalesServices.sucursalActualID;
 

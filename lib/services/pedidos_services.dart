@@ -11,7 +11,7 @@ import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:pbstation_frontend/constantes.dart';
 
 class PedidosService extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}pedidos/';
+  final String _baseUrl = '${Constantes.baseUrl}pedidos/';
   bool isLoading = false;
   bool loaded = false;
   double uploadProgress = 0.0;

@@ -7,7 +7,7 @@ import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ProductosServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}productos/';
+  final String _baseUrl = '${Constantes.baseUrl}productos/';
   List<Productos> productos = [];
   List<Productos> filteredProductos = [];
   Map<String, Productos> _productosPorId = {};

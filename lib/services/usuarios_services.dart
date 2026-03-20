@@ -7,7 +7,7 @@ import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class UsuariosServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}usuarios/';
+  final String _baseUrl = '${Constantes.baseUrl}usuarios/';
   List<Usuarios> usuarios = [];
   List<Usuarios> filteredUsuarios = [];
   late Map<String, Usuarios> _usuarioPorId;

@@ -7,7 +7,7 @@ import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ClientesServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}clientes/';
+  final String _baseUrl = '${Constantes.baseUrl}clientes/';
   List<Clientes> clientes = [];
   List<Clientes> filteredClientes = [];
   List<Clientes> clientesConAdeudo = [];

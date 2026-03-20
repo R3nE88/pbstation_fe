@@ -165,6 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildInitialLoadingState(bool sucursalError) {
+    final config = Provider.of<Configuracion>(context, listen: false);
+
     if (sucursalError) {
       return const Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -180,6 +182,52 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           SizedBox(height: 70),
+        ],
+      );
+    }
+
+    // Mostrar error de conexión con detalles para diagnóstico
+    if (config.errorMessage != null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.wifi_off_rounded, color: Colors.amber, size: 48),
+          const SizedBox(height: 16),
+          const Text(
+            'No se pudo conectar',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            config.errorMessage!,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Colors.amber,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          const SelectableText(
+            'Revise el archivo diagnostico.log en su carpeta de Descargas o Documentos',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => config.reintentar(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 70),
         ],
       );
     }

@@ -9,7 +9,7 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class VentasServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}ventas/';
+  final String _baseUrl = '${Constantes.baseUrl}ventas/';
   List<Ventas> ventasDeCaja = [];
   List<Ventas> ventasDeCorteActual = [];
   List<Ventas> ventasConDeuda = [];

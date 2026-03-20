@@ -7,10 +7,11 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/env.dart';
 import 'package:pbstation_frontend/models/models.dart';
+import 'package:pbstation_frontend/services/configuracion.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class SucursalesServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}sucursales/';
+  final String _baseUrl = '${Constantes.baseUrl}sucursales/';
   List<Sucursales> sucursales = [];
   Sucursales? sucursalActual;
   static String? sucursalActualID;
@@ -45,8 +46,11 @@ class SucursalesServices extends ChangeNotifier {
       final String fileName = Env.debug ? 'config_debug' : 'config';
       final file = File('${directory.path}/$fileName.json');
 
+      await Configuracion.logDiagnosticoStatic('SucursalesServices: Buscando config en: ${file.path}');
+
       if (!await file.exists()) {
         sucursalError = true;
+        await Configuracion.logDiagnosticoStatic('SucursalesServices: ERROR - config.json NO existe');
         notifyListeners();
         if (kDebugMode) {
           print('⚠️ El archivo config.json no existe.');
@@ -59,13 +63,16 @@ class SucursalesServices extends ChangeNotifier {
 
       if (config.containsKey('sucursal')) {
         sucursalActualID = config['sucursal'].toString();
+        await Configuracion.logDiagnosticoStatic('SucursalesServices: sucursal=$sucursalActualID');
         loadSucursales();
       } else {
+        await Configuracion.logDiagnosticoStatic('SucursalesServices: campo "sucursal" no existe en config.json');
         if (kDebugMode) {
           print('⚠️ El campo "sucursal" no existe en el JSON.');
         }
       }
     } catch (e) {
+      await Configuracion.logDiagnosticoStatic('SucursalesServices: ERROR - $e');
       if (kDebugMode) {
         print('❌ Error al leer sucursal: $e');
       }

@@ -8,7 +8,7 @@ import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CajasServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}cajas/';
+  final String _baseUrl = '${Constantes.baseUrl}cajas/';
   static Cajas? cajaActual;
   static String? cajaActualId;
   bool forLogininit = false;

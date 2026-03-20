@@ -8,8 +8,8 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class ImpresorasServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}impresoras/';
-  final String _baseUrlContador = 'http:${Constantes.baseUrl}contadores/';
+  final String _baseUrl = '${Constantes.baseUrl}impresoras/';
+  final String _baseUrlContador = '${Constantes.baseUrl}contadores/';
   List<Impresoras> impresoras = [];
   Map<String, Contadores?> ultimosContadores = {};
   bool ultimosContadoresLoaded = false;

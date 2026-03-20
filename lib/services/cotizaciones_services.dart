@@ -9,7 +9,7 @@ import 'package:pbstation_frontend/services/websocket_service.dart';
 import 'package:provider/provider.dart';
 
 class CotizacionesServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}cotizaciones/';
+  final String _baseUrl = '${Constantes.baseUrl}cotizaciones/';
   List<Cotizaciones> cotizaciones = [];
   List<Cotizaciones> filteredCotizaciones = [];
   List<Cotizaciones> vencidas = [];

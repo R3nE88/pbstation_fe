@@ -89,6 +89,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   late TextEditingController _controller;
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
+  final ScrollController _dropdownScrollController = ScrollController();
 
   // Estado
   List<T> _filteredOptions = [];
@@ -154,6 +155,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _controller.dispose();
+    _dropdownScrollController.dispose();
     super.dispose();
   }
 
@@ -206,6 +208,14 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
   void _handleFocusLost() {
     _removeOverlay();
 
+    // Si ya hay un item seleccionado y el texto coincide, no hacer nada
+    if (_selectedItem != null &&
+        _controller.text.trim() ==
+            widget.displayStringForOption(_selectedItem!)) {
+      if (mounted) setState(() {});
+      return;
+    }
+
     final currentText = _controller.text.trim();
 
     // Verificar si el texto actual corresponde a un item válido
@@ -213,7 +223,9 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
     if (currentText.isNotEmpty) {
       try {
         matchingItem = widget.items.firstWhere(
-          (item) => widget.displayStringForOption(item) == currentText,
+          (item) =>
+              widget.displayStringForOption(item).trim().toLowerCase() ==
+              currentText.toLowerCase(),
         );
       } catch (_) {
         // No se encontró coincidencia exacta
@@ -223,9 +235,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
 
     if (matchingItem != null) {
       // El texto coincide con un item válido - seleccionarlo
-      if (_selectedItem != matchingItem) {
-        _selectItem(matchingItem);
-      }
+      _selectItem(matchingItem);
     } else {
       // El texto NO coincide con ningún item - limpiar todo
       _controller.clear();
@@ -280,21 +290,49 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
     });
   }
 
+  /// Calcula un score de relevancia para ordenar resultados.
+  /// Menor score = mayor prioridad.
+  int _scoreItem(T item, String queryLower) {
+    final primary = widget.displayStringForOption(item).toLowerCase();
+    final secondary =
+        widget.secondaryDisplayStringForOption
+            ?.call(item)
+            .toLowerCase() ??
+        '';
+
+    // Coincidencia exacta en código/secundario (máxima prioridad)
+    if (secondary == queryLower) return 0;
+    // Coincidencia exacta en nombre/primario
+    if (primary == queryLower) return 1;
+    // Código empieza con la búsqueda
+    if (secondary.startsWith(queryLower)) return 2;
+    // Nombre empieza con la búsqueda
+    if (primary.startsWith(queryLower)) return 3;
+    // Código contiene la búsqueda
+    if (secondary.contains(queryLower)) return 4;
+    // Nombre contiene la búsqueda
+    if (primary.contains(queryLower)) return 5;
+    // No coincide
+    return -1;
+  }
+
   void _filterItems(String query) {
     if (!mounted) return;
 
     final queryLower = query.toLowerCase();
 
-    _filteredOptions =
-        widget.items.where((item) {
-          final primary = widget.displayStringForOption(item).toLowerCase();
-          final secondary =
-              widget.secondaryDisplayStringForOption
-                  ?.call(item)
-                  .toLowerCase() ??
-              '';
-          return primary.contains(queryLower) || secondary.contains(queryLower);
-        }).toList();
+    // Filtrar y puntuar en una sola pasada
+    final scored = <MapEntry<T, int>>[];
+    for (final item in widget.items) {
+      final score = _scoreItem(item, queryLower);
+      if (score >= 0) {
+        scored.add(MapEntry(item, score));
+      }
+    }
+
+    // Ordenar por score (menor = mejor)
+    scored.sort((a, b) => a.value.compareTo(b.value));
+    _filteredOptions = scored.map((e) => e.key).toList();
 
     _highlightedIndex = 0;
 
@@ -338,6 +376,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
             _highlightedIndex =
                 (_highlightedIndex + 1) % _filteredOptions.length;
           });
+          _scrollToHighlighted();
           _updateOverlay();
         }
         return KeyEventResult.handled;
@@ -349,6 +388,7 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
                 (_highlightedIndex - 1 + _filteredOptions.length) %
                 _filteredOptions.length;
           });
+          _scrollToHighlighted();
           _updateOverlay();
         }
         return KeyEventResult.handled;
@@ -444,6 +484,28 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
     );
   }
 
+  void _scrollToHighlighted() {
+    if (!_dropdownScrollController.hasClients) return;
+    final targetOffset = _highlightedIndex * 44.0;
+    final viewportHeight = widget.maxVisibleItems * 44.0;
+    final currentOffset = _dropdownScrollController.offset;
+
+    // Solo hacer scroll si el item no es visible
+    if (targetOffset < currentOffset) {
+      _dropdownScrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+      );
+    } else if (targetOffset + 44.0 > currentOffset + viewportHeight) {
+      _dropdownScrollController.animateTo(
+        targetOffset + 44.0 - viewportHeight,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   Widget _buildOptionsList() {
     final visibleCount =
         _filteredOptions.length > widget.maxVisibleItems
@@ -451,10 +513,11 @@ class _BusquedaFieldState<T extends Object> extends State<BusquedaField<T>> {
             : _filteredOptions.length;
 
     return SizedBox(
-      height: visibleCount * 44.0, // Altura fija por item
+      height: visibleCount * 44.0,
       child: ListView.builder(
+        controller: _dropdownScrollController,
         padding: EdgeInsets.zero,
-        itemExtent: 44.0, // Mejora rendimiento con altura fija
+        itemExtent: 44.0,
         itemCount: _filteredOptions.length,
         itemBuilder: (context, index) => _buildOptionItem(index),
       ),

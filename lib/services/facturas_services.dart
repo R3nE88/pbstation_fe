@@ -7,7 +7,7 @@ import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:pbstation_frontend/services/websocket_service.dart';
 
 class FacturasServices extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}facturacion/';
+  final String _baseUrl = '${Constantes.baseUrl}facturacion/';
   //List<Facturas> facturas = [];
   bool isLoading = false;
 

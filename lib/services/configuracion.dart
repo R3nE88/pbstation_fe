@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -10,7 +11,7 @@ import 'package:pbstation_frontend/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Configuracion extends ChangeNotifier {
-  final String _baseUrl = 'http:${Constantes.baseUrl}configuracion/';
+  final String _baseUrl = '${Constantes.baseUrl}configuracion/';
   static late double dolar;
   static late int iva;
   static String lastVersion = '0.0.0';
@@ -23,17 +24,26 @@ class Configuracion extends ChangeNotifier {
   bool init = false;
   bool loaded = false;
   bool configLoaded = false;
+  String? errorMessage;
 
   Future<void> loadConfiguracion() async {
     init = true;
+    errorMessage = null;
 
     //Obtener dolar e iva.
     try {
       final url = Uri.parse(_baseUrl);
+      await _logDiagnostico('Intentando conectar a: $url');
       final resp = await http.get(
         url,
         headers: {...AuthService.getAuthHeaders()},
-      );
+      ).timeout(const Duration(seconds: 10));
+      await _logDiagnostico('Respuesta recibida: ${resp.statusCode}');
+      
+      if (resp.statusCode != 200) {
+        throw Exception('Servidor respondio con HTTP ${resp.statusCode}');
+      }
+      
       final archivo = json.decode(resp.body);
       dolar = (archivo['precio_dolar'] as num).toDouble();
       iva = (archivo['iva'] as num).toInt();
@@ -44,11 +54,17 @@ class Configuracion extends ChangeNotifier {
         final directory = await getApplicationSupportDirectory();
         final String fileName = Env.debug ? 'config_debug' : 'config';
         final file = File('${directory.path}/$fileName.json');
+        await _logDiagnostico('Buscando config en: ${file.path}');
         if (!file.existsSync()) {
+          errorMessage = 'No se encontro config.json en: ${file.path}';
+          await _logDiagnostico('ERROR: $errorMessage');
+          init = false;
           loaded = false;
+          notifyListeners();
           return;
         }
         final contents = await file.readAsString();
+        await _logDiagnostico('config.json leido: $contents');
         final archivo = jsonDecode(contents);
         try {
           esCaja = archivo['es_caja'];
@@ -58,20 +74,60 @@ class Configuracion extends ChangeNotifier {
           size = prefs.getString('selectedSize') ?? '58mm';
           final String? mc = prefs.getString('memory_corte');
           memoryCorte = mc != null ? Cortes.fromJson(mc) : null;
-          //impresora = archivo['impresora'];
         } catch (e) {
+          errorMessage = 'Error leyendo config.json: $e';
+          await _logDiagnostico('ERROR: $errorMessage');
+          init = false;
           loaded = false;
+          notifyListeners();
           return;
         }
         configLoaded = true;
       }
+      await _logDiagnostico('Configuracion cargada exitosamente');
       loaded = true;
       notifyListeners();
+    } on TimeoutException {
+      errorMessage = 'Timeout: No se pudo conectar a $_baseUrl en 10s';
+      await _logDiagnostico('ERROR: $errorMessage');
+      init = false;
+      notifyListeners();
     } catch (e) {
+      errorMessage = 'Error de conexion: $e';
+      await _logDiagnostico('ERROR: $errorMessage');
+      init = false;
+      notifyListeners();
       if (kDebugMode) {
         print(e);
       }
     }
+  }
+
+  /// Escribe un mensaje de diagnóstico en un archivo log
+  Future<void> _logDiagnostico(String mensaje) async {
+    await logDiagnosticoStatic(mensaje);
+  }
+
+  /// Versión estática para uso desde otros servicios
+  static Future<void> logDiagnosticoStatic(String mensaje) async {
+    try {
+      final directory = await getDownloadsDirectory();
+      final logPath = directory?.path ?? (await getApplicationDocumentsDirectory()).path;
+      final logFile = File('$logPath/diagnostico.log');
+      final timestamp = DateTime.now().toIso8601String();
+      await logFile.writeAsString(
+        '[$timestamp] $mensaje\n',
+        mode: FileMode.append,
+      );
+    } catch (_) {}
+  }
+
+  /// Reintentar la carga de configuracion
+  void reintentar() {
+    init = false;
+    loaded = false;
+    errorMessage = null;
+    notifyListeners();
   }
 
   /// Actualiza el precio del dólar
