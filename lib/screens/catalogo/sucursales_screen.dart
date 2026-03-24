@@ -347,7 +347,8 @@ class FilaSucursales extends StatelessWidget {
                   ),
             );
           }
-        } else if (seleccion == 'desvincular') {
+        }
+        if (seleccion == 'desvincular') {
           // Lógica para desasingar
           if (CajasServices.cajaActual == null) {
             //Si no hay caja abierta
@@ -383,6 +384,8 @@ class FilaSucursales extends StatelessWidget {
                   ),
             );
           }
+        }
+        if (seleccion == 'editar') {
           // Lógica para editar
           if (!context.mounted) {
             return;
@@ -404,7 +407,8 @@ class FilaSucursales extends StatelessWidget {
                   ),
             );
           }
-        } else if (seleccion == 'eliminar') {
+        }
+        if (seleccion == 'eliminar') {
           // Lógica para eliminar
           if (!context.mounted) {
             return;

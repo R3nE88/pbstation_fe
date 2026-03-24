@@ -35,7 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     final modProv = context.read<ModulosProvider>();
-    _pageController = PageController(initialPage: modProv.subModuloSeleccionado);
+    _pageController = PageController(
+      initialPage: modProv.subModuloSeleccionado,
+    );
     _ultimaPaginaNavegada = modProv.subModuloSeleccionado;
 
     // Escuchar cambios del provider
@@ -54,19 +56,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onModuloChanged() {
     if (_navegacionEnProgreso) return; // Evitar navegaciones simultáneas
-    
+
     final modProv = context.read<ModulosProvider>();
     final nuevaPagina = modProv.subModuloSeleccionado;
-    
+
     // Solo navegar si realmente cambió y el controller está listo
-    if (_pageController.hasClients && 
+    if (_pageController.hasClients &&
         nuevaPagina != _ultimaPaginaNavegada &&
         nuevaPagina >= 0 &&
         nuevaPagina < modProv.subModulosActuales.length) {
-      
       _navegacionEnProgreso = true;
       _ultimaPaginaNavegada = nuevaPagina;
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_pageController.hasClients) {
           _pageController.jumpToPage(nuevaPagina);
@@ -95,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!HomeState.init) {
       HomeState.init = true;
       appWindow.minSize = const Size(1024, 720);
-      appWindow.maxSize = const Size(1920, 1080);
+      appWindow.maxSize = const Size(4096, 4096);
       appWindow.maximize();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         appWindow.maximize();
@@ -104,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final modProv = context.watch<ModulosProvider>();
     final height = MediaQuery.of(context).size.height - barraHeight;
-    
+
     final subModulos = modProv.subModulosActuales;
     final screens = subModulos.map((sub) => sub.pantalla).toList();
 
@@ -126,45 +127,48 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 30),
-                      child: screens.isNotEmpty
-                          ? PageView.builder(
-                              controller: _pageController,
-                              physics: const NeverScrollableScrollPhysics(),
-                              onPageChanged: (index) {
+                        vertical: 10,
+                        horizontal: 30,
+                      ),
+                      child:
+                          screens.isNotEmpty
+                              ? PageView.builder(
+                                controller: _pageController,
+                                physics: const NeverScrollableScrollPhysics(),
+                                onPageChanged: (index) {
+                                  if (!_navegacionEnProgreso &&
+                                      modProv.subModuloSeleccionado != index) {
+                                    _navegacionEnProgreso = true;
+                                    _ultimaPaginaNavegada = index;
 
-                                if (!_navegacionEnProgreso && 
-                                    modProv.subModuloSeleccionado != index) {
-                                  _navegacionEnProgreso = true;
-                                  _ultimaPaginaNavegada = index;
-                                  
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    modProv.seleccionarSubModulo(index);
-                                    _navegacionEnProgreso = false;
-                                  });
-                                }
-                              },
-                              itemCount: screens.length,
-                              itemBuilder: (context, index) {
-                                return screens[index];
-                              },
-                            )
-                          : Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
-                                    textScaler: TextScaler.linear(1.5),
-                                    style: TextStyle(
-                                      color: AppTheme.colorContraste
-                                          .withAlpha(150),
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          modProv.seleccionarSubModulo(index);
+                                          _navegacionEnProgreso = false;
+                                        });
+                                  }
+                                },
+                                itemCount: screens.length,
+                                itemBuilder: (context, index) {
+                                  return screens[index];
+                                },
+                              )
+                              : Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '¡Bienvenido a PrinterBoy Punto De Venta!\n¿Qué haremos hoy?',
+                                      textScaler: TextScaler.linear(1.5),
+                                      style: TextStyle(
+                                        color: AppTheme.colorContraste
+                                            .withAlpha(150),
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
                     ),
                   ),
                 ],
@@ -175,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SideMenuRight(height: height + 1),
             UsuarioOverlay(),
             ConnectionOverlay(),
-            LoadingOverlay()
+            LoadingOverlay(),
           ],
         );
       },
@@ -184,9 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class UsuarioOverlay extends StatelessWidget {
-  const UsuarioOverlay({
-    super.key,
-  });
+  const UsuarioOverlay({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -227,9 +229,7 @@ class UsuarioOverlay extends StatelessWidget {
                   ),
                   Text(
                     Login.usuarioLogeado.nombre,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ],
               ),

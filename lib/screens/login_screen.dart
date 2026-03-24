@@ -241,41 +241,16 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     final providers = [
-      () =>
-          Provider.of<CajasServices>(context, listen: false).loadCortesDeCaja(),
-      () =>
-          Provider.of<ClientesServices>(context, listen: false).loadClientes(),
-      () =>
-          Provider.of<CotizacionesServices>(
-            context,
-            listen: false,
-          ).loadCotizaciones(),
-      () => Provider.of<ImpresorasServices>(
-        context,
-        listen: false,
-      ).loadImpresoras(true),
-      () =>
-          Provider.of<ProductosServices>(
-            context,
-            listen: false,
-          ).loadProductos(),
-      () =>
-          Provider.of<UsuariosServices>(context, listen: false).loadUsuarios(),
-      () =>
-          Provider.of<VentasEnviadasServices>(
-            context,
-            listen: false,
-          ).ventasRecibidas(),
-      () =>
-          Provider.of<VentasServices>(
-            context,
-            listen: false,
-          ).loadVentasDeCaja(),
-      () =>
-          Provider.of<VentasServices>(
-            context,
-            listen: false,
-          ).loadVentasDeCorteActual(),
+      () => Provider.of<CajasServices>(context, listen: false).loadCortesDeCaja(),
+      () => Provider.of<ClientesServices>(context, listen: false).loadClientes(),
+      () => Provider.of<CotizacionesServices>(context, listen: false).loadCotizaciones(),
+      () => Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true),
+      () => Provider.of<ProductosServices>( context, listen: false, ).loadProductos(),
+      () => Provider.of<UsuariosServices>(context, listen: false).loadUsuarios(),
+      () => Provider.of<SucursalesServices>(context, listen: false).loadSucursales(),
+      () => Provider.of<VentasEnviadasServices>(context, listen: false).ventasRecibidas(),
+      () => Provider.of<VentasServices>(context, listen: false).loadVentasDeCaja(),
+      () => Provider.of<VentasServices>(context, listen: false).loadVentasDeCorteActual(),
       () => Provider.of<PedidosService>(context, listen: false).loadPedidos(),
     ];
 

@@ -78,7 +78,7 @@ class _PedidosScreenState extends State<PedidosScreen> {
           helpIcon ?
             Login.usuarioLogeado.rol == TipoUsuario.vendedor && (Login.usuarioLogeado.permisos.nivel==1 || Login.usuarioLogeado.permisos.nivel==2) ?
              Text(
-              Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(SucursalesServices.sucursalActualID!),
+              SucursalesServices.sucursalActualID != null ? Provider.of<SucursalesServices>(context, listen: false).obtenerNombreSucursalPorId(SucursalesServices.sucursalActualID!) : 'Sin sucursal',
               style: AppTheme.tituloClaro,
               textScaler: const  TextScaler.linear(1.3),
             ) : const SizedBox()

@@ -183,9 +183,9 @@ class FilaPedidosHistorial extends StatefulWidget {
 }
 
 class _FilaPedidosHistorialState extends State<FilaPedidosHistorial> {
-  late final fechaDT = DateTime.parse(widget.pedido.fechaEntregado!);
-  late final fecha = DateFormat('d MMM hh:mm a', 'es_MX').format(fechaDT);
-  late final fechaDia = DateFormat('EEEE', 'es_MX').format(fechaDT);
+  late final DateTime? fechaDT = widget.pedido.fechaEntregado!=null ? DateTime.parse(widget.pedido.fechaEntregado!) : null;
+  late final String fecha = fechaDT!=null ? DateFormat('d MMM hh:mm a', 'es_MX').format(fechaDT!) : '';
+  late final String fechaDia = fechaDT!=null ? DateFormat('EEEE', 'es_MX').format(fechaDT!) : '';
   late final String cliente = Provider.of<ClientesServices>(context, listen: false).obtenerNombreClientePorId(widget.pedido.clienteId);
   late final String usuario = Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioId);
   late final String usuarioEntrego = widget.pedido.usuarioIdEntrego!=null ? Provider.of<UsuariosServices>(context, listen: false).obtenerNombreUsuarioPorId(widget.pedido.usuarioIdEntrego!) : '';

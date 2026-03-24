@@ -590,12 +590,13 @@ class _VentaDialogState extends State<VentaDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
 
-                    Configuracion.esCaja ?
+                    Configuracion.esCaja && Login.usuarioLogeado.rol == TipoUsuario.vendedor && CajasServices.cajaActual != null ?
+                    
                     Padding(
                       padding: const EdgeInsets.only(right: 25),
                       child: ElevatedButton(
                         onPressed: (){
-                          
+
                           // Lógica para pagar
                           if(!context.mounted) return; 
                           showDialog(
@@ -618,6 +619,7 @@ class _VentaDialogState extends State<VentaDialog> {
                             if(!context.mounted){ return; }
                             Navigator.pop(context);
                           });
+
                         }, child: const Text('Pagar')
                       ),
                     ) : const SizedBox(),

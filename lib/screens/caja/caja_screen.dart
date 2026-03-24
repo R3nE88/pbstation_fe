@@ -309,11 +309,17 @@ class _HeaderState extends State<_Header> {
                                 text: usuarioAbrio,
                                 style: AppTheme.tituloClaro,
                               ),
+                              const TextSpan(text: ' el dia'),
+                              TextSpan(
+                                text: ' ${fechaCaja.day.toString()}',
+                                style: AppTheme.tituloClaro,
+                              ),
                               const TextSpan(text: ' a las '),
                               TextSpan(
                                 text: horaAper,
                                 style: AppTheme.tituloClaro,
                               ),
+                              
                             ],
                           ),
                         ),
@@ -329,11 +335,17 @@ class _HeaderState extends State<_Header> {
                                   text: usuarioCerro,
                                   style: AppTheme.tituloClaro,
                                 ),
+                                const TextSpan(text: ' el dia'),
+                                TextSpan(
+                                  text: ' ${fechaCie?.day.toString()}',
+                                  style: AppTheme.tituloClaro,
+                                ),
                                 const TextSpan(text: ' a las '),
                                 TextSpan(
                                   text: horaCie,
                                   style: AppTheme.tituloClaro,
                                 ),
+                                
                               ],
                             ),
                           )
@@ -431,6 +443,11 @@ class _HeaderState extends State<_Header> {
                                 text: usuarioAbrio,
                                 style: AppTheme.tituloClaro,
                               ),
+                              const TextSpan(text: ' el dia'),
+                              TextSpan(
+                                text: ' ${fechaCaja.day.toString()}',
+                                style: AppTheme.tituloClaro,
+                              ),
                               const TextSpan(text: ' a las '),
                               TextSpan(
                                 text: horaAper,
@@ -449,6 +466,11 @@ class _HeaderState extends State<_Header> {
                                 const TextSpan(text: 'Cerrado por '),
                                 TextSpan(
                                   text: usuarioCerro,
+                                  style: AppTheme.tituloClaro,
+                                ),
+                                const TextSpan(text: ' el dia'),
+                                TextSpan(
+                                  text: ' ${fechaCie?.day.toString()}',
                                   style: AppTheme.tituloClaro,
                                 ),
                                 const TextSpan(text: ' a las '),

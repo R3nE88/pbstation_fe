@@ -483,12 +483,13 @@ class _PedidosDialogState extends State<PedidosDialog> {
                           )
                     ],
                   )
-                  : ElevatedButtonIcon(
-                    onPressed: (){
-                      if(!context.mounted){ return; }
-                      showDialog(
-                        context: context,
-                        builder: (_) => Stack(
+                  : Login.usuarioLogeado.rol == TipoUsuario.vendedor ?
+                      ElevatedButtonIcon(
+                      onPressed: (){
+                        if(!context.mounted){ return; }
+                        showDialog(
+                          context: context,
+                          builder: (_) => Stack(
                           alignment: Alignment.topRight,
                           children: [
                             PedidosSubirArchivoForm(pedidoId: widget.pedido.id!),
@@ -499,10 +500,10 @@ class _PedidosDialogState extends State<PedidosDialog> {
                     }, 
                     icon: Icons.upload,
                     text: 'Subir archivos y mandar a produccion',
-                  ),
+                  ) : const SizedBox(),
 
                 if (widget.pedido.archivos.isNotEmpty)
-                  if (venta.liquidado)
+                  if (venta.liquidado && Login.usuarioLogeado.rol == TipoUsuario.vendedor)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -618,13 +619,15 @@ class FilaDetalles extends StatelessWidget {
   Widget build(BuildContext context) {
     final producto = Provider.of<ProductosServices>(context, listen: false).obtenerProductoPorId(detalle.productoId);
     String? productoDescripcion;
-    String? medida;
-    if (producto==null) productoDescripcion = 'problema al obtener producto...';
-    
-    if (producto!.requiereMedida){
+    String? medida;    
+    if (producto?.requiereMedida ?? false){
       medida = '${detalle.ancho.toString()}m x ${detalle.alto.toString()}m';
     }
-    productoDescripcion = producto.descripcion;
+    if (producto==null) {
+      productoDescripcion = 'No se encontro el producto...';
+    } else {
+      productoDescripcion = producto.descripcion;
+    }
     if (medida!=null){
       productoDescripcion += ' ($medida)';
     }
