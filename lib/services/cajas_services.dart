@@ -29,6 +29,9 @@ class CajasServices extends ChangeNotifier {
   bool historialIsLoading = false;
   String? historialError;
   String? sucursalFiltroHistorial;
+  String? fechaInicioFiltroHistorial;
+  String? fechaFinFiltroHistorial;
+  String? folioFiltroHistorial;
 
   bool isLoadingHistorial = false;
   static Cajas? cajaHistorial;
@@ -343,6 +346,9 @@ class CajasServices extends ChangeNotifier {
     int page = 1,
     int pageSize = 60,
     String? sucursalId,
+    String? fechaInicio,
+    String? fechaFin,
+    String? folio,
     bool append = false,
   }) async {
     if (historialIsLoading) return;
@@ -363,6 +369,12 @@ class CajasServices extends ChangeNotifier {
         'page_size': pageSize.toString(),
         if (sucursalId != null && sucursalId.isNotEmpty)
           'sucursal_id': sucursalId,
+        if (fechaInicio != null && fechaInicio.isNotEmpty)
+          'fecha_inicio': fechaInicio,
+        if (fechaFin != null && fechaFin.isNotEmpty)
+          'fecha_fin': fechaFin,
+        if (folio != null && folio.isNotEmpty)
+          'folio': folio,
       };
 
       final url = Uri.parse(
@@ -396,6 +408,9 @@ class CajasServices extends ChangeNotifier {
         // Guardar info de paginación
         paginacionHistorial = PaginacionInfo.fromJson(data['pagination']);
         sucursalFiltroHistorial = sucursalId;
+        fechaInicioFiltroHistorial = fechaInicio;
+        fechaFinFiltroHistorial = fechaFin;
+        folioFiltroHistorial = folio;
       } else {
         historialError = 'Error al cargar cajas: ${resp.statusCode}';
       }
@@ -416,6 +431,9 @@ class CajasServices extends ChangeNotifier {
         page: paginacionHistorial!.page + 1,
         pageSize: paginacionHistorial!.pageSize,
         sucursalId: sucursalFiltroHistorial,
+        fechaInicio: fechaInicioFiltroHistorial,
+        fechaFin: fechaFinFiltroHistorial,
+        folio: folioFiltroHistorial,
         append: true,
       );
     }

@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/search_fields_estaticos.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/screens/caja/dialog/venta_dialog.dart';
+import 'package:pbstation_frontend/services/login.dart';
 import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
@@ -24,6 +26,8 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
   int duracion = 600;//-
+  String? _sucursalSeleccionada;
+  bool _isAdmin = false;
 
 
 
@@ -31,13 +35,22 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
   void initState() {
     super.initState();
     duracion = 100;//-
+    
+    if (Login.usuarioLogeado.permisos == Permiso.admin || Login.usuarioLogeado.rol == TipoUsuario.administrativo) {
+      _sucursalSeleccionada = null;
+      _isAdmin = true;
+    } else {
+      _sucursalSeleccionada = SucursalesServices.sucursalActualID;
+      _isAdmin = false;
+    }
+
     final clientesConAdeudo = Provider.of<ClientesServices>(context, listen:false).loadAdeudos();
     final ventasSvc = Provider.of<VentasServices>(context, listen:false);
     
     ventasSvc.adeudoLoading = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ventasSvc.loadAdeudos(clientesConAdeudo, SucursalesServices.sucursalActualID);
+      ventasSvc.loadAdeudos(clientesConAdeudo, _sucursalSeleccionada);
     });
 
     _searchController.addListener(() {
@@ -52,6 +65,16 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
     //SearchField from otra parte //-
     if (SearchFieldStatics.adeudoSearchText.isNotEmpty){
        _searchController.text = SearchFieldStatics.adeudoSearchText;
+    }
+  }
+
+  void _cargarAdeudosPorSucursal() async {
+    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+    final clientesSvc = Provider.of<ClientesServices>(context, listen: false);
+    
+    await ventasSvc.loadAdeudos(clientesSvc.clientesConAdeudo, _sucursalSeleccionada);
+    if (_searchController.text.isNotEmpty) {
+      ventasSvc.filtrarDeudas(_searchController.text);
     }
   }
 
@@ -83,7 +106,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
 
   Widget _buildHeader(BuildContext context) {
     String? sucursal;
-    if (SucursalesServices.sucursalActualID!=null){
+    if (!_isAdmin && SucursalesServices.sucursalActualID != null) {
       sucursal = Provider.of<SucursalesServices>(context, listen:false).obtenerNombreSucursalPorId(SucursalesServices.sucursalActualID!);
     }
      
@@ -98,23 +121,66 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
               style: AppTheme.tituloClaro,
               textScaler: TextScaler.linear(1.7),
             ),
-            Text(
-              sucursal ?? '',
-              style: AppTheme.labelStyle,
-              textScaler: const TextScaler.linear(1.2),
-            ),
+            if (!_isAdmin)
+              Text(
+                sucursal ?? '',
+                style: AppTheme.labelStyle,
+                textScaler: const TextScaler.linear(1.2),
+              ),
           ],
         ),
-        SizedBox(
-          height: 34,
-          width: 250,
-          child: TextFormField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search, color: AppTheme.letraClara),
-              hintText: 'Buscar por Folio',
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isAdmin)
+              Container(
+                width: 220,
+                margin: const EdgeInsets.only(right: 16),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: _sucursalSeleccionada,
+                  icon: const Icon(Icons.arrow_drop_down, color: AppTheme.letraClara),
+                  decoration: InputDecoration(
+                    iconColor: AppTheme.letraClara,
+                    isDense: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  hint: const Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      child: Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
+                    ),
+                    ...Provider.of<SucursalesServices>(context, listen: false).sucursales.map((sucursalItem) {
+                      return DropdownMenuItem<String>(
+                        value: sucursalItem.id,
+                        child: Text(sucursalItem.nombre, overflow: TextOverflow.ellipsis),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _sucursalSeleccionada = value;
+                    });
+                    _cargarAdeudosPorSucursal();
+                  },
+                ),
+              ),
+            SizedBox(
+              height: 34,
+              width: 250,
+              child: TextFormField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, color: AppTheme.letraClara),
+                  hintText: 'Buscar por Folio',
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
@@ -140,7 +206,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
                   const Expanded(child: Text('Fecha', textAlign: TextAlign.center)),
                   const Expanded(child: Text('Cliente', textAlign: TextAlign.center)),
                   const Expanded(child: Text('Atendio', textAlign: TextAlign.center)),
-                  Expanded(child: Text(SucursalesServices.sucursalActualID==null ? 'Sucursal' : 'Detalles', textAlign: TextAlign.center)),
+                  Expanded(child: Text(_sucursalSeleccionada == null ? 'Sucursal' : 'Detalles', textAlign: TextAlign.center)),
                   const Expanded(child: Text('Abonado', textAlign: TextAlign.center)),
                   const Expanded(child: Text('Deuda', textAlign: TextAlign.center)),
                   const Expanded(child: Text('Total', textAlign: TextAlign.center)),
@@ -156,6 +222,7 @@ class _AdeudosSCreenState extends State<AdeudosSCreen> {
                     return FilaDeuda(
                       deuda: servicios.ventasConDeudaFiltered[index],
                       index: index,
+                      sucursalSeleccionada: _sucursalSeleccionada,
                     );
                   } 
                 ),
@@ -193,10 +260,12 @@ class FilaDeuda extends StatelessWidget {
     super.key,
     required this.deuda,
     required this.index,
+    required this.sucursalSeleccionada,
   });
 
   final Ventas deuda;
   final int index;
+  final String? sucursalSeleccionada;
 
   @override
   Widget build(BuildContext context) {
@@ -252,7 +321,7 @@ class FilaDeuda extends StatelessWidget {
             Expanded(child: Text('$fechaDia\n$fecha', style: AppTheme.subtituloConstraste, textAlign: TextAlign.center, textScaler: const TextScaler.linear(0.9),)),
             Expanded(child: Text(mostrarCampo(cliente), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(mostrarCampo(usuario), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
-            Expanded(child: Text(SucursalesServices.sucursalActualID!=null ? detalles : sucursal, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
+            Expanded(child: Text(sucursalSeleccionada == null ? sucursal : detalles, style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(abonadoTotal.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(monto!=null ? monto.toDouble() : 0), style: AppTheme.warningStyle, textAlign: TextAlign.center)),
             Expanded(child: Text(Formatos.pesos.format(deuda.total.toDouble()), style: AppTheme.subtituloConstraste, textAlign: TextAlign.center)),

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
@@ -20,6 +22,12 @@ class HistorialDeCajas extends StatefulWidget {
 
 class _HistorialDeCajasState extends State<HistorialDeCajas> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _buscarController = TextEditingController();
+  Timer? _debounce;
+  String? _sucursalSeleccionada;
+  DateTimeRange? _rangoFechas;
+  bool _isAdmin = false;
+  
   bool _cajaScreen = false;
   Cajas? _cajaSelected;
 
@@ -29,9 +37,12 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
     String? sucursalId;
     if (Login.usuarioLogeado.permisos==Permiso.admin || Login.usuarioLogeado.rol == TipoUsuario.administrativo){
       sucursalId = null;
+      _isAdmin = true;
     } else {
       sucursalId = SucursalesServices.sucursalActualID;
+      _isAdmin = false;
     }
+    _sucursalSeleccionada = sucursalId;
 
     // Detectar scroll para cargar más
     _scrollController.addListener(_onScroll);
@@ -39,8 +50,36 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
     // Cargar primera página cuando se monta el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final cajasService = Provider.of<CajasServices>(context, listen: false);
-      cajasService.cargarHistorialCajas(sucursalId: sucursalId);
+      _cargarDatos();
+    });
+  }
+
+  void _cargarDatos({bool append = false}) {
+    final cajasService = Provider.of<CajasServices>(context, listen: false);
+    String? fechaInicio;
+    String? fechaFin;
+
+    if (_rangoFechas != null) {
+      fechaInicio = DateFormat('yyyy-MM-dd').format(_rangoFechas!.start);
+      fechaFin = DateFormat('yyyy-MM-dd').format(_rangoFechas!.end);
+    }
+
+    cajasService.cargarHistorialCajas(
+      sucursalId: _sucursalSeleccionada,
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin,
+      folio: _buscarController.text.trim().isNotEmpty ? _buscarController.text.trim() : null,
+      append: append,
+    );
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {});
+        _cargarDatos();
+      }
     });
   }
 
@@ -56,7 +95,190 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _buscarController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+  
+  Widget _buildFilterBar() {
+    final sucursalesService = Provider.of<SucursalesServices>(context, listen: false);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.tablaColorHeader, // Mismo color base para consistencia
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.only(bottom: 16, top: 4),
+      child: Row(
+        children: [
+
+          const Text('Filtrar   ', style: TextStyle(color: AppTheme.letra70, fontWeight: FontWeight.w500)),
+
+          // Búsqueda
+          Container(
+            height: 32,
+            constraints: const BoxConstraints(maxWidth: 205, minWidth: 190),
+            child: TextField(
+              controller: _buscarController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Buscar por folio...',
+                prefixIcon: const Icon(Icons.search, color: AppTheme.letraClara),
+                suffixIcon: _buscarController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 20, color: AppTheme.letraClara),
+                        onPressed: () {
+                          setState(() {
+                            _buscarController.clear();
+                          });
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          
+          // Filtro por Fecha
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: ElevatedButton(
+              onPressed: () async {
+                  List<DateTime?> tempDates = _rangoFechas != null 
+                      ? [_rangoFechas!.start, _rangoFechas!.end] 
+                      : [];
+                      
+                  final List<DateTime?>? picked = await showDialog<List<DateTime?>>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          AlertDialog(
+                            elevation: 6,
+                            shadowColor: Colors.black54,
+                            backgroundColor: AppTheme.containerColor1,
+                            shape: AppTheme.borde,
+                            content: SizedBox(
+                              width: MediaQuery.of(context).size.height * 0.5,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  textTheme: const TextTheme(
+                                    bodyMedium: TextStyle(color: Colors.white),
+                                  ),
+                                  colorScheme: ColorScheme.light(
+                                    primary: AppTheme.tablaColor2,
+                                    onSurface: Colors.white,
+                                  ),
+                                ),
+                                child: CalendarDatePicker2(
+                                  config: CalendarDatePicker2Config(
+                                    calendarType: CalendarDatePicker2Type.range,
+                                  ),
+                                  value: tempDates,
+                                  onValueChanged: (dates) {
+                                    if (dates.length == 2 && dates[0] != null && dates[1] != null) {
+                                      Navigator.pop(context, dates);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const WindowBar(overlay: true),
+                        ],
+                      );
+                    },
+                  );
+                  
+                  if (picked != null && picked.length == 2 && picked[0] != null && picked[1] != null) {
+                    final newRange = DateTimeRange(start: picked[0]!, end: picked[1]!);
+                    if (newRange != _rangoFechas) {
+                      setState(() {
+                        _rangoFechas = newRange;
+                      });
+                      _cargarDatos();
+                    }
+                  }
+                },
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today),
+                  const SizedBox(width: 8),
+                  Text(_rangoFechas == null
+                      ? 'Fechas'
+                      : '${DateFormat('dd/MM/yy').format(_rangoFechas!.start)} - ${DateFormat('dd/MM/yy').format(_rangoFechas!.end)}',
+                  ),
+                ],
+              )
+            ),
+          ),
+
+          // Filtro de Sucursal (Solo para Admin)
+          if (_isAdmin)
+            Container(
+              height: 34,
+              constraints: const BoxConstraints(maxWidth: 260, minWidth: 180, minHeight: 34, maxHeight: 34),
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _sucursalSeleccionada,
+                icon: const Icon(Icons.arrow_drop_down, color: AppTheme.letraClara),
+                decoration: InputDecoration(
+                  iconColor: AppTheme.letraClara,
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                hint: const Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
+                items: [
+                  const DropdownMenuItem<String>(
+                    child: Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
+                  ),
+                  ...sucursalesService.sucursales.map((sucursal) {
+                    return DropdownMenuItem<String>(
+                      value: sucursal.id,
+                      child: Text(sucursal.nombre, overflow: TextOverflow.ellipsis),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _sucursalSeleccionada = value;
+                  });
+                  _cargarDatos();
+                },
+              ),
+            ),
+
+          const Spacer(),
+
+          // Botón para limpiar filtros
+          if (_rangoFechas != null || _buscarController.text.isNotEmpty || (_isAdmin && _sucursalSeleccionada != null))
+            FeedBackButton(
+              onPressed: () {
+                setState(() {
+                  _buscarController.clear();
+                  _rangoFechas = null;
+                  if (_isAdmin) _sucursalSeleccionada = null;
+                });
+                _cargarDatos();
+              },
+              child: const Icon(Icons.clear, color: Colors.red),
+            ),
+        ],
+      ),
+    );
   }
   
   @override
@@ -92,61 +314,11 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
 
     return BodyPadding(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [ 
+          _buildFilterBar(),
 
-          /*const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-            children: [
-          
-              Tooltip( //TODO: en desarrollo
-                message: 'En desarrollo...',
-                verticalOffset: 10,
-                child: ElevatedButton(
-                  onPressed: (){
-                  }, 
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-3, 0),
-                        child: const Icon(
-                          Icons.search
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(3, -1),
-                        child: const Text('Buscar Caja'),
-                      ),
-                    ],
-                  )
-                ),
-              ),*/
-              
-              /*Tooltip( //TODO: en desarrollo
-                message: 'Proximamente podras filtrar por sucursales...',
-                child: ElevatedButton( //TODO: si no tengo sucursal activa, desactivar este filtro y siempre mostrar todas, y cambiar esto por un dropdownmenu
-                  onPressed: (){
-                  }, 
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-3, 0),
-                        child: const Icon(
-                          Icons.filter_list
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(3, -1),
-                        child: const Text('Mostrando de todas las sucursales'),
-                      ),
-                    ],
-                  )
-                ),
-              ),
-            ],
-          ),*/
+          const Separador(texto: 'Historial de cajas',),
 
           Expanded(
             child: Consumer<CajasServices>(
