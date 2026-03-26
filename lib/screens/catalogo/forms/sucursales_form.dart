@@ -178,7 +178,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                       flex: 4,
                       child: buildTextFormField(
                         controller: _controllers['nombre']!, 
-                        labelText: 'Nombre de la Sucursal',
+                        labelText: '* Nombre de la Sucursal',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,
@@ -190,7 +190,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                       flex: 2,
                       child: buildTextFormField(
                         controller: _controllers['telefono']!,
-                        labelText: 'Telefono 10 digitos',
+                        labelText: '* Telefono 10 digitos',
                         readOnly: _onlyRead,
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -205,7 +205,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['correo']!, 
-                        labelText: 'Correo Electronico',
+                        labelText: '* Correo Electronico',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,
@@ -216,7 +216,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['direccion']!, 
-                        labelText: 'Direccion de la Sucursal',
+                        labelText: '* Direccion de la Sucursal',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,
@@ -231,7 +231,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['ciudad']!, 
-                        labelText: 'Ciudad',
+                        labelText: '* Ciudad',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,
@@ -242,7 +242,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['estado']!, 
-                        labelText: 'Estado',
+                        labelText: '* Estado',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,
@@ -253,7 +253,7 @@ class _SucursalesFormDialogState extends State<SucursalesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['pais']!, 
-                        labelText: 'Pais',
+                        labelText: '* Pais',
                         autoFocus: !_onlyRead && widget.sucEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 30,

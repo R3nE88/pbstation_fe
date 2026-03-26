@@ -10,6 +10,7 @@ import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/mostrar_dialog_permiso.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/provider/loading_state.dart';
@@ -548,6 +549,10 @@ class _VentaFormState extends State<VentaForm> {
                 return CreandoPedido(pedido: pedido, files: archivos);
               },
             );
+
+            if (mounted) {
+              Ticket.imprimirTicketPedido(context, pedido, ventaFolio ?? '');
+            }
           } else {
             //ya una vez pagado y con pedido pendiente, confirmar pedido!
             for (var pedidoId in _pedidosIds) {
@@ -556,17 +561,23 @@ class _VentaFormState extends State<VentaForm> {
                 context,
                 listen: false,
               );
-              await pedidosService.confirmarPedido(
+              final pedidoConfirmado = await pedidosService.confirmarPedido(
                 pedidoId: pedidoId,
                 ventaId: ventaId,
                 ventaFolio: ventaFolio ?? '',
               );
+              
+              if (mounted && pedidoConfirmado != null) {
+                Ticket.imprimirTicketPedido(context, pedidoConfirmado, ventaFolio ?? '');
+              }
             }
           }
         }
       }
 
-      _canFocus = true;
+      if (mounted) {
+        _canFocus = true;
+      }
     }
 
     _canFocus = false;
@@ -2788,6 +2799,8 @@ class _CreandoPedidoState extends State<CreandoPedido> {
       archivos: widget.files,
     );
     pedidosIds.add(pedidoId);
+
+
 
     if (!mounted) return;
     Navigator.pop(context, pedidosIds);

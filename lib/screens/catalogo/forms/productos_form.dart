@@ -188,7 +188,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                       width: 120,
                       child: buildTextFormField(
                         controller: _controllers['clave']!,
-                        labelText: 'Codigo',
+                        labelText: '* Codigo',
                         autoFocus: !_onlyRead,
                         readOnly: _onlyRead,
                         maxLength: 10,
@@ -204,7 +204,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['descripcion']!,
-                        labelText: 'Descripcion',
+                        labelText: '* Descripcion',
                         readOnly: _onlyRead,
                         maxLength: 50,
                         validator: (value) {
@@ -227,7 +227,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         isReadOnly: _onlyRead,
                         items: Constantes.unidadesSat,
                         value: _unidadSeleccionado,
-                        hint: 'Seleccione la unidad',
+                        hint: '* Seleccione la unidad',
                         onChanged: (value) {
                           setState(() {
                             _unidadEmpty = false;
@@ -245,7 +245,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                         items: Constantes.clavesSat,
                         value: _claveSeleccionada,
                         showMoreInfo: true,
-                        hint: 'Selecciona una clave SAT (Categoria)',
+                        hint: '* Selecciona una clave SAT (Categoria)',
                         onChanged: (value) {
                           setState(() {
                             _claveEmpty = false;
@@ -273,7 +273,7 @@ class _ProductoFormDialogState extends State<ProductoFormDialog> {
                             buildCounter: (_, {required int currentLength, required bool isFocused, required int? maxLength}) => null,
                             maxLength: 12,
                             decoration: const InputDecoration(
-                              labelText: 'Precio con IVA',
+                              labelText: '* Precio con IVA',
                               labelStyle: AppTheme.labelStyle,
                             ),
                             validator: (value) {

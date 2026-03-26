@@ -712,15 +712,15 @@ class _ProcesarPagoState extends State<ProcesarPago>
               Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color:
-                      _isFocused
-                          ? AppTheme.containerColor1
-                          : AppTheme.tablaColorHeader,
+                  color: _isFocused 
+                      ? AppTheme.tablaColorHeader.withValues(alpha: AppTheme.isDarkTheme ? 0.7 : 1)
+                      : AppTheme.tablaColorHeader.withValues(alpha: AppTheme.isDarkTheme ? 1 : 0.7),
                   borderRadius: BorderRadius.circular(25),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<Impresoras>(
+                    focusColor: Colors.transparent,
                     autofocus: true,
                     focusNode: _focusNode,
                     value: _opcionSeleccionada,

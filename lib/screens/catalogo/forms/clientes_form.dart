@@ -267,7 +267,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['nombre']!, 
-                        labelText: 'Nombre',
+                        labelText: '* Nombre',
                         autoFocus: !_onlyRead && widget.cliEdit == null,
                         readOnly:  _onlyRead,
                         maxLength: 40,
@@ -277,7 +277,7 @@ class _ClientesFormState extends State<ClientesFormDialog> {
                     Expanded(
                       child: buildTextFormField(
                         controller: _controllers['telefono']!,
-                        labelText: 'Telefono 10 digitos',
+                        labelText: '* Telefono 10 digitos',
                         readOnly: _onlyRead,
                         maxLength: 10,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],

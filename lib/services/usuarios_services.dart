@@ -159,7 +159,10 @@ class UsuariosServices extends ChangeNotifier {
       } else {
         debugPrint('Error al crear usuario: ${resp.statusCode} ${resp.body}');
         final body = jsonDecode(resp.body);
-        return body['detail'];
+        if (body['detail'] is List) {
+          return body['detail'][0]['msg'].toString();
+        }
+        return body['detail'].toString();
       }
     } catch (e) {
       debugPrint('Exception en createUsuario: $e');
@@ -244,7 +247,10 @@ class UsuariosServices extends ChangeNotifier {
           'Error al actualizar usuario: ${resp.statusCode} ${resp.body}',
         );
         final body = jsonDecode(resp.body);
-        return body['detail'];
+        if (body['detail'] is List) {
+          return body['detail'][0]['msg'].toString();
+        }
+        return body['detail'].toString();
       }
     } catch (e) {
       debugPrint('Exception en updateUsuario: $e');

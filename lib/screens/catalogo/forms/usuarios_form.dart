@@ -26,8 +26,9 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
   bool _onlyRead = false;
   final _formKey = GlobalKey<FormState>();
   String _titulo = 'Agregar nuevo Usuario';
-  late final Map<String, String> _dropdownItemsPermisos;
-  late final Map<String, String> _dropdownItemsTipo;
+  /*late final Map<String, String> _dropdownItemsPermisos;
+  late final Map<String, String> _dropdownItemsTipo;*/
+  late final Map<String, String> _dropdownItemsRol;
   final Map<String, TextEditingController> _controllers = {
     'nombre': TextEditingController(),
     'correo': TextEditingController(),
@@ -35,29 +36,28 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
     'psw': TextEditingController(),
     'psw2': TextEditingController(),
   };
-  String? _permisoSeleccionado;
-  bool _permisoEmpty = false;
-  String? _tipoSeleccionado;
-  bool _tipoEmpty = false;
+  Permiso? _permisoSeleccionado;
+  //bool _permisoEmpty = false;
+  TipoUsuario? _tipoSeleccionado;
+  //bool _tipoEmpty = false;
+  
+  String? _rolSeleccionado;
+  bool _rolEmpty = false;
 
   bool _pswIncorrecto = false;
+  bool _noPermisoEditarAdmin = false;
 
   @override
   void initState() {
     super.initState();
 
     //opciones para DropDownButtons
-    _dropdownItemsPermisos = {
-      for (var permiso in Permiso.values)
-        permiso.nivel.toString(): capitalizarPrimeraLetra(permiso.name),
-    };
-    if (Login.usuarioLogeado.permisos.nivel == 2) {
-      _dropdownItemsPermisos.remove(Permiso.admin.nivel.toString());
-    }
-
-    _dropdownItemsTipo = {
-      for (var tipo in TipoUsuario.values)
-        '${tipo.index}': capitalizarPrimeraLetra(tipo.name),
+    _dropdownItemsRol = {
+      '1': 'Ventas',
+      '2': 'Gerencia',
+      '3': 'Administracion',
+      '4': 'Maquila',
+      if (Login.usuarioLogeado.permisos == Permiso.admin) '5': 'SuperAdmin',
     };
 
     //Si ya existe un usuario, cargar los datos
@@ -69,8 +69,35 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
       _controllers['nombre']!.text = usuario.nombre;
       _controllers['correo']!.text = usuario.correo;
       _controllers['telefono']!.text = '${usuario.telefono ?? ''}';
-      _permisoSeleccionado = usuario.permisos.nivel.toString();
-      _tipoSeleccionado = usuario.rol.index.toString();
+      _permisoSeleccionado = usuario.permisos;
+      _tipoSeleccionado = usuario.rol;
+
+      // Asignar _rolSeleccionado basado en el tipo y permisos
+      if (_permisoSeleccionado == Permiso.admin) {
+        _rolSeleccionado = '5';
+      } else if (_tipoSeleccionado == TipoUsuario.administrativo) {
+        _rolSeleccionado = '3';
+      } else if (_tipoSeleccionado == TipoUsuario.maquilador) {
+        _rolSeleccionado = '4';
+      } else if (_tipoSeleccionado == TipoUsuario.vendedor && _permisoSeleccionado == Permiso.elevado) {
+        _rolSeleccionado = '2';
+      } else {
+        _rolSeleccionado = '1'; // Vendedor normal por defecto
+      }
+
+      // Prevenir crash y bloquear edición si un usuario que no es Admin está viendo a un usuario SuperAdmin
+      if (_rolSeleccionado == '5' && Login.usuarioLogeado.permisos != Permiso.admin) {
+        if (!_dropdownItemsRol.containsKey('5')) {
+          _dropdownItemsRol['5'] = 'SuperAdmin';
+        }
+        
+        if (widget.onlyRead != true) {
+          _noPermisoEditarAdmin = true;
+        }
+        
+        _onlyRead = true;
+        _titulo = 'Datos del Usuario (Solo lectura)';
+      }
     }
   }
 
@@ -87,19 +114,38 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
   //METODOS
   Future<void> guardarUsuario() async {
     if (!_formKey.currentState!.validate() ||
-        _permisoSeleccionado == null ||
-        _tipoSeleccionado == null) {
-      if (_permisoSeleccionado == null) {
+        _rolSeleccionado == null ) {
+      
+      if (_rolSeleccionado == null) {
         setState(() {
-          _permisoEmpty = true;
-        });
-      }
-      if (_tipoSeleccionado == null) {
-        setState(() {
-          _tipoEmpty = true;
+          _rolEmpty = true;
         });
       }
       return;
+    }
+
+    //Definir roles
+    switch (_rolSeleccionado) {
+      case '1':
+        _tipoSeleccionado = TipoUsuario.vendedor;
+        _permisoSeleccionado = Permiso.normal;
+        break;
+      case '2':
+        _tipoSeleccionado = TipoUsuario.vendedor;
+        _permisoSeleccionado = Permiso.elevado;
+        break;
+      case '3':
+        _tipoSeleccionado = TipoUsuario.administrativo;
+        _permisoSeleccionado = Permiso.elevado;
+        break;
+      case '4':
+        _tipoSeleccionado = TipoUsuario.maquilador;
+        _permisoSeleccionado = Permiso.normal;
+        break;
+      case '5':
+        _tipoSeleccionado = TipoUsuario.vendedor;
+        _permisoSeleccionado = Permiso.admin;
+        break;
     }
 
     if (widget.usuEdit == null) {
@@ -123,12 +169,8 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
               ? null
               : int.tryParse(_controllers['telefono']!.text),
       psw: widget.usuEdit == null ? _controllers['psw']!.text : null,
-      rol: TipoUsuario.values.firstWhere(
-        (element) => element.index.toString() == _tipoSeleccionado,
-      ),
-      permisos: Permiso.values.firstWhere(
-        (element) => element.nivel.toString() == _permisoSeleccionado,
-      ),
+      rol: _tipoSeleccionado!,
+      permisos: _permisoSeleccionado!,
       activo: true,
     );
 
@@ -229,12 +271,36 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                 const Separador(),
                 const SizedBox(height: 15),
 
+                if (_noPermisoEditarAdmin)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 15),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.redAccent),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.security, color: Colors.redAccent),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'No tienes los permisos necesarios para modificar este usuario administrador.',
+                            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 Row(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: buildTextFormField(
                         controller: _controllers['nombre']!,
-                        labelText: 'Nombre',
+                        labelText: '* Nombre',
                         autoFocus: !_onlyRead && widget.usuEdit == null,
                         readOnly: _onlyRead,
                         maxLength: 40,
@@ -245,6 +311,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 2,
                       child: buildTextFormField(
                         controller: _controllers['telefono']!,
                         labelText: 'Telefono 10 digitos',
@@ -262,9 +329,10 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                 Row(
                   children: [
                     Flexible(
+                      flex: 4,
                       child: buildTextFormField(
                         controller: _controllers['correo']!,
-                        labelText: 'Correo Electronico',
+                        labelText: '* Correo Electronico',
                         readOnly: _onlyRead,
                         maxLength: 40,
                         validator:
@@ -277,22 +345,23 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                     const SizedBox(width: 15),
 
                     Expanded(
+                      flex: 2,
                       child: SearchableDropdown(
-                        empty: _tipoEmpty,
+                        empty: _rolEmpty,
                         isReadOnly: _onlyRead,
-                        items: _dropdownItemsTipo,
-                        value: _tipoSeleccionado,
-                        hint: 'Tipo de usuario',
+                        items: _dropdownItemsRol,
+                        value: _rolSeleccionado,
+                        hint: '* Tipo de Usuario',
                         onChanged: (value) {
                           setState(() {
-                            _tipoEmpty = false;
-                            _tipoSeleccionado = value;
+                            _rolEmpty = false;
+                            _rolSeleccionado = value;
                           });
                         },
                         searchMoreInfo: false,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    /*const SizedBox(width: 15),
 
                     Expanded(
                       child: SearchableDropdown(
@@ -309,7 +378,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                         },
                         searchMoreInfo: false,
                       ),
-                    ),
+                    ),*/
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -320,7 +389,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                         Expanded(
                           child: buildTextFormField(
                             controller: _controllers['psw']!,
-                            labelText: 'Contraseña',
+                            labelText: '* Contraseña',
                             autoFocus: !_onlyRead && widget.usuEdit == null,
                             readOnly: _onlyRead,
                             maxLength: 30,
@@ -336,7 +405,7 @@ class _UsuariosFormState extends State<UsuariosFormDialog> {
                         Expanded(
                           child: buildTextFormField(
                             controller: _controllers['psw2']!,
-                            labelText: 'Vuelva a introducir la contraseña',
+                            labelText: '* Vuelva a introducir la contraseña',
                             autoFocus: !_onlyRead && widget.usuEdit == null,
                             readOnly: _onlyRead,
                             maxLength: 30,

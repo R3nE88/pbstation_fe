@@ -602,7 +602,7 @@ class _HeaderState extends State<_Header> {
                   
                   widget.readMode==false ?
                   _CajaBoton(
-                    label: 'Realizar Corte',
+                    label: 'Cerrar turno',
                     icon: Icons.price_check,
                     onTap: () {
                       if (Configuracion.memoryCorte!=null){
@@ -641,7 +641,7 @@ class _HeaderState extends State<_Header> {
 
                   widget.readMode==false ?
                   _CajaBoton(
-                    label: 'Cerrar Caja',
+                    label: 'Cerrar dia',
                     icon: Icons.point_of_sale,
                     onTap: () {
                       if (Configuracion.memoryCorte!=null){
@@ -810,7 +810,19 @@ class _FiltroState extends State<Filtro> {
     super.initState();
     final cajasSvc = Provider.of<CajasServices>(context, listen: false);
     final usuariosSvc = Provider.of<UsuariosServices>(context, listen: false);
+    final ventasSvc = Provider.of<VentasServices>(context, listen: false);
+    
     final cortesLista = widget.cortesHistorial ?? cajasSvc.cortesDeCaja;
+    final isReadMode = widget.cortesHistorial != null;
+    final ventas = isReadMode ? ventasSvc.ventasDeCajaHistorial : ventasSvc.ventasDeCaja;
+
+    final Set<String> usuariosImplicadosIds = ventas.map((v) => v.usuarioId).toSet();
+    for (var corte in cortesLista) {
+      usuariosImplicadosIds.add(corte.usuarioId);
+      if (corte.usuarioIdCerro != null) {
+        usuariosImplicadosIds.add(corte.usuarioIdCerro!);
+      }
+    }
 
     if (Login.usuarioLogeado.permisos==Permiso.normal){
       opciones.clear();
@@ -822,8 +834,13 @@ class _FiltroState extends State<Filtro> {
       opciones.addAll(
         cortesLista.map((corte) => {'corte': corte.id!})
       );
+      
+      final usuariosParticipantes = usuariosSvc.usuarios.where(
+        (user) => usuariosImplicadosIds.contains(user.id)
+      ).toList();
+
       opciones.addAll(
-        usuariosSvc.usuarios.map((user) => {'users': user.id!})
+        usuariosParticipantes.map((user) => {'users': user.id!})
       );
     }
     _valorSeleccionado = opciones.first;

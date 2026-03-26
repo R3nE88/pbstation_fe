@@ -68,10 +68,7 @@ class VentasEnviadasServices extends ChangeNotifier {
       final url = Uri.parse(_baseUrl);
       final resp = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          ...AuthService.getAuthHeaders(),
-        },
+        headers: headers,
         body: venta.toJson(),
       );
 

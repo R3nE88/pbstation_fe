@@ -164,10 +164,6 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                   ),
                   Expanded(
                     flex: 2,
-                    child: Text('Permisos', textAlign: TextAlign.center),
-                  ),
-                  Expanded(
-                    flex: 2,
                     child: Text('Rol', textAlign: TextAlign.center),
                   ),
                   Expanded(
@@ -249,6 +245,19 @@ class FilaUsuario extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String mostrarCampo(String? valor) => capitalizarPrimeraLetra(valor ?? '-');
+    String rolSeleccionado = '';
+
+    if (usuario.permisos == Permiso.admin) {
+      rolSeleccionado = 'SuperAdmin';
+    } else if (usuario.rol   == TipoUsuario.administrativo) {
+      rolSeleccionado = 'Administracion';
+    } else if (usuario.rol == TipoUsuario.maquilador) {
+      rolSeleccionado = 'Maquila';
+    } else if (usuario.rol == TipoUsuario.vendedor && usuario.permisos == Permiso.elevado) {
+      rolSeleccionado = 'Gerencia';
+    } else {
+      rolSeleccionado = 'Ventas'; // Vendedor normal por defecto
+    }
 
     void mostrarMenu(BuildContext context, Offset offset) async {
       final String? seleccion;
@@ -397,18 +406,18 @@ class FilaUsuario extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              Expanded(
+              /*Expanded(
                 flex: 2,
                 child: Text(
                   mostrarCampo(usuario.permisos.name),
                   style: AppTheme.subtituloConstraste,
                   textAlign: TextAlign.center,
                 ),
-              ),
+              ),*/
               Expanded(
                 flex: 2,
                 child: Text(
-                  mostrarCampo(usuario.rol.name),
+                  mostrarCampo(rolSeleccionado),
                   style: AppTheme.subtituloConstraste,
                   textAlign: TextAlign.center,
                 ),

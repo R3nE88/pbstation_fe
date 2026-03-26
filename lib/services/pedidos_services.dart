@@ -264,6 +264,10 @@ class PedidosService extends ChangeNotifier {
         final nuevoPedido = Pedidos.fromMap(
           response.data as Map<String, dynamic>,
         );
+        
+        pedido.id = nuevoPedido.id;
+        pedido.folio = nuevoPedido.folio;
+
         if (nuevoPedido.ventaId != 'esperando') {
           if (nuevoPedido.estado == Estado.enEspera) {
             pedidosNotReady.add(nuevoPedido);
@@ -376,7 +380,7 @@ class PedidosService extends ChangeNotifier {
     }
   }
 
-  Future<bool> confirmarPedido({
+  Future<Pedidos?> confirmarPedido({
     required String pedidoId,
     required String ventaId,
     required String ventaFolio,
@@ -411,14 +415,14 @@ class PedidosService extends ChangeNotifier {
         }
 
         loaded = false;
-        return true;
+        return pedidoActualizado;
       } else {
         debugPrint('Error: ${response.statusCode} ${response.body}');
-        return false;
+        return null;
       }
     } catch (e) {
       debugPrint('Error al actualizar venta_id: o venta_folio $e');
-      return false;
+      return null;
     } finally {
       isLoading = false;
       notifyListeners();

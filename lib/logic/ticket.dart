@@ -169,20 +169,16 @@ class Ticket {
   }
 
   static Future<List<int>> _generarTicketDeudaPagada(BuildContext context, Ventas venta, String folio, Map<String, double> datosDeuda) async {
-    // Load default capability profile (includes font and code page info)
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
+    await preloadResources();
+    final generator = Generator(_obtenerSize(), _printerProfile!);
     String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
     List<int> bytes = [];
 
     //Abrir cajon
     bytes.addAll([0x1B, 0x70, 0x00, 0x19, 0xFA]);
 
-    //imagen
-    final ByteData data = await rootBundle.load('assets/images/logo_bn3.png');
-    final Uint8List imageBytes = data.buffer.asUint8List();
-    final imagen.Image? image = imagen.decodeImage(imageBytes);
-    bytes += generator.image(image!);
+    //imagen from cache
+    bytes += generator.image(_cachedLogo!);
 
     //Header
     bytes += generator.text('Emilio Alberto Diaz Obregon',
@@ -270,8 +266,8 @@ class Ticket {
   }
 
   static Future<List<int>> _generarTicketDeCorte(BuildContext context, Cajas caja, Cortes corte, List<Ventas> ventas, Map<String, TextEditingController> impresoraControllers) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(_obtenerSize(), profile);  // 58mm paper width
+    await preloadResources();
+    final generator = Generator(_obtenerSize(), _printerProfile!);
     DateTime fecha = DateTime.parse(corte.fechaApertura);
     String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
     String fechaCorteFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaCorte!));
@@ -562,6 +558,55 @@ class Ticket {
     return bytes;
   }
 
+  static Future<List<int>> _generarTicketDePedido(BuildContext context, Pedidos pedido, String? ventaFolio) async{
+    await preloadResources();
+    final generator = Generator(_obtenerSize(), _printerProfile!);
+    DateTime fecha = DateTime.parse(pedido.fecha);
+    String fechaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
+    List<int> bytes = [];
+
+    //Abrir cajon
+    bytes.addAll([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+
+    //imagen from cache
+    bytes += generator.image(_cachedLogo!);
+
+    //Header
+    bytes += generator.text('Emilio Alberto Diaz Obregon',
+        styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text('San Luis Rio Colorado, Sonora',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('Av. Jalisco y Calle 7, 83440',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('RFC: DIOE860426LJA',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('Tel: (653)-534-0142',
+        styles: const PosStyles(align: PosAlign.center));
+
+    //Pedido
+    bytes += generator.text('Nota de Pedido',
+        styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2,));
+    bytes += generator.text('Fecha: $fechaFormatted',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.hr();
+    bytes += generator.text('folio de Pedido:',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('${pedido.folio}',
+        styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2,));
+    bytes += generator.text('folio de Venta:',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('$ventaFolio',
+        styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2,));    
+    //bytes += generator.hr();
+
+    // Cut the paper (if supported)
+    bytes += generator.feed(1);
+    bytes += generator.cut();
+    bytes += generator.reset();
+    bytes += generator.reset();
+    return bytes;
+  }
+
   static void imprimirTicketVenta(context, venta, folio) async{
     if (Configuracion.impresora != null) {
       bool connected = await PrintUsb.connect(name: Configuracion.impresora!);
@@ -612,6 +657,23 @@ class Ticket {
       if (connected) {
         cargarServices(context);
         List<int> bytes = await _generarTicketDeCorte(context, caja, corte, ventas, impresoraControllers);
+        await PrintUsb.printBytes(bytes: bytes, device: device);
+      }
+    }
+  }
+
+  static void imprimirTicketPedido(context, pedido, String? ventaFolio) async{
+    if (Configuracion.impresora != null) {
+      bool connected = await PrintUsb.connect(name: Configuracion.impresora!);
+      UsbDevice device = UsbDevice(
+        name: Configuracion.impresora!, 
+        model: 'x', 
+        isDefault: true, 
+        available: true
+      );
+      if (connected) {
+        cargarServices(context);
+        List<int> bytes = await _generarTicketDePedido(context, pedido, ventaFolio);
         await PrintUsb.printBytes(bytes: bytes, device: device);
       }
     }

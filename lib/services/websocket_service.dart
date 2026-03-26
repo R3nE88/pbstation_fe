@@ -44,6 +44,7 @@ class WebSocketService with ChangeNotifier {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   Timer? _reconnectTimer;
+  Timer? _appPingTimer;
   bool isConnected = false;
   final List<String> mensajesRecibidos = [];
 
@@ -173,6 +174,8 @@ class WebSocketService with ChangeNotifier {
       _subscription = null;
       _reconnectTimer?.cancel();
       _reconnectTimer = null;
+      _appPingTimer?.cancel();
+      _appPingTimer = null;
 
       _channel = null;
       isConnected = false;
@@ -202,6 +205,13 @@ class WebSocketService with ChangeNotifier {
       isConnected = true;
       notifyListeners();
       if (kDebugMode) print('WebSocket conectado (handshake ok).');
+
+      // Iniciar latido a nivel de aplicación (evita silent NAT timeouts sin romper OS disconnects)
+      _appPingTimer = Timer.periodic(const Duration(seconds: 45), (timer) {
+        if (isConnected) {
+          enviar('ping');
+        }
+      });
     } on TimeoutException catch (te) {
       if (kDebugMode) print('Timeout al conectar WebSocket: $te');
       _onDisconnected();
@@ -274,6 +284,8 @@ class WebSocketService with ChangeNotifier {
 
     isConnected = false;
     connectionId = null; // Limpiar el connection ID
+    _appPingTimer?.cancel();
+    _appPingTimer = null;
     notifyListeners();
 
     _scheduleReconnect();
@@ -291,6 +303,8 @@ class WebSocketService with ChangeNotifier {
     _reconnectTimer = null;
     isConnected = false;
     connectionId = null; // Limpiar el connection ID
+    _appPingTimer?.cancel();
+    _appPingTimer = null;
     notifyListeners();
   }
 

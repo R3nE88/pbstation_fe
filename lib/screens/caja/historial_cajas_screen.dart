@@ -188,7 +188,7 @@ class _HistorialDeCajasState extends State<HistorialDeCajas> {
                                   ),
                                   value: tempDates,
                                   onValueChanged: (dates) {
-                                    if (dates.length == 2 && dates[0] != null && dates[1] != null) {
+                                    if (dates.length == 2) {
                                       Navigator.pop(context, dates);
                                     }
                                   },
