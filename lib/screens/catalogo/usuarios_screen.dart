@@ -23,26 +23,28 @@ class UsuariosScreen extends StatefulWidget {
 class _UsuariosScreenState extends State<UsuariosScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  late final UsuariosServices _usuarioSvc;
 
   @override
   void initState() {
     super.initState();
-    final usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
-    usuarioSvc.loadUsuarios();
+    _usuarioSvc = Provider.of<UsuariosServices>(context, listen: false);
+    _usuarioSvc.loadUsuarios();
 
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController.text.toLowerCase();
-        usuarioSvc.filtrarUsuarios(query);
+        _usuarioSvc.filtrarUsuarios(query);
       });
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _debounce?.cancel();
+    _usuarioSvc.filteredUsuarios = _usuarioSvc.usuarios;
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -114,7 +116,10 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                                 WindowBar(overlay: true),
                               ],
                             ),
-                      ),
+                      ).then((_) {
+                        _searchController.clear();
+                        _usuarioSvc.filteredUsuarios = _usuarioSvc.usuarios;
+                      }),
                   child: Row(
                     children: [
                       Transform.translate(
@@ -190,15 +195,32 @@ class _UsuariosScreenState extends State<UsuariosScreen> {
                         usuario: servicios.filteredUsuarios[index],
                         index: index,
                         onDelete: () async {
-                          final loadingSvc = Provider.of<LoadingProvider>(
-                            context,
-                            listen: false,
-                          );
+                          final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
                           loadingSvc.show();
-                          await servicios.deleteUsuario(
-                            servicios.filteredUsuarios[index].id!,
-                          );
+                          await servicios.deleteUsuario(servicios.filteredUsuarios[index].id!);
+                          _searchController.clear();
+                          _usuarioSvc.filteredUsuarios = _usuarioSvc.usuarios;
                           loadingSvc.hide();
+                        },
+                        onUpdate: () async {
+                          if (!context.mounted) return;
+                          final resp = await verificarAdminPsw(context);
+                          if (resp == true) {
+                            if (!context.mounted) return;
+                            showDialog(
+                              context: context,
+                              builder: (_) => Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  UsuariosFormDialog(usuEdit: servicios.filteredUsuarios[index]),
+                                  const WindowBar(overlay: true),
+                                ],
+                              ),
+                            ).then((_) {
+                              _searchController.clear();
+                              _usuarioSvc.filteredUsuarios = _usuarioSvc.usuarios;
+                            });
+                          }
                         },
                       ),
                 ),
@@ -236,11 +258,13 @@ class FilaUsuario extends StatelessWidget {
     required this.usuario,
     required this.index,
     required this.onDelete,
+    required this.onUpdate,
   });
 
   final Usuarios usuario;
   final int index;
   final VoidCallback onDelete;
+  final VoidCallback onUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -339,26 +363,7 @@ class FilaUsuario extends StatelessWidget {
           }
         } else if (seleccion == 'editar') {
           // Lógica para editar
-          if (!context.mounted) {
-            return;
-          }
-          final resp = await verificarAdminPsw(context);
-          if (resp == true) {
-            if (!context.mounted) {
-              return;
-            }
-            showDialog(
-              context: context,
-              builder:
-                  (_) => Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      UsuariosFormDialog(usuEdit: usuario),
-                      const WindowBar(overlay: true),
-                    ],
-                  ),
-            );
-          }
+          onUpdate();
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
           if (!context.mounted) {

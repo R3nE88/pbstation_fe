@@ -43,29 +43,31 @@ class ClientesScreen extends StatefulWidget {
 class _ClientesScreenState extends State<ClientesScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  late final ClientesServices _clientesServices;
 
   @override
   void initState() {
     super.initState();
-    final clientesServices = Provider.of<ClientesServices>(
+    _clientesServices = Provider.of<ClientesServices>(
       context,
       listen: false,
     );
-    clientesServices.loadClientes();
+    _clientesServices.loadClientes();
 
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController.text.toLowerCase();
-        clientesServices.filtrarClientes(query);
+        _clientesServices.filtrarClientes(query);
       });
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _debounce?.cancel();
+    _clientesServices.filteredClientes = _clientesServices.clientes;
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -127,7 +129,10 @@ class _ClientesScreenState extends State<ClientesScreen> {
                                 WindowBar(overlay: true),
                               ],
                             ),
-                      ),
+                      ).then((_) {
+                        _searchController.clear();
+                        _clientesServices.filteredClientes = _clientesServices.clientes;
+                      }),
                   child: Row(
                     children: [
                       Transform.translate(
@@ -201,15 +206,32 @@ class _ClientesScreenState extends State<ClientesScreen> {
                           cliente: servicios.filteredClientes[index],
                           index: index,
                           onDelete: () async {
-                            final loadingSvc = Provider.of<LoadingProvider>(
-                              context,
-                              listen: false,
-                            );
+                            final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
                             loadingSvc.show();
-                            await servicios.deleteCliente(
-                              servicios.filteredClientes[index].id!,
-                            );
+                            await servicios.deleteCliente(servicios.filteredClientes[index].id!);
+                            _searchController.clear();
+                            _clientesServices.filteredClientes = _clientesServices.clientes;
                             loadingSvc.hide();
+                          },
+                          onUpdate: () async {
+                            if (!context.mounted) return;
+                            final resp = await verificarAdminPsw(context);
+                            if (resp == true) {
+                              if (!context.mounted) return;
+                              showDialog(
+                                context: context,
+                                builder: (_) => Stack(
+                                  alignment: Alignment.topRight,
+                                  children: [
+                                    ClientesFormDialog(cliEdit: servicios.filteredClientes[index]),
+                                    const WindowBar(overlay: true),
+                                  ],
+                                ),
+                              ).then((_) {
+                                _searchController.clear();
+                                _clientesServices.filteredClientes = _clientesServices.clientes;
+                              });
+                            }
                           },
                         ),
                       ),
@@ -248,11 +270,13 @@ class FilaCliente extends StatelessWidget {
     required this.cliente,
     required this.index,
     required this.onDelete,
+    required this.onUpdate,
   });
 
   final Clientes cliente;
   final int index;
   final VoidCallback onDelete;
+  final VoidCallback onUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -298,26 +322,7 @@ class FilaCliente extends StatelessWidget {
       if (seleccion != null) {
         if (seleccion == 'editar') {
           // Lógica para editar
-          if (!context.mounted) {
-            return;
-          }
-          final resp = await verificarAdminPsw(context);
-          if (resp == true) {
-            if (!context.mounted) {
-              return;
-            }
-            showDialog(
-              context: context,
-              builder:
-                  (_) => Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      ClientesFormDialog(cliEdit: cliente),
-                      const WindowBar(overlay: true),
-                    ],
-                  ),
-            );
-          }
+          onUpdate();
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
           if (!context.mounted) {

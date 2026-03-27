@@ -31,6 +31,7 @@ class CajasServices extends ChangeNotifier {
   String? sucursalFiltroHistorial;
   String? fechaInicioFiltroHistorial;
   String? fechaFinFiltroHistorial;
+  int _historialRequestId = 0;
   String? folioFiltroHistorial;
 
   bool isLoadingHistorial = false;
@@ -351,7 +352,7 @@ class CajasServices extends ChangeNotifier {
     String? folio,
     bool append = false,
   }) async {
-    if (historialIsLoading) return;
+    final int currentRequestId = ++_historialRequestId;
 
     historialIsLoading = true;
     historialError = null;
@@ -385,6 +386,9 @@ class CajasServices extends ChangeNotifier {
         url,
         headers: {...AuthService.getAuthHeaders()},
       );
+
+      // Si ya se lanzó una petición más nueva, descartar este resultado
+      if (currentRequestId != _historialRequestId) return;
 
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);

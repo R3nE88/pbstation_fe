@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/verificar_admin_psw.dart';
-import 'package:pbstation_frontend/models/sucursales.dart';
+import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/catalogo/forms/sucursales_form.dart';
 import 'package:pbstation_frontend/services/login.dart';
@@ -314,19 +314,15 @@ class FilaSucursales extends StatelessWidget {
         if (seleccion == 'vincular') {
           // Lógica para asignar
           if (CajasServices.cajaActual == null) {
+
             //Si no hay caja abierta
-            if (!context.mounted) {
-              return;
-            }
-            await Provider.of<SucursalesServices>(
-              context,
-              listen: false,
-            ).establecerSucursal(sucursal);
+            if (!context.mounted) { return; }
+            await Provider.of<SucursalesServices>(context, listen: false).establecerSucursal(sucursal);
             if (!context.mounted) return;
-            await Provider.of<ImpresorasServices>(
-              context,
-              listen: false,
-            ).loadImpresoras(true, overLoad: true);
+            await Provider.of<ImpresorasServices>(context, listen: false).loadImpresoras(true, overLoad: true);
+            if (!context.mounted) return;
+            await Provider.of<PedidosService>(context, listen: false).loadPedidos(force: true);
+
           } else {
             if (!context.mounted) {
               return;

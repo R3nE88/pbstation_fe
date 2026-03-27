@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/logic/calculos_dinero.dart';
+import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/services/services.dart';
@@ -44,6 +45,10 @@ class Ticket {
     }
   }
 
+  static String _formatHora(DateTime dt) {
+    return '${DateFormat('hh:mm').format(dt)} ${dt.hour < 12 ? 'a.m.' : 'p.m.'}';
+  }
+
   /*static Future<List<int>>_generarQR(String data) async {
     // Using default profile
     final profile = await CapabilityProfile.load();
@@ -77,7 +82,8 @@ class Ticket {
     await preloadResources();
     
     final generator = Generator(_obtenerSize(), _printerProfile!);
-    String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+    final fechaVenta = DateTime.parse(venta.fechaVenta!);
+    String formattedDate = '${DateFormat('dd/MM/yyyy', 'es_MX').format(fechaVenta)} ${_formatHora(fechaVenta)}';
     List<int> bytes = [];
 
     //Abrir cajon
@@ -171,7 +177,8 @@ class Ticket {
   static Future<List<int>> _generarTicketDeudaPagada(BuildContext context, Ventas venta, String folio, Map<String, double> datosDeuda) async {
     await preloadResources();
     final generator = Generator(_obtenerSize(), _printerProfile!);
-    String formattedDate = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.parse(venta.fechaVenta!));
+    final fechaVenta = DateTime.parse(venta.fechaVenta!);
+    String formattedDate = '${DateFormat('dd/MM/yyyy', 'es_MX').format(fechaVenta)} ${_formatHora(fechaVenta)}';
     List<int> bytes = [];
 
     //Abrir cajon
@@ -269,8 +276,9 @@ class Ticket {
     await preloadResources();
     final generator = Generator(_obtenerSize(), _printerProfile!);
     DateTime fecha = DateTime.parse(corte.fechaApertura);
-    String fechaAperturaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
-    String fechaCorteFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(DateTime.parse(corte.fechaCorte!));
+    String fechaAperturaFormatted = '${DateFormat('dd/MMM/yyyy', 'es_MX').format(fecha)} ${_formatHora(fecha)}';
+    final fechaCorteDt = DateTime.parse(corte.fechaCorte!);
+    String fechaCorteFormatted = '${DateFormat('dd/MMM/yyyy', 'es_MX').format(fechaCorteDt)} ${_formatHora(fechaCorteDt)}';
     String cajeroQueAbrio = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioId);
     String cajeroQueCerro = usuarioSvc.obtenerNombreUsuarioPorId(corte.usuarioIdCerro!);
     List<int> bytes = [];
@@ -295,9 +303,9 @@ class Ticket {
         styles: const PosStyles(align: PosAlign.right));
     bytes += generator.text('CORTE: ${corte.folio}',
         styles: const PosStyles(align: PosAlign.right));
-    bytes += generator.text('FECHA: ${DateFormat('dd-MMM-yyyy').format(DateTime.parse(corte.fechaCorte!))}',
+    bytes += generator.text('FECHA: ${DateFormat('dd-MMM-yyyy', 'es_MX').format(DateTime.parse(corte.fechaCorte!))}',
         styles: const PosStyles(align: PosAlign.right));
-    bytes += generator.text('HORA: ${DateFormat('hh:mm a').format(DateTime.parse(corte.fechaCorte!))}',
+    bytes += generator.text('HORA: ${_formatHora(DateTime.parse(corte.fechaCorte!))}',
         styles: const PosStyles(align: PosAlign.right));
     bytes += generator.text('TC: ${caja.tipoCambio}',
         styles: const PosStyles(align: PosAlign.right));
@@ -562,7 +570,10 @@ class Ticket {
     await preloadResources();
     final generator = Generator(_obtenerSize(), _printerProfile!);
     DateTime fecha = DateTime.parse(pedido.fecha);
-    String fechaFormatted = DateFormat('dd/MMM/yyyy hh:mm a').format(fecha);
+    String fechaFormatted = '${DateFormat('dd/MMM/yyyy', 'es_MX').format(fecha)} ${_formatHora(fecha)}';
+    DateTime fechaEntrega = DateTime.parse(pedido.fechaEntrega);
+    String nombreDia = DateFormat('MMMM', 'es_MX').format(fechaEntrega);
+    String fechaEntregaFormatted2 = _formatHora(fechaEntrega);
     List<int> bytes = [];
 
     //Abrir cajon
@@ -589,14 +600,24 @@ class Ticket {
     bytes += generator.text('Fecha: $fechaFormatted',
         styles: const PosStyles(align: PosAlign.center));
     bytes += generator.hr();
-    bytes += generator.text('folio de Pedido:',
-        styles: const PosStyles(align: PosAlign.center));
-    bytes += generator.text('${pedido.folio}',
-        styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2,));
     bytes += generator.text('folio de Venta:',
         styles: const PosStyles(align: PosAlign.center));
     bytes += generator.text('$ventaFolio',
-        styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2,));    
+        styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text(' ',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('folio de Pedido:',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('${pedido.folio}',
+        styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2, bold: true));
+    bytes += generator.text(' ',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('Fecha y hora de entrega:',
+        styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.text('${fechaEntrega.day} de ${capitalizarPrimeraLetra(nombreDia)} del ${fechaEntrega.year}',
+        styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text(fechaEntregaFormatted2,
+        styles: const PosStyles(align: PosAlign.center, bold: true));
     //bytes += generator.hr();
 
     // Cut the paper (if supported)

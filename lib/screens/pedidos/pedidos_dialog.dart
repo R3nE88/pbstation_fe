@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/search_fields_estaticos.dart';
+import 'package:pbstation_frontend/logic/ticket.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/screens/pedidos/pedidos_subir_archivo_form.dart';
@@ -502,56 +503,81 @@ class _PedidosDialogState extends State<PedidosDialog> {
                     text: 'Subir archivos y mandar a produccion',
                   ) : const SizedBox(),
 
-                if (widget.pedido.archivos.isNotEmpty)
-                  if (venta.liquidado && Login.usuarioLogeado.rol == TipoUsuario.vendedor)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Transform.scale(
-                          scale: 0.9,
-                          child: Transform.translate(
-                            offset: const Offset(0, 7),
-                            child: ElevatedButton(
-                              onPressed: ()=>marcarComoEntregado(venta),
-                              child: Row(
-                                children: [
-                                  const Text('Entregar a cliente'),
-                                  Transform.translate(
-                                    offset: const Offset(5, 1.5),
-                                    child: const Icon(Icons.send)
-                                  )
-                                ],
-                              ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Transform.scale(
+                      scale: 0.9,
+                      child: ElevatedButton(
+                        onPressed: () async{
+                          if(!context.mounted){ return; }
+                          Ticket.imprimirTicketPedido(context, widget.pedido, venta.folio??'');
+                        },
+                        child: Row(
+                          children: [
+                            Transform.translate(
+                              offset: const Offset(-5, 1.5),
+                              child: const Icon(Icons.print)
                             ),
-                          ),
+                            const Text('Ticket de pedido'),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                    
-                  if (Login.usuarioLogeado.rol==TipoUsuario.vendedor && !venta.liquidado && widget.pedido.archivos.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Transform.scale(
-                          scale: 0.9,
-                          child: Transform.translate(
-                            offset: const Offset(0, 7),
-                            child: ElevatedButton(
-                              onPressed: ()=>pagarDeuda(venta),
-                              child: Row(
-                                children: [
-                                  const Text('Pagar y entregar a cliente'),
-                                  Transform.translate(
-                                    offset: const Offset(5, 1.5),
-                                    child: const Icon(Icons.send)
-                                  )
-                                ],
+
+                    if (widget.pedido.archivos.isNotEmpty)
+                      if (venta.liquidado && Login.usuarioLogeado.rol == TipoUsuario.vendedor)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Transform.translate(
+                                offset: const Offset(0, 7),
+                                child: ElevatedButton(
+                                  onPressed: ()=>marcarComoEntregado(venta),
+                                  child: Row(
+                                    children: [
+                                      const Text('Entregar a cliente'),
+                                      Transform.translate(
+                                        offset: const Offset(5, 1.5),
+                                        child: const Icon(Icons.send)
+                                      )
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    )
+                    
+                      if (Login.usuarioLogeado.rol==TipoUsuario.vendedor && !venta.liquidado && widget.pedido.archivos.isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Transform.translate(
+                                offset: const Offset(0, 7),
+                                child: ElevatedButton(
+                                  onPressed: ()=>pagarDeuda(venta),
+                                  child: Row(
+                                    children: [
+                                      const Text('Pagar y entregar a cliente'),
+                                      Transform.translate(
+                                        offset: const Offset(5, 1.5),
+                                        child: const Icon(Icons.send)
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                  ],
+                ),
+                
               ],
             ),
           );

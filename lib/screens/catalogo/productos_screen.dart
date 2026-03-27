@@ -44,29 +44,28 @@ class ProductosScreen extends StatefulWidget {
 class _ProductosScreenState extends State<ProductosScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  late final ProductosServices _productosSvc;
 
   @override
   void initState() {
     super.initState();
-    final productosServices = Provider.of<ProductosServices>(
-      context,
-      listen: false,
-    );
-    productosServices.loadProductos();
+    _productosSvc = Provider.of<ProductosServices>(context, listen: false);
+    _productosSvc.loadProductos();
 
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController.text.toLowerCase();
-        productosServices.filtrarProductos(query);
+        _productosSvc.filtrarProductos(query);
       });
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _debounce?.cancel();
+    _productosSvc.filteredProductos = _productosSvc.productos;
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -128,7 +127,10 @@ class _ProductosScreenState extends State<ProductosScreen> {
                                 WindowBar(overlay: true),
                               ],
                             ),
-                      ),
+                      ).then((_) {
+                        _searchController.clear();
+                        _productosSvc.filteredProductos = _productosSvc.productos;
+                      }),
                   child: Row(
                     children: [
                       Transform.translate(
@@ -203,16 +205,37 @@ class _ProductosScreenState extends State<ProductosScreen> {
                           producto: servicios.filteredProductos[index],
                           index: index,
                           onDelete: () async {
-                            final loadingSvc = Provider.of<LoadingProvider>(
-                              context,
-                              listen: false,
-                            );
+                            final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
                             loadingSvc.show();
-                            await servicios.deleteProducto(
-                              servicios.filteredProductos[index].id!,
-                            );
+                            await servicios.deleteProducto(servicios.filteredProductos[index].id!);
+                            _searchController.clear();
+                            _productosSvc.filteredProductos = _productosSvc.productos;
                             loadingSvc.hide();
-                          },
+                          }, 
+                          onUpdate: () async { 
+                            if (!context.mounted) {
+                                return;
+                              }
+                              final resp = await verificarAdminPsw(context);
+                              if (resp == true) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                showDialog(
+                                  context: context,
+                                  builder:(_) => Stack(
+                                    alignment: Alignment.topRight,
+                                    children: [
+                                      ProductoFormDialog(prodEdit: servicios.filteredProductos[index]),
+                                      const WindowBar(overlay: true),
+                                    ],
+                                  ),
+                                ).then((_) {
+                                  _searchController.clear();
+                                  _productosSvc.filteredProductos = _productosSvc.productos;
+                                });
+                              }
+                           },
                         ),
                       ),
                 ),
@@ -250,11 +273,13 @@ class FilaProducto extends StatelessWidget {
     required this.producto,
     required this.index,
     required this.onDelete,
+    required this.onUpdate,
   });
 
   final Productos producto;
   final int index;
   final VoidCallback onDelete;
+  final VoidCallback onUpdate;
 
   // Instancia estática para evitar recreación
   static final _calculos = CalculosDinero();
@@ -303,31 +328,10 @@ class FilaProducto extends StatelessWidget {
       if (seleccion != null) {
         if (seleccion == 'editar') {
           // Lógica para editar
-          if (!context.mounted) {
-            return;
-          }
-          final resp = await verificarAdminPsw(context);
-          if (resp == true) {
-            if (!context.mounted) {
-              return;
-            }
-            showDialog(
-              context: context,
-              builder:
-                  (_) => Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      ProductoFormDialog(prodEdit: producto),
-                      const WindowBar(overlay: true),
-                    ],
-                  ),
-            );
-          }
+          onUpdate();
         } else if (seleccion == 'eliminar') {
           // Lógica para eliminar
-          if (!context.mounted) {
-            return;
-          }
+          if (!context.mounted) { return; }
           final resp = await verificarAdminPsw(context);
           if (resp == true) {
             onDelete();

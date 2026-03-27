@@ -33,6 +33,7 @@ class ProcesarPago extends StatefulWidget {
 
 class _ProcesarPagoState extends State<ProcesarPago>
     with TickerProviderStateMixin {
+  bool _procesando = false;
   bool _tipoEmpty = false;
   String? _tipoTarjetaSeleccionado;
   late final List<DropdownMenuItem<String>> _dropdownItemsTipo;
@@ -284,9 +285,11 @@ class _ProcesarPagoState extends State<ProcesarPago>
   }
 
   Future<void> procesarPago(impresoraSvc) async {
+    if (_procesando) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    setState(() => _procesando = true);
 
     bool continuar = true; //Adevertencia de adeudo
     Decimal quedaPorPagar = Decimal.parse(
@@ -517,9 +520,11 @@ class _ProcesarPagoState extends State<ProcesarPago>
   }
 
   Future<void> procesarDeuda() async {
+    if (_procesando) return;
     if (!_formKey.currentState!.validate() || _porPagar) {
       return;
     }
+    setState(() => _procesando = true);
 
     if (!mounted) return;
     final ventasServices = Provider.of<VentasServices>(context, listen: false);
@@ -1317,14 +1322,16 @@ class _ProcesarPagoState extends State<ProcesarPago>
 
                         ElevatedButton(
                           focusNode: _focusRealizarPago,
-                          onPressed: () {
-                            if (!widget.isDeuda) {
-                              procesarPago(impresoraSvc);
-                            } else {
-                              procesarDeuda();
-                            }
-                          },
-                          child: const Text('Realizar Pago'),
+                          onPressed: _procesando
+                              ? null
+                              : () {
+                                  if (!widget.isDeuda) {
+                                    procesarPago(impresoraSvc);
+                                  } else {
+                                    procesarDeuda();
+                                  }
+                                },
+                          child: Text(_procesando ? 'Procesando...' : 'Realizar Pago'),
                         ),
                       ],
                     ),
@@ -1487,7 +1494,7 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
             ElevatedButton(
               autofocus: true,
               focusNode: boton,
-              onPressed: () => submited(),
+              onPressed: finish ? null : () => submited(),
               child: const Text(
                 'Continuar',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -1530,7 +1537,7 @@ class _VentaRealizadaDialogState extends State<VentaRealizadaDialog> {
             ElevatedButton(
               autofocus: true,
               focusNode: boton,
-              onPressed: () => submited(),
+              onPressed: finish ? null : () => submited(),
               child: const Text(
                 'Continuar',
                 style: TextStyle(fontWeight: FontWeight.w700),

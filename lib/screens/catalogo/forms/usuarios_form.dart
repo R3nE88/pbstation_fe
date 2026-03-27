@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pbstation_frontend/constantes.dart';
-import 'package:pbstation_frontend/logic/capitalizar.dart';
 import 'package:pbstation_frontend/models/models.dart';
 import 'package:pbstation_frontend/provider/provider.dart';
 import 'package:pbstation_frontend/services/login.dart';

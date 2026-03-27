@@ -21,10 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final double barraHeight = 35;
-  late PageController _pageController;
   bool _showScreenInit = false;
-  int _ultimaPaginaNavegada = -1;
-  bool _navegacionEnProgreso = false;
 
   Future<void> esperarParaMostrar() async {
     await Future.delayed(const Duration(milliseconds: 200));
@@ -34,14 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final modProv = context.read<ModulosProvider>();
-    _pageController = PageController(
-      initialPage: modProv.subModuloSeleccionado,
-    );
-    _ultimaPaginaNavegada = modProv.subModuloSeleccionado;
-
-    // Escuchar cambios del provider
-    modProv.addListener(_onModuloChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final websocketService = Provider.of<WebSocketService>(
@@ -52,43 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     esperarParaMostrar();
-  }
-
-  void _onModuloChanged() {
-    if (_navegacionEnProgreso) return; // Evitar navegaciones simultáneas
-
-    final modProv = context.read<ModulosProvider>();
-    final nuevaPagina = modProv.subModuloSeleccionado;
-
-    // Solo navegar si realmente cambió y el controller está listo
-    if (_pageController.hasClients &&
-        nuevaPagina != _ultimaPaginaNavegada &&
-        nuevaPagina >= 0 &&
-        nuevaPagina < modProv.subModulosActuales.length) {
-      _navegacionEnProgreso = true;
-      _ultimaPaginaNavegada = nuevaPagina;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_pageController.hasClients) {
-          _pageController.jumpToPage(nuevaPagina);
-          _navegacionEnProgreso = false;
-        }
-      });
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Mantener vacío
-  }
-
-  @override
-  void dispose() {
-    final modProv = context.read<ModulosProvider>();
-    modProv.removeListener(_onModuloChanged);
-    _pageController.dispose();
-    super.dispose();
   }
 
   @override
@@ -107,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final height = MediaQuery.of(context).size.height - barraHeight;
 
     final subModulos = modProv.subModulosActuales;
-    final screens = subModulos.map((sub) => sub.pantalla).toList();
+    final selectedIndex = modProv.subModuloSeleccionado;
 
     if (!_showScreenInit) {
       return Scaffold(backgroundColor: AppTheme.backgroundColor);
@@ -131,28 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         horizontal: 30,
                       ),
                       child:
-                          screens.isNotEmpty
-                              ? PageView.builder(
-                                controller: _pageController,
-                                physics: const NeverScrollableScrollPhysics(),
-                                onPageChanged: (index) {
-                                  if (!_navegacionEnProgreso &&
-                                      modProv.subModuloSeleccionado != index) {
-                                    _navegacionEnProgreso = true;
-                                    _ultimaPaginaNavegada = index;
-
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                          modProv.seleccionarSubModulo(index);
-                                          _navegacionEnProgreso = false;
-                                        });
-                                  }
-                                },
-                                itemCount: screens.length,
-                                itemBuilder: (context, index) {
-                                  return screens[index];
-                                },
-                              )
+                          subModulos.isNotEmpty && selectedIndex < subModulos.length
+                              ? subModulos[selectedIndex].pantalla
                               : Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
