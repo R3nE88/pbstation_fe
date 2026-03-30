@@ -104,8 +104,8 @@ class CotizacionesServices extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<Cotizaciones>> loadCotizaciones() async {
-    if (loaded) return [];
+  Future<List<Cotizaciones>> loadCotizaciones({bool force = false}) async {
+    if (loaded && !force) return [];
     isLoading = true;
 
     try {
@@ -238,7 +238,7 @@ class CotizacionesServices extends ChangeNotifier {
     }
   }
 
-  Future<String> createCotizacion(Cotizaciones cotizacion) async {
+  Future<Cotizaciones?> createCotizacion(Cotizaciones cotizacion) async {
     isLoading = true;
 
     final connectionId = WebSocketService.connectionId;
@@ -263,6 +263,7 @@ class CotizacionesServices extends ChangeNotifier {
         final Map<String, dynamic> data = json.decode(resp.body);
         final nuevo = Cotizaciones.fromMap(data);
         nuevo.id = data['id']?.toString();
+        nuevo.folio = data['folio']?.toString();
 
         cotizaciones.add(nuevo);
         filteredCotizaciones = obtenerFilter(false);
@@ -272,9 +273,9 @@ class CotizacionesServices extends ChangeNotifier {
         if (kDebugMode) {
           print('Folio: ${data['folio']}');
         }
-        return data['folio'];
+        return nuevo;
       } else {
-        debugPrint(
+        /*debugPrint(
           'Error al crear cotizacion: ${resp.statusCode} ${resp.body}',
         );
         final body = jsonDecode(resp.body);
@@ -282,15 +283,17 @@ class CotizacionesServices extends ChangeNotifier {
         if (detail is List) {
           return detail.map((e) => e['msg'] ?? e.toString()).join(', ');
         }
-        return detail?.toString() ?? 'Error desconocido';
+        return detail?.toString() ?? 'Error desconocido';*/
+        throw Exception(resp.body);
       }
     } catch (e) {
       debugPrint('Exception en createCotizacion: $e');
-      return 'Hubo un problema al crear la cotizacion.\n$e';
+      //return 'Hubo un problema al crear la cotizacion.\n$e';
     } finally {
       isLoading = false;
       notifyListeners();
     }
+    return null;
   }
 
   Future<bool> deleteCotizacion(String id) async {

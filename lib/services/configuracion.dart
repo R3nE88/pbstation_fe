@@ -30,7 +30,7 @@ class Configuracion extends ChangeNotifier {
     init = true;
     errorMessage = null;
 
-    //Obtener dolar e iva.
+    //Obtener dolar, iva y version minima de backend.
     try {
       final url = Uri.parse(_baseUrl);
       await _logDiagnostico('Intentando conectar a: $url');

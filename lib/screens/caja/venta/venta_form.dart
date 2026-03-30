@@ -1,9 +1,9 @@
 import 'dart:io';
-
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:decimal/decimal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pbstation_frontend/logic/impresiones.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pbstation_frontend/constantes.dart';
@@ -899,17 +899,20 @@ class _VentaFormState extends State<VentaForm> {
       vigente: true,
     );
 
-    String folio = await cotizacionSvc.createCotizacion(cotizacion);
+    Cotizaciones? cotizacionCreada = await cotizacionSvc.createCotizacion(cotizacion);
 
     DateTime lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    String vigencia =
-        '${lastDayOfMonth.day}/${lastDayOfMonth.month}/${lastDayOfMonth.year}';
+    String vigencia = '${lastDayOfMonth.day}/${lastDayOfMonth.month}/${lastDayOfMonth.year}';
 
     loadingSvc.hide();
     //Realizar cotizacion finalizado ///////////////
 
-    if (!mounted) return;
+    if (cotizacionCreada == null) {
+      //TODO: Avisar que hubo un error al crear cotizacion
+      return;
+    }
 
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (_) {
@@ -939,31 +942,28 @@ class _VentaFormState extends State<VentaForm> {
                   ),
                   const SizedBox(height: 10),
                   SelectableText(
-                    'Folio: $folio',
+                    'Folio: ${cotizacionCreada.folio}',
                     textScaler: const TextScaler.linear(1.1),
                   ),
 
                   const SizedBox(height: 25),
                   Column(
                     children: [
-                      Tooltip(
-                        message: 'En desarrollo...',
-                        child: ElevatedButton(
-                          onPressed: null,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Icon(
-                                Icons.print,
-                                color: Colors.transparent,
-                              ),
-                              Transform.translate(
-                                offset: const Offset(0, -1.5),
-                                child: const Text('  Imprimir'),
-                              ),
-                              const Icon(Icons.print),
-                            ],
-                          ),
+                      ElevatedButton(
+                        onPressed: (){ Impresiones.imprimirCotizacion(context, cotizacionCreada);},
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(
+                              Icons.print,
+                              color: Colors.transparent,
+                            ),
+                            Transform.translate(
+                              offset: const Offset(0, -1.5),
+                              child: const Text('  Imprimir'),
+                            ),
+                            const Icon(Icons.print),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -1021,6 +1021,7 @@ class _VentaFormState extends State<VentaForm> {
 
     _canFocus = true;
   }
+
 
   Future<void> seleccionarArchivos() async {
     _canFocus = false;

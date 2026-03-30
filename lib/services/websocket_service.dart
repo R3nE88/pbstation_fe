@@ -111,6 +111,7 @@ class WebSocketService with ChangeNotifier {
         'post-cotizacion': (id) => _cotizacionesSvc.loadACotizacion(id),
         'put-cotizacion': (id) => _cotizacionesSvc.updateACotizacion(id),
         'delete-cotizacion': (id) => _cotizacionesSvc.deleteACotizacion(id),
+        'reload-cotizaciones': (_) => _cotizacionesSvc.loadCotizaciones(force: true),
         'post-impresora': (id) => _impresoraSvc.loadAImpresora(id),
         'put-impresora': (id) => _impresoraSvc.updateAImpresora(id),
         'delete-impresora': (id) => _impresoraSvc.deleteAImpresora(id),

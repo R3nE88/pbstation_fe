@@ -208,7 +208,7 @@ class _ProductosScreenState extends State<ProductosScreen> {
                             final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
                             loadingSvc.show();
                             await servicios.deleteProducto(servicios.filteredProductos[index].id!);
-                            _searchController.clear();
+                            _searchController.clear(); 
                             _productosSvc.filteredProductos = _productosSvc.productos;
                             loadingSvc.hide();
                           }, 

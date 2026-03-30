@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pbstation_frontend/logic/impresiones.dart';
 import 'package:pbstation_frontend/logic/input_formatter.dart';
 import 'package:pbstation_frontend/logic/mensaje_flotante.dart';
 import 'package:pbstation_frontend/logic/venta_state.dart';
@@ -22,17 +23,18 @@ class CotizacionesScreen extends StatefulWidget {
 class _CotizacionesScreenState extends State<CotizacionesScreen> {
   final TextEditingController _searchController1 = TextEditingController();
   final TextEditingController _searchController2 = TextEditingController();
+  late final CotizacionesServices _cotizacionesSvc;
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
 
-    final cotizacionesServices = Provider.of<CotizacionesServices>(
+    _cotizacionesSvc = Provider.of<CotizacionesServices>(
       context,
       listen: false,
     );
-    cotizacionesServices.loadCotizaciones();
+    _cotizacionesSvc.loadCotizaciones();
     final clienteServices = Provider.of<ClientesServices>(
       context,
       listen: false,
@@ -53,23 +55,25 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController1.text.toLowerCase();
-        cotizacionesServices.filtrarCotizaciones(query, context);
+        _cotizacionesSvc.filtrarCotizaciones(query, context);
       });
     });
     _searchController2.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController2.text.toLowerCase();
-        cotizacionesServices.filtrarVencidas(query, context);
+        _cotizacionesSvc.filtrarVencidas(query, context);
       });
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _cotizacionesSvc.filteredCotizaciones = _cotizacionesSvc.cotizaciones;
+    _cotizacionesSvc.filteredVencidas = _cotizacionesSvc.vencidas;
     _searchController1.dispose();
     _searchController2.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
@@ -170,8 +174,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
   }
 
   Widget _buildTable(CotizacionesServices servicios, bool isVigente) {
-    final lista =
-        isVigente ? servicios.filteredCotizaciones : servicios.filteredVencidas;
+    final lista = isVigente ? servicios.filteredCotizaciones : servicios.filteredVencidas;
 
     return Column(
       children: [
@@ -213,7 +216,7 @@ class _CotizacionesScreenState extends State<CotizacionesScreen> {
             ],
           ),
         ),
-        TablaListView(cotizaciones: lista, vigente: isVigente),
+        TablaListView(cotizaciones: lista, vigente: isVigente, searchController: isVigente ? _searchController1 : _searchController2,),
         Container(
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
@@ -243,10 +246,12 @@ class TablaListView extends StatelessWidget {
     super.key,
     required this.cotizaciones,
     required this.vigente,
+    required this.searchController,
   });
 
   final List<Cotizaciones> cotizaciones;
   final bool vigente;
+  final TextEditingController searchController;
 
   @override
   Widget build(BuildContext context) {
@@ -263,6 +268,7 @@ class TablaListView extends StatelessWidget {
                 vigente: vigente,
                 cotizacion: cotizaciones[index],
                 index: index,
+                searchController: searchController,
               ),
         ),
       ),
@@ -276,101 +282,13 @@ class FilaCotizaciones extends StatelessWidget {
     required this.cotizacion,
     required this.index,
     required this.vigente,
+    required this.searchController,
   });
 
   final Cotizaciones cotizacion;
   final int index;
   final bool vigente;
-
-  @override
-  Widget build(BuildContext context) {
-    //Conseguir cliente
-    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
-    final clienteNombre = clienteSvc.obtenerNombreClientePorId(
-      cotizacion.clienteId,
-    );
-
-    //Conseguir Producto
-    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
-    final detalles = productosSvc.obtenerDetallesComoTexto(cotizacion.detalles);
-
-    //Conseguir Sucursal
-    final sucursalSvc = Provider.of<SucursalesServices>(context, listen: false);
-    final sucursalNombre = sucursalSvc.obtenerNombreSucursalPorId(
-      cotizacion.sucursalId,
-    );
-
-    //fecha
-    DateTime dt = DateTime.parse(cotizacion.fechaCotizacion);
-    final DateFormat formatter = DateFormat('dd-MM-yyyy');
-    final String formatted = formatter.format(dt);
-
-    return FeedBackButton(
-      onPressed: () => _verCotizacionCompleta(context),
-      onlyVertical: true,
-      child: GestureDetector(
-        onSecondaryTapDown: (details) {
-          _mostrarMenu(context, details.globalPosition);
-        },
-        child: Container(
-          padding: const EdgeInsets.all(8.0),
-          color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  cotizacion.folio ?? '-',
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  formatted,
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  sucursalNombre,
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  clienteNombre,
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  detalles,
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  Formatos.pesos.format(cotizacion.total.toDouble()),
-                  style: AppTheme.subtituloConstraste,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  final TextEditingController searchController;
 
   void _mostrarMenu(BuildContext context, Offset offset) async {
     final String? seleccion = await showMenu(
@@ -388,6 +306,16 @@ class FilaCotizaciones extends StatelessWidget {
       shadowColor: Colors.black,
       items: [
         if (vigente)
+          const PopupMenuItem(
+            value: 'imprimir',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.print, color: AppTheme.letraClara, size: 17),
+                Text('  Imprimir', style: AppTheme.subtituloPrimario),
+              ],
+            ),
+          ),
           const PopupMenuItem(
             value: 'usar',
             child: Row(
@@ -426,6 +354,9 @@ class FilaCotizaciones extends StatelessWidget {
     if (!context.mounted) return;
 
     switch (seleccion) {
+      case 'imprimir':
+        Impresiones.imprimirCotizacion(context, cotizacion);
+        break;
       case 'usar':
         _utilizarCotizacion(context);
         break;
@@ -1092,6 +1023,7 @@ class FilaCotizaciones extends StatelessWidget {
 
     final cotSvc = Provider.of<CotizacionesServices>(context, listen: false);
     final resultado = await cotSvc.renovarCotizacion(cotizacion.id!);
+    searchController.clear();
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1145,23 +1077,102 @@ class FilaCotizaciones extends StatelessWidget {
 
     final cotSvc = Provider.of<CotizacionesServices>(context, listen: false);
     final resultado = await cotSvc.deleteCotizacion(cotizacion.id!);
+    searchController.clear();
 
     if (!context.mounted) return;
     mostrarMensajeFlotante(
       context,
       resultado ? '¡Cotización eliminada!' : 'Error al eliminar la cotización',
     );
-    /*ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          resultado
-              ? '¡Cotización eliminada!'
-              : 'Error al eliminar la cotización',
-          textAlign: TextAlign.center,
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //Conseguir cliente
+    final clienteSvc = Provider.of<ClientesServices>(context, listen: false);
+    final clienteNombre = clienteSvc.obtenerNombreClientePorId(
+      cotizacion.clienteId,
+    );
+
+    //Conseguir Producto
+    final productosSvc = Provider.of<ProductosServices>(context, listen: false);
+    final detalles = productosSvc.obtenerDetallesComoTexto(cotizacion.detalles);
+
+    //Conseguir Sucursal
+    final sucursalSvc = Provider.of<SucursalesServices>(context, listen: false);
+    final sucursalNombre = sucursalSvc.obtenerNombreSucursalPorId(
+      cotizacion.sucursalId,
+    );
+
+    //fecha
+    DateTime dt = DateTime.parse(cotizacion.fechaCotizacion);
+    final DateFormat formatter = DateFormat('dd-MM-yyyy');
+    final String formatted = formatter.format(dt);
+
+    return FeedBackButton(
+      onPressed: () => _verCotizacionCompleta(context),
+      onlyVertical: true,
+      child: GestureDetector(
+        onSecondaryTapDown: (details) {
+          _mostrarMenu(context, details.globalPosition);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8.0),
+          color: index % 2 == 0 ? AppTheme.tablaColor1 : AppTheme.tablaColor2,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  cotizacion.folio ?? '-',
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  formatted,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  sucursalNombre,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  clienteNombre,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  detalles,
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  Formatos.pesos.format(cotizacion.total.toDouble()),
+                  style: AppTheme.subtituloConstraste,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
         ),
-        backgroundColor: resultado ? Colors.green : Colors.red,
-        duration: const Duration(seconds: 2),
       ),
-    );*/
+    );
   }
 }

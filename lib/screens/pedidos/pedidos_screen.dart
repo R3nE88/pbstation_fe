@@ -21,27 +21,29 @@ class PedidosScreen extends StatefulWidget {
 
 class _PedidosScreenState extends State<PedidosScreen> {
   final TextEditingController _searchController = TextEditingController();
+  late final PedidosService _pedidosSvc;
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    final pedidosSvc = Provider.of<PedidosService>(context, listen: false);
-    pedidosSvc.loadPedidos();
+    _pedidosSvc = Provider.of<PedidosService>(context, listen: false);
+    _pedidosSvc.loadPedidos();
 
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), () {
         final query = _searchController.text.toLowerCase();
-        pedidosSvc.filtrarPedidos(query);
+        _pedidosSvc.filtrarPedidos(query);
       });
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _debounce?.cancel();
+    _pedidosSvc.filteredPedidosReady = _pedidosSvc.pedidosReady;
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -204,7 +206,14 @@ class _PedidosScreenState extends State<PedidosScreen> {
                 child: ListView.builder(
                   itemCount: pedidosSvc.filteredPedidosReady.length,
                   itemBuilder: (context, index) {
-                    return FilaReady(pedido: pedidosSvc.filteredPedidosReady[index], index: index);
+                    return FilaReady(
+                      pedido: pedidosSvc.filteredPedidosReady[index], 
+                      index: index, 
+                      onUpdate: () {
+                        _pedidosSvc.filteredPedidosReady = _pedidosSvc.pedidosReady;
+                        _searchController.clear();
+                      }
+                    );
                   },
                 ),
               ),
@@ -329,10 +338,11 @@ class _FilaNotReadyState extends State<FilaNotReady> {
 }
 
 class FilaReady extends StatefulWidget {
-  const FilaReady({super.key, required this.pedido, required this.index});
+  const FilaReady({super.key, required this.pedido, required this.index, required this.onUpdate});
 
   final Pedidos pedido;
   final int index;
+  final VoidCallback onUpdate;
 
   @override
   State<FilaReady> createState() => _FilaReadyState();
@@ -386,7 +396,9 @@ class _FilaReadyState extends State<FilaReady> {
               const WindowBar(overlay: true),
             ],
           ),
-        );
+        ).then((_) {
+          widget.onUpdate();
+        });
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 2),

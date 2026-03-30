@@ -32,7 +32,7 @@ class _FacturaDetalleDialogState extends State<FacturaDetalleDialog> {
     try {
       final extension = tipo == 'pdf' ? 'pdf' : 'xml';
       final url = Uri.parse(
-        'http:${Constantes.baseUrl}facturacion/$tipo/${widget.factura.uuid}',
+        '${Constantes.baseUrl}facturacion/$tipo/${widget.factura.uuid}',
       );
 
       final response = await http.get(
