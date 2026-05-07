@@ -316,6 +316,7 @@ class FilaCotizaciones extends StatelessWidget {
               ],
             ),
           ),
+        if (vigente)
           const PopupMenuItem(
             value: 'usar',
             child: Row(

@@ -13,7 +13,6 @@ import 'package:pbstation_frontend/services/services.dart';
 import 'package:pbstation_frontend/theme/theme.dart';
 import 'package:pbstation_frontend/widgets/widgets.dart';
 import 'package:provider/provider.dart';
-
 import 'dialog/facturacion_global_dialog.dart';
 import 'dialog/factura_detalle_dialog.dart';
 
@@ -446,8 +445,6 @@ class _FolioMensualDialogState extends State<FolioMensualDialog> {
   final List<DateTime> _dates = [];
 
   void submited(DateTime date) async {
-    Navigator.pop(context);
-
     final loadingSvc = Provider.of<LoadingProvider>(context, listen: false);
     loadingSvc.show('Obteniendo tickets');
 
@@ -457,7 +454,9 @@ class _FolioMensualDialogState extends State<FolioMensualDialog> {
         .obtenerVentasSinFacturarPorDia(fecha);
     loadingSvc.hide();
 
-    if (!mounted) return;
+    if (!mounted) return; 
+    Navigator.pop(context);
+    
     showDialog(
       context: context,
       builder:

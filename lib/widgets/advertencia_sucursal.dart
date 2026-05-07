@@ -6,11 +6,10 @@ class AdvertenciaSucursal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Flexible(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -67,7 +66,6 @@ class AdvertenciaSucursal extends StatelessWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }
